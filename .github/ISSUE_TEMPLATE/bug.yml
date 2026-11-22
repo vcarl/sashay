@@ -1,0 +1,26 @@
+name: Bug report
+description: Something in sashay is broken
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes: {label: What happened}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: Expected}
+    validations: {required: true}
+  - type: input
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: StackBlitz/CodeSandbox/repo link; no repro, no triage
+    validations: {required: true}
+  - type: input
+    id: version
+    attributes: {label: "@vcarl/sashay version"}
+    validations: {required: true}
+  - type: input
+    id: env
+    attributes: {label: Browser / OS}
+    validations: {required: true}
