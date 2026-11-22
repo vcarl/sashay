@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "providers": {
+    "omlx": {
+      "name": "oMLX",
+      "env": ["OMLX_API_KEY"],
+      "package": "aisdk:@ai-sdk/openai-compatible",
+      "settings": { "baseURL": "http://localhost:8000/v1" },
+      "models": {}
+    }
+  },
+  "default_agent": "bugbot",
+  "instructions": ["AGENTS.md", "CONTRIBUTING.md"]
+}
