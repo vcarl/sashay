@@ -8,6 +8,15 @@ Attaches to `frame`. `frame` contains one `[data-sashay-pane="<id>"]` element pe
 optionally, one `[data-sashay-drawer="<id>"]` element per pane with a drawer. sashay creates
 and owns all the controls: edges, the leaf × button, the compact tab strip, grips and the spine.
 
+### Lengths
+
+Every size option is a `Length`: either a CSS length string (`"12rem"`, `"180px"`, `"20ch"`,
+`"30%"`, `"clamp(10rem, 20vw, 18rem)"`, `"var(--rail)"`) or a number, which means pixels.
+Percentages are relative to the frame's width. sashay resolves each distinct value by
+measuring it in place. It re-measures on resize and font load, never during a drag. Invalid
+values throw (checked with `CSS.supports`). Pane widths themselves (`focus`, layouts) are
+fractions, because they live on the snap grid.
+
 ### Options
 
 | Option | Type | Default | Description |
@@ -17,7 +26,7 @@ and owns all the controls: edges, the leaf × button, the compact tab strip, gri
 | `defaultLayout` | `number[]` | equal split | Divider positions as fractions (0–1). |
 | `onChange` | `(layout: string) => void` | none | Fires on release, click, keypress or a pane-list change, never during a drag. |
 | `onClose` | `(id: string) => void` | none | Fires when the user closes a pane, by × or by dragging it below `minWidth`. |
-| `compactBelow` | `number` (px) | `640` | Below this frame width, compact mode applies. |
+| `compactBelow` | `Length` | `"40rem"` | Below this frame width, compact mode applies. |
 
 ### `PaneOptions`
 
@@ -26,17 +35,17 @@ and owns all the controls: edges, the leaf × button, the compact tab strip, gri
 | `id` | `string` | required | Matches `data-sashay-pane`. Stable identity across list changes. |
 | `title` | `string` | required | Used for the edge label, the compact tab and accessible names. |
 | `focus` | `number` (fraction) | required | The width the pane opens to. When covered, it is also the narrowest the pane is ever drawn. |
-| `minWidth` | `number` (px) | `0` | A pane released narrower than this closes. A drag may go below it. |
-| `maxWidth` | `number` (px) | none | Caps growth from dragging *other* edges. It never limits dragging the pane's own edge. |
+| `minWidth` | `Length` | `0` | A pane released narrower than this closes. A drag may go below it. |
+| `maxWidth` | `Length` | none | Caps growth from dragging *other* edges. It never limits dragging the pane's own edge. |
 | `opensTo` | `number[]` | none | Divider fractions to snap to when this pane is revealed. |
-| `edge` | `EdgeOptions` | `{ width: 12 }` | The pane's leading edge. |
+| `edge` | `EdgeOptions` | `{ width: "0.75rem" }` | The pane's leading edge. |
 
 ### `EdgeOptions`
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `width` | `number` (px) | `12` | Edge width. Edges sit outside the fractional layout. |
-| `drawer` | `{ width: number; title: string }` | none | The edge opens a drawer `width` px wide. Its content goes in `[data-sashay-drawer]`. In compact mode, the drawer is an overlay sheet, one open at a time. |
+| `width` | `Length` | `"0.75rem"` | Edge width. Edges sit outside the fractional layout. |
+| `drawer` | `{ width: Length; title: string }` | none | The edge opens a drawer `width` wide. Its content goes in `[data-sashay-drawer]`. In compact mode, the drawer is an overlay sheet, one open at a time. |
 
 ### `SashayHandle`
 
@@ -45,7 +54,7 @@ and owns all the controls: edges, the leaf × button, the compact tab strip, gri
 | `reveal(id)` | Opens the pane, or uncovers it, including bringing it back from the spine. Uses `opensTo` if set. |
 | `close(id)` | Closes the pane. |
 | `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |
-| `keepInView(id, x \| null)` | While covered, keeps `x` (px from the pane's left) inside the visible slice. |
+| `keepInView(id, x \| null)` | While covered, keeps `x` inside the visible slice. `x` is in px from the pane's left, matching pointer-event coordinates. |
 | `setLayout(code)` | Applies a code. Does not fire `onChange`. |
 | `fit(fractions)` | Moves the dividers to the nearest snaps. Fires `onChange`. |
 | `update(options)` | Replaces `panes` or the callbacks without rebuilding. |
