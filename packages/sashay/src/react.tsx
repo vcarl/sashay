@@ -34,27 +34,38 @@ export interface SashayProps extends Omit<ComponentProps<"div">, "onChange" | "r
   onLayoutChange?: (layout: string) => void;
   ref?: Ref<SashayHandle>;
 }
-export interface PaneProps extends Omit<PaneOptions, "edge"> {
+interface OwnPaneProps extends Omit<PaneOptions, "edge"> {
   edge?: { width?: Length; drawer?: { width: Length; title: string; content: ReactNode } };
   keepInView?: Length | null;
   onClose?: () => void;
   children?: ReactNode | ((state: { offscreen: boolean }) => ReactNode);
 }
+// Other div props go to the pane element; sashay's own attributes override them.
+export type PaneProps = OwnPaneProps &
+  Omit<ComponentProps<"section">, keyof OwnPaneProps | "ref" | "inert" | "data-sashay-pane">;
 
 interface Store {
   reg: Map<string, PaneProps>;
   h: SashayHandle | null;
   code: string | undefined; // last layout code reported or applied
   key: string; // last pane list sent to the controller
-  queued: boolean;
+  dirty: boolean; // a pane registered or unregistered since the last flush
   flush(): void;
   changed(): void;
 }
 const Ctx = createContext<Store | null>(null);
 
-const toOptions = ({ keepInView, onClose, children, edge, ...p }: PaneProps): PaneOptions => {
+const toOptions = ({ id, title, focus, minWidth, maxWidth, opensTo, edge }: PaneProps): PaneOptions => {
   const d = edge?.drawer;
-  return { ...p, edge: edge && { width: edge.width, drawer: d && { width: d.width, title: d.title } } };
+  return {
+    id,
+    title,
+    focus,
+    minWidth,
+    maxWidth,
+    opensTo,
+    edge: edge && { width: edge.width, drawer: d && { width: d.width, title: d.title } },
+  };
 };
 const METHODS = ["reveal", "close", "toggleDrawer", "keepInView", "fit", "update", "destroy"] as const;
 
@@ -70,8 +81,9 @@ export function Sashay(props: SashayProps): ReactElement {
     h: null,
     code: layout,
     key: "",
-    queued: false,
+    dirty: false,
     flush() {
+      s.dirty = false;
       const f = frame.current;
       if (!s.h || !f) return;
       const panes = paneList(f, s.reg);
@@ -82,12 +94,10 @@ export function Sashay(props: SashayProps): ReactElement {
       }
     },
     changed() {
-      if (s.queued) return;
-      s.queued = true;
-      queueMicrotask(() => {
-        s.queued = false;
-        s.flush();
-      });
+      if (s.dirty) return;
+      s.dirty = true;
+      // <Sashay>'s layout effect flushes when it re-renders too; this covers a <Pane> that mounts alone.
+      queueMicrotask(() => s.dirty && s.flush());
     },
   }));
 
@@ -116,6 +126,10 @@ export function Sashay(props: SashayProps): ReactElement {
       s.h = null;
     };
   }, [s]);
+  // Children's layout effects ran first, so pane-list changes land before anyone's useEffect.
+  useLayoutEffect(() => {
+    if (s.dirty) s.flush();
+  });
   useLayoutEffect(() => s.h?.update({ compactBelow: compactBelow ?? COMPACT }), [s, compactBelow]);
   useLayoutEffect(() => {
     if (!s.h || layout === undefined || layout === s.code) return;
@@ -129,13 +143,17 @@ export function Sashay(props: SashayProps): ReactElement {
       ...(Object.fromEntries(
         METHODS.map((k) => [
           k,
-          (...a: unknown[]) => (s.h?.[k] as ((...x: unknown[]) => void) | undefined)?.apply(s.h, a),
+          (...a: unknown[]) => {
+            if (s.dirty) s.flush(); // a <Pane> mounted in this commit, before <Sashay>'s layout effect
+            return (s.h?.[k] as ((...x: unknown[]) => void) | undefined)?.apply(s.h, a);
+          },
         ]),
       ) as unknown as SashayHandle),
       get layout() {
         return s.h?.layout ?? s.code ?? "";
       },
       setLayout(c: string) {
+        if (s.dirty) s.flush();
         s.code = c; // so a later `layout` prop equal to the old code still applies
         s.h?.setLayout(c);
       },
@@ -192,7 +210,7 @@ function SsrStyle({ s, scope, layout, defaultLayout }: { s: Store; scope: string
 export function Pane(props: PaneProps): ReactElement {
   const s = useContext(Ctx);
   if (!s) throw new Error("sashay: <Pane> must be inside <Sashay>");
-  const { id, title, edge, keepInView, children } = props;
+  const { id, title, focus, minWidth, maxWidth, opensTo, edge, keepInView, onClose, children, ...rest } = props;
   s.reg.set(id, props); // during render too, so server rendering knows the panes
   const el = useRef<HTMLElement>(null);
   const [offscreen, setOffscreen] = useState(false);
@@ -217,7 +235,7 @@ export function Pane(props: PaneProps): ReactElement {
 
   return (
     <>
-      <section ref={el} data-sashay-pane={id} aria-label={title}>
+      <section {...rest} ref={el} data-sashay-pane={id} aria-label={title}>
         {fn ? children({ offscreen }) : children}
       </section>
       {edge?.drawer && <div data-sashay-drawer={id}>{edge.drawer.content}</div>}

@@ -1,4 +1,4 @@
-import { act, type ReactNode, StrictMode, useState } from "react";
+import { act, type ReactNode, StrictMode, useEffect, useState } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -183,4 +183,70 @@ test("StrictMode", async () => {
   );
   expect(tx(P("b"))).toBeCloseTo(332, 1);
   expect(host.querySelectorAll("[data-sashay-close]")).toHaveLength(1);
+});
+
+// Two wide panes appended together: the second covers the first until reveal() brings it back.
+const deep = Array.from({ length: 6 }, (_, k) => ({ id: `p${k}`, title: `P${k}`, focus: 1 / 3 }));
+const wide = [
+  { id: "n1", title: "N1", focus: 0.8 },
+  { id: "n2", title: "N2", focus: 0.8 },
+];
+
+const ref = { current: null as SashayHandle | null };
+function Revealer() {
+  useEffect(() => ref.current?.reveal("n1"), []);
+  return wide.map((p) => <Pane key={p.id} {...p} />);
+}
+let mount = () => {};
+function Late() {
+  const [on, setOn] = useState(false);
+  mount = () => setOn(true);
+  return on ? <Revealer /> : null;
+}
+function Adder() {
+  const [panes, setPanes] = useState(deep);
+  useEffect(() => {
+    if (panes.length > deep.length) ref.current?.reveal("n1");
+  }, [panes]);
+  return (
+    <>
+      <button type="button" id="add" onClick={() => setPanes([...deep, ...wide])} />
+      <App ref={ref} layout="3-48" panes={panes} />
+    </>
+  );
+}
+
+test("a child effect can reveal a pane it just mounted", async () => {
+  await render(<App ref={ref} layout="3-48" panes={deep} extra={<Late />} />);
+  await act(async () => mount());
+  expect(P("n1").hasAttribute("data-offscreen")).toBe(false);
+  expect(P("n2").hasAttribute("data-closed")).toBe(true);
+});
+
+test("an effect after an event handler's setState can reveal the added pane", async () => {
+  await render(<Adder />);
+  await act(() => (host.querySelector("#add") as HTMLElement).click());
+  expect(P("n1").hasAttribute("data-offscreen")).toBe(false);
+  expect(P("n2").hasAttribute("data-closed")).toBe(true);
+});
+
+test("<Pane> passes div props through; sashay's own attributes win", async () => {
+  const onClick = vi.fn();
+  const a = {
+    ...P3[0],
+    className: "mine",
+    style: { color: "red" },
+    "data-kind": "x",
+    "aria-describedby": "d",
+    onClick,
+  };
+  await render(<App layout="48" panes={[{ ...a, "data-sashay-pane": "zz" } as PaneProps, P3[1], P3[2]]} />);
+  const el = P("a");
+  expect(el.className).toBe("mine");
+  expect(el.dataset.kind).toBe("x");
+  expect(el.getAttribute("aria-describedby")).toBe("d");
+  expect(el.style.color).toBe("red");
+  expect(Number.isFinite(tx(el))).toBe(true);
+  await act(() => el.click());
+  expect(onClick).toHaveBeenCalledOnce();
 });

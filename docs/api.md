@@ -20,6 +20,7 @@ Approved design. Implementation must match. Change it only with Carl's sign-off.
 | `keepInView` | `Length \| null`. |
 | `onClose` | Fires when this pane is closed. |
 | `children` | The pane's content, or `(state: { offscreen: boolean }) => ReactNode` so an app can unmount heavy content in very deep stacks. |
+| other div props | Passed to the pane element: `className`, `style`, `data-*`, `aria-*`, event handlers. Sashay's own attributes win: `data-sashay-pane`, `aria-label` (from `title`), `inert`, `data-covered`, `data-closed`, `data-offscreen`, and the inline position and width. |
 
 `<Pane>` renders its own element and registers itself with the nearest `<Sashay>`, so it can
 be wrapped in other components or rendered conditionally. Server rendering produces

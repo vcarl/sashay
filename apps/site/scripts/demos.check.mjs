@@ -59,7 +59,7 @@ for (const width of [1440, 390]) {
   assert.equal(await panes.count(), 6, "back pops one level");
   await hs.locator("[data-sashay-pane]:last-of-type [data-open]:not(:has(.hs-chev))").first().click();
   await settle(page);
-  const item = hs.locator("[data-sashay-pane]:has(> .hs-item)");
+  const item = hs.locator('[data-level="item"]');
   assert.equal(await item.count(), 1, "item preview opens");
   assert.equal(await item.locator("svg").count(), 1);
   assert.equal(await item.getAttribute("inert"), null, "preview is visible");

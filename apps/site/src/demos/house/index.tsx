@@ -28,9 +28,7 @@ export function House({ depth = 1, onUrl }: HouseProps) {
   useLayoutEffect(() => {
     if (last.current === path) return;
     last.current = path;
-    const id = path[path.length - 1].id;
-    // ponytail: a microtask, so <Sashay> has taken the new pane list before reveal() looks for it.
-    queueMicrotask(() => sash.current?.reveal(id));
+    sash.current?.reveal(path[path.length - 1].id);
   }, [path]);
   useEffect(() => onUrl?.(path.slice(1).map(slug).join("/")), [path, onUrl]);
 
@@ -39,7 +37,14 @@ export function House({ depth = 1, onUrl }: HouseProps) {
     <Sashay ref={sash} className="house">
       {path.map((n, i) => (
         // The leaf × pops the stack back to the pane before it.
-        <Pane key={n.id} id={n.id} title={n.name} focus={1 / 3} onClose={() => go(path[i - 1] ?? root)}>
+        <Pane
+          key={n.id}
+          id={n.id}
+          title={n.name}
+          focus={1 / 3}
+          data-level={n.item ? "item" : n.depth % 3}
+          onClose={() => go(path[i - 1] ?? root)}
+        >
           <Level node={n} parent={path[i - 1]} path={path} go={go} />
         </Pane>
       ))}
@@ -69,7 +74,7 @@ function Level({ node, parent, path, go }: { node: Node; parent?: Node; path: No
     );
   const list = kids(node);
   return (
-    <div data-depth={node.depth % 3}>
+    <div>
       {back}
       <h3>{node.name}</h3>
       <p className="hs-meta">{list.length ? `${list.length} ${list.length === 1 ? "thing" : "things"}` : "Empty"}</p>
