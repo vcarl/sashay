@@ -1,6 +1,6 @@
 ---
 title: Reference.
-description: Every option, method, hook and prop of @vcarl/sashay and @vcarl/sashay/react.
+description: Every prop, method, option and hook of @vcarl/sashay/react and the @vcarl/sashay core.
 tableOfContents:
   minHeadingLevel: 2
   maxHeadingLevel: 3
@@ -11,20 +11,64 @@ import ReactDemo from "../../examples/react.tsx";
 import reactSource from "../../examples/react.tsx?raw";
 import "@vcarl/sashay/style.css";
 
-## `createSashay(frame, options) → SashayHandle`
+## `@vcarl/sashay/react`
+
+### `<Sashay>`
+
+| Prop | Description |
+|---|---|
+| `layout`, `defaultLayout`, `compactBelow` | Same as the core options, below. |
+| `onLayoutChange` | Same as `onChange`. |
+| `ref` | Gives you the `SashayHandle` methods (below). |
+
+### `<Pane>`
+
+| Prop | Description |
+|---|---|
+| all `PaneOptions` fields | Same as the core's, below. `edge.drawer` also takes `content: ReactNode`. |
+| `keepInView` | `Length \| null`. |
+| `onClose` | Fires when this pane is closed. |
+| `children` | The pane's content, or `(state: { offscreen: boolean }) => ReactNode` so an app can unmount heavy content in very deep stacks. |
+
+`<Pane>` renders its own element and registers itself with the nearest `<Sashay>`, so it can
+be wrapped in other components or rendered conditionally. Server rendering produces
+percentage widths from `layout`, so the first paint matches the hydrated layout on frames wide
+enough for the layout's grid. Narrower frames (compact mode, or a coarser snap grid) re-snap on
+hydration.
+
+A small mail app: picking a message renders a `<Pane>` for it, and closing it clears the state.
+
+<Code code={reactSource} lang="tsx" title="react.tsx" />
+<div class="demo not-content">
+  <ReactDemo client:visible />
+</div>
+
+### `SashayHandle`
+
+The React `ref`, and the return value of `createSashay`.
+
+| Method | Description |
+|---|---|
+| `layout` (getter) | The current layout code. |
+| `reveal(id)` | Opens the pane, or uncovers it, including bringing it back from the spine. Uses `opensTo` if set. |
+| `close(id)` | Closes the pane. |
+| `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |
+| `keepInView(id, x \| null)` | While covered, keeps point `x` (a `Length` from the pane's left; `"40%"` is 40% of the pane's width) inside the visible slice. |
+| `setLayout(code)` | Applies a code. Does not fire `onChange`. |
+| `fit(fractions)` | Moves the dividers to the nearest snaps. Fires `onChange`. |
+| `update(options)` | Replaces `panes` or the callbacks without rebuilding. |
+| `destroy()` | Removes the listeners, the observer and the controls sashay added. |
+
+## Core (escape hatch)
+
+The React components wrap a vanilla DOM controller with no dependencies. Use it directly
+from another framework or library, or to build your own wrapper.
+
+### `createSashay(frame, options) → SashayHandle`
 
 Attaches to `frame`. `frame` contains one `[data-sashay-pane="<id>"]` element per pane and,
 optionally, one `[data-sashay-drawer="<id>"]` element per pane with a drawer. sashay creates
 and owns all the controls: edges, the leaf × button, the compact tab strip, grips and the spine.
-
-### Lengths
-
-Every size option is a `Length`: either a CSS length string (`"12rem"`, `"180px"`, `"20ch"`,
-`"30%"`, `"clamp(10rem, 20vw, 18rem)"`, `"var(--rail)"`) or a number, which means pixels.
-Percentages are relative to the frame's width. sashay resolves each distinct value by
-measuring it in place. It re-measures on resize and font load, never during a drag. Invalid
-values throw (checked with `CSS.supports`). Pane widths themselves (`focus`, layouts) are
-fractions, because they live on the snap grid.
 
 ### Options
 
@@ -56,19 +100,14 @@ fractions, because they live on the snap grid.
 | `width` | `Length` | `"2.75rem"` with a `drawer`, else `"0.75rem"` | Edge width. Edges sit outside the fractional layout. |
 | `drawer` | `{ width: Length; title: string }` | none | The edge opens a drawer `width` wide. Its content goes in `[data-sashay-drawer]`. In compact mode, the drawer is an overlay sheet, one open at a time. |
 
-### `SashayHandle`
+## Lengths
 
-| Method | Description |
-|---|---|
-| `layout` (getter) | The current layout code. |
-| `reveal(id)` | Opens the pane, or uncovers it, including bringing it back from the spine. Uses `opensTo` if set. |
-| `close(id)` | Closes the pane. |
-| `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |
-| `keepInView(id, x \| null)` | While covered, keeps point `x` (a `Length` from the pane's left; `"40%"` is 40% of the pane's width) inside the visible slice. |
-| `setLayout(code)` | Applies a code. Does not fire `onChange`. |
-| `fit(fractions)` | Moves the dividers to the nearest snaps. Fires `onChange`. |
-| `update(options)` | Replaces `panes` or the callbacks without rebuilding. |
-| `destroy()` | Removes the listeners, the observer and the controls sashay added. |
+Every size option is a `Length`: either a CSS length string (`"12rem"`, `"180px"`, `"20ch"`,
+`"30%"`, `"clamp(10rem, 20vw, 18rem)"`, `"var(--rail)"`) or a number, which means pixels.
+Percentages are relative to the frame's width. sashay resolves each distinct value by
+measuring it in place. It re-measures on resize and font load, never during a drag. Invalid
+values throw (checked with `CSS.supports`). Pane widths themselves (`focus`, layouts) are
+fractions, because they live on the snap grid.
 
 ## Dynamic panes and deep stacks
 
@@ -129,35 +168,3 @@ Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
 - On a focused edge, ← and → move between snaps, and Enter or Space opens or closes the pane.
 - Drawer toggles carry `aria-expanded`.
 - Covered and off-screen panes are `inert`.
-
-## `@vcarl/sashay/react`
-
-### `<Sashay>`
-
-| Prop | Description |
-|---|---|
-| `layout`, `defaultLayout`, `compactBelow` | Same as the options. |
-| `onLayoutChange` | Same as `onChange`. |
-| `ref` | Gives you the `SashayHandle` methods. |
-
-### `<Pane>`
-
-| Prop | Description |
-|---|---|
-| all `PaneOptions` fields | Same as above. `edge.drawer` also takes `content: ReactNode`. |
-| `keepInView` | `Length \| null`. |
-| `onClose` | Fires when this pane is closed. |
-| `children` | The pane's content, or `(state: { offscreen: boolean }) => ReactNode` so an app can unmount heavy content in very deep stacks. |
-
-`<Pane>` renders its own element and registers itself with the nearest `<Sashay>`, so it can
-be wrapped in other components or rendered conditionally. Server rendering produces
-percentage widths from `layout`, so the first paint matches the hydrated layout on frames wide
-enough for the layout's grid. Narrower frames (compact mode, or a coarser snap grid) re-snap on
-hydration.
-
-A small mail app: picking a message renders a `<Pane>` for it, and closing it clears the state.
-
-<Code code={reactSource} lang="tsx" title="react.tsx" />
-<div class="demo not-content">
-  <ReactDemo client:visible />
-</div>

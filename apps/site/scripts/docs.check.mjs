@@ -8,7 +8,7 @@ const errors = [];
 const open = async (path, width = 1440) => {
   const page = await browser.newPage({ viewport: { width, height: 900 } });
   page.on("pageerror", (e) => errors.push(`${path}: ${e.message}`));
-  page.on("console", (m) => m.type() === "error" && errors.push(`${path}: ${m.text()}`));
+  page.on("console", (m) => (m.type() === "error" || /hydrat/i.test(m.text())) && errors.push(`${path}: ${m.text()}`));
   await page.goto(new URL(path, base).href, { waitUntil: "networkidle" });
   return page;
 };
@@ -84,6 +84,21 @@ await url.scrollIntoViewIfNeeded();
 await url.locator('[role="separator"]').first().press("ArrowLeft");
 assert.doesNotMatch(await url.locator(".mb-url").textContent(), /layout=6a&/, "the mini URL bar follows a keypress");
 assert.equal(new URL(page.url()).search, "", "the page's own URL stays put");
+
+// The excerpts are the React demo's own source, and "Without React" runs the core on its own.
+assert.ok((await page.locator(".expressive-code", { hasText: "finance/index.tsx" }).count()) >= 3, "TSX excerpts");
+const vanilla = page.locator("#vanilla-mail");
+await vanilla.scrollIntoViewIfNeeded();
+await page.locator("#vanilla-mail[data-sashay-ready]").waitFor();
+await vanilla.getByRole("button", { name: "Invoice" }).click();
+await page.waitForTimeout(400);
+assert.equal(
+  await vanilla.locator('[data-sashay-pane="message"]').getAttribute("data-closed"),
+  null,
+  "reveal opens it",
+);
+assert.match(await vanilla.textContent(), /Message: Invoice/);
+assert.match(await vanilla.textContent(), /Layout: \w+/, "onChange reports the layout");
 await page.close();
 
 page = await open("reference/");
