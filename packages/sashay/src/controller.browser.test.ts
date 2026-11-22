@@ -216,6 +216,19 @@ test("edges carry ARIA", () => {
   expect($("[data-sashay-close]").getAttribute("aria-label")).toBe("Close C");
 });
 
+test("the leaf × is hidden when closing it is impossible", () => {
+  h = createSashay(frame, { panes: P3, layout: "48" });
+  expect($("[data-sashay-close]").hidden).toBe(false);
+  h.close("b");
+  h.close("c");
+  expect($("[data-sashay-close]").hidden).toBe(true);
+  h.destroy();
+  frame.style.width = "400px";
+  h = createSashay(frame, { panes: P3, layout: "48" });
+  expect(frame.hasAttribute("data-compact")).toBe(true);
+  expect($("[data-sashay-close]").hidden).toBe(true);
+});
+
 test("toggleDrawer opens a drawer beside its edge", () => {
   const onChange = vi.fn();
   const d = document.createElement("div");

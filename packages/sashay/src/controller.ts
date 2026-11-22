@@ -216,6 +216,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   leaf.setAttribute("data-sashay-close", "");
   leaf.textContent = "×";
   frame.prepend(spine, leaf);
+  let lone = false; // closing the leaf is impossible: set in sync, read per frame in paint
   const marks: HTMLElement[] = [];
   const tabs = document.createElement("div");
   tabs.setAttribute("data-sashay-tabs", "");
@@ -375,6 +376,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     }
     while (marks.length > Math.max(0, w.length - 1)) marks.pop()?.remove();
     if (spineFocused && spine.hidden && w.length) edges.get(w[0].id)?.focus({ preventScroll: true });
+    const open = [...openIds()];
+    lone = c || open.length < 2;
+    if (lone && document.activeElement === leaf) edges.get(open.pop() ?? w[0]?.id)?.focus({ preventScroll: true });
   };
 
   // Geometry for window panes only: safe to call every frame.
@@ -450,7 +454,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         m.toggleAttribute("data-primary", k === preview?.d);
       });
     }
-    leaf.hidden = right < 0;
+    leaf.hidden = right < 0 || lone;
     leaf.style.transform = `translateX(${right}px)`;
     if (leaf.getAttribute("aria-label") !== `Close ${last}`) leaf.setAttribute("aria-label", `Close ${last}`);
   };
