@@ -1,0 +1,10 @@
+---
+// Breadcrumb from the sidebar group, and `backticks` in the title become a butter-highlighted symbol.
+
+const { entry, sidebar } = Astro.locals.starlightRoute;
+const group = sidebar.find((g) => g.type === "group" && g.entries.some((e) => e.type === "link" && e.isCurrent));
+const current = group?.type === "group" ? group.entries.find((e) => e.type === "link" && e.isCurrent) : undefined;
+const parts = entry.data.title.split("`");
+---
+{group && current && <div class="sl-crumb">{group.label} / {current.label}</div>}
+<h1 id="_top">{parts.map((p, i) => (i % 2 ? <code>{p}</code> : p))}</h1>

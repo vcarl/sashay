@@ -1,0 +1,22 @@
+:root {
+  --paper: #f6eedc;
+  --ink: #1b1a17;
+  --mute: #5b574d;
+  --cobalt: #1f3fcb;
+  --tomato: #e4472c;
+  --butter: #ffc846;
+  --mint: #7fd1b4;
+  --line: #1b1a17;
+  --display: "Fraunces Variable", Georgia, serif;
+  --sans: "Instrument Sans Variable", system-ui, sans-serif;
+  --mono: "JetBrains Mono Variable", ui-monospace, Menlo, monospace;
+  --edge: 32px;
+  --rule: 3px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur: 0.24s;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 0s;
+  }
+}

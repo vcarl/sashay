@@ -1,6 +1,22 @@
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
+import { ExpressiveCodeTheme } from "@astrojs/starlight/expressive-code";
 import { defineConfig } from "astro/config";
+
+const ink = "#1B1A17";
+const paper = "#F6EEDC";
+
+// The mock's code colours: paper text on ink, mint comments, butter keywords, peach strings.
+const sash = new ExpressiveCodeTheme({
+  name: "sash",
+  type: "dark",
+  colors: { "editor.background": ink, "editor.foreground": paper },
+  tokenColors: [
+    { scope: ["comment", "punctuation.definition.comment"], settings: { foreground: "#7FD1B4" } },
+    { scope: ["keyword", "storage", "storage.type", "constant.language"], settings: { foreground: "#FFC846" } },
+    { scope: ["string", "constant.numeric", "entity.name.tag"], settings: { foreground: "#FFB199" } },
+  ],
+});
 
 export default defineConfig({
   base: process.env.SITE_BASE ?? "/",
@@ -8,7 +24,26 @@ export default defineConfig({
     react(),
     starlight({
       title: "sashay",
-      customCss: ["./src/styles/starlight.css"],
+      tableOfContents: false,
+      customCss: ["./src/styles/fonts.css", "./src/styles/tokens.css", "./src/styles/starlight.css"],
+      components: {
+        PageTitle: "./src/components/PageTitle.astro",
+        SocialIcons: "./src/components/SocialIcons.astro",
+      },
+      expressiveCode: {
+        themes: [sash],
+        useStarlightUiThemeColors: false,
+        styleOverrides: {
+          borderRadius: "10px",
+          borderColor: ink,
+          borderWidth: "0px",
+          codeFontFamily: "var(--mono)",
+          codeFontSize: "13.5px",
+          codeLineHeight: "1.55",
+          uiFontFamily: "var(--sans)",
+          frames: { shadowColor: "transparent", frameBoxShadowCssValue: "none" },
+        },
+      },
       sidebar: [],
     }),
   ],

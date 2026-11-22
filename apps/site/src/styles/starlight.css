@@ -1,0 +1,241 @@
+/* Starlight's structure, none of its look. One light theme, mapped onto the landing tokens. */
+:root,
+:root[data-theme] {
+  color-scheme: light;
+  --sl-color-white: var(--ink);
+  --sl-color-gray-1: var(--ink);
+  --sl-color-gray-2: var(--ink);
+  --sl-color-gray-3: var(--mute);
+  --sl-color-gray-4: var(--mute);
+  --sl-color-gray-5: var(--ink);
+  --sl-color-gray-6: #ebe1c9;
+  --sl-color-gray-7: #ebe1c9;
+  --sl-color-black: var(--paper);
+  --sl-color-accent-low: var(--butter);
+  --sl-color-accent: var(--cobalt);
+  --sl-color-accent-high: var(--ink);
+  --sl-color-text: var(--ink);
+  --sl-color-text-accent: var(--cobalt);
+  --sl-color-text-invert: var(--ink);
+  --sl-color-bg: var(--paper);
+  --sl-color-bg-nav: var(--paper);
+  --sl-color-bg-sidebar: var(--ink);
+  --sl-color-bg-inline-code: #ebe1c9;
+  --sl-color-bg-accent: var(--butter);
+  --sl-color-hairline-light: var(--ink);
+  --sl-color-hairline: var(--ink);
+  --sl-color-hairline-shade: var(--ink);
+  --sl-color-backdrop-overlay: rgb(27 26 23 / 0.6);
+  --sl-shadow-sm: none;
+  --sl-shadow-md: none;
+  --sl-shadow-lg: none;
+  --sl-font: var(--sans);
+  --sl-font-mono: var(--mono);
+  --sl-text-body: 17px;
+  --sl-line-height: 1.5;
+  --sl-text-h1: clamp(2.125rem, 3.6vw, 3.5rem);
+  --sl-text-h2: 2rem;
+  --sl-text-h3: 1.5rem;
+  --sl-nav-height: 4.25rem;
+  --sl-sidebar-width: 15rem;
+  --sl-content-width: 48rem;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+starlight-theme-select {
+  display: none;
+}
+
+/* Masthead: the landing page's, over a 3px ink rule. */
+.page > .header {
+  border-bottom: var(--rule) solid var(--ink);
+}
+.site-title {
+  font: 600 26px / 1 var(--display);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.site-title::after {
+  content: "@vcarl/sashay · 1.0 · MIT";
+  font: 500 13px var(--mono);
+  letter-spacing: 0;
+  color: var(--mute);
+}
+.social-icons {
+  gap: 22px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.social-icons::after {
+  display: none;
+}
+.social-icons a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+.social-icons a:hover {
+  border-color: var(--tomato);
+}
+site-search button[data-open-modal] {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+}
+
+/* Sidebar: an ink stile with mint labels and a tomato pull-tab. */
+.sidebar-pane {
+  border-inline-end: 0;
+}
+.sidebar-content {
+  padding-inline: 0;
+  padding-top: 22px;
+  color: var(--paper);
+}
+.sidebar-content summary {
+  padding: 14px 22px 6px;
+}
+.sidebar-content summary .large {
+  font: 700 11px var(--sans);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mint);
+}
+.sidebar-content summary .caret {
+  display: none;
+}
+.sidebar-content ul ul li {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.sidebar-content a {
+  padding: 6px 22px;
+  border-radius: 0;
+  font-size: 14px;
+  color: var(--paper);
+  opacity: 0.85;
+}
+.sidebar-content a:hover,
+.sidebar-content a:focus {
+  color: var(--paper);
+  opacity: 1;
+}
+.sidebar-content a[aria-current="page"],
+.sidebar-content a[aria-current="page"]:hover,
+.sidebar-content a[aria-current="page"]:focus {
+  margin-left: 10px;
+  padding-left: 18px;
+  border-radius: 8px 0 0 8px;
+  background: var(--tomato);
+  color: var(--ink);
+  font-weight: 700;
+  opacity: 1;
+}
+.sidebar-content .top-level > li + li {
+  margin-top: 0;
+}
+.sidebar-content :focus-visible,
+:focus-visible {
+  outline: 3px solid var(--butter);
+  outline-offset: 2px;
+}
+.sidebar-content .mobile-preferences {
+  border-top: 2px solid var(--paper);
+  margin-inline: 22px;
+}
+.sidebar-content .mobile-preferences a {
+  color: var(--paper);
+}
+starlight-menu-button button {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: none;
+}
+
+/* Content: Fraunces titles, symbol in butter, tables ruled in 2px ink, ink code. */
+.main-pane .content-panel {
+  border-top: 0;
+}
+.sl-crumb {
+  margin-top: 1rem;
+  font: 600 13px var(--mono);
+  color: var(--mute);
+}
+h1#_top {
+  margin-top: 10px;
+  font: 500 var(--sl-text-h1) / 1 var(--display);
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+h1#_top code {
+  font: 500 0.85em var(--mono);
+  background: var(--butter);
+  padding: 0 0.2em;
+  border-radius: 6px;
+}
+.sl-markdown-content :is(h2, h3, h4) {
+  font-family: var(--display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.sl-markdown-content a {
+  color: var(--cobalt);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.sl-markdown-content a:hover {
+  color: var(--ink);
+  text-decoration-color: var(--tomato);
+}
+.sl-markdown-content :not(pre) > code {
+  background: #ebe1c9;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+.sl-markdown-content table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.sl-markdown-content :is(th, td) {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  background: none;
+}
+.sl-markdown-content th {
+  font: 700 12px var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sl-markdown-content thead th {
+  border-bottom-width: 2px;
+}
+.sl-markdown-content tr:nth-child(2n) {
+  background: none;
+}
+
+/* Prev / next */
+.pagination-links a {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: none;
+  color: var(--ink);
+}
+.pagination-links a:hover {
+  background: var(--butter);
+  border-color: var(--ink);
+}
+.pagination-links .link-title {
+  font-family: var(--display);
+  color: var(--ink);
+}
