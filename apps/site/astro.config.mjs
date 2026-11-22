@@ -52,6 +52,7 @@ export default defineConfig({
             { slug: "install", label: "Install" },
             { slug: "first-frame", label: "Your first frame" },
             { slug: "layout-codes", label: "Layout codes" },
+            { slug: "demos", label: "Demos" },
           ],
         },
         {

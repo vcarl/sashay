@@ -1,0 +1,187 @@
+.finance {
+  height: 30rem;
+  border: var(--rule, 3px) solid var(--ink);
+  border-radius: 10px;
+  overflow: hidden;
+  font: 15px / 1.45 var(--sans);
+  --sashay-bg: var(--ink);
+  --sashay-fg: var(--paper);
+  --sashay-muted: #d9cfb8;
+  --sashay-border: var(--mute);
+  --sashay-pane-bg: var(--ink);
+  --sashay-raised-bg: #2c2a25;
+  --sashay-accent: var(--butter);
+}
+.finance [data-sashay-pane] {
+  box-sizing: border-box;
+  padding: 1.25rem;
+  color: var(--ink);
+  background: var(--paper);
+  overflow-y: auto;
+}
+.finance [data-sashay-pane="period"] {
+  background: var(--butter);
+}
+.finance [data-sashay-pane="details"] {
+  background: var(--mint);
+}
+.finance [data-sashay-close] {
+  color: var(--ink);
+}
+.finance :is(h3, p, ul, dl) {
+  margin: 0;
+}
+.finance header {
+  min-width: 14rem;
+  padding-bottom: 0.9rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--ink);
+}
+.finance .fi-label {
+  font: 600 11px / 1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tomato-ink, #bf3a21);
+  margin-bottom: 0.5rem;
+}
+.finance :is(.fi-value, h3, .fi-big) {
+  font: 500 2.5rem / 1.05 var(--display);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.finance h3 {
+  font-size: 1.6rem;
+  white-space: normal;
+}
+.finance .fi-big {
+  margin-top: 0.4rem;
+  font-family: var(--mono);
+  font-size: 1.6rem;
+}
+.finance :is(.fi-delta, .fi-sub, .fi-note, .fi-empty) {
+  margin-top: 0.35rem;
+  color: var(--mute);
+  font-size: 14px;
+}
+.finance .fi-delta {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+/* Overview: the chart fills what the header leaves. */
+.finance [data-sashay-pane="overview"] {
+  display: flex;
+  flex-direction: column;
+}
+.finance .fi-chart {
+  flex: 1;
+  min-height: 6rem;
+  width: 100%;
+  border-bottom: 2px solid var(--ink);
+  overflow: visible;
+}
+.finance [data-bar] {
+  cursor: pointer;
+  fill: var(--cobalt);
+  outline: none;
+}
+.finance [data-bar]:hover {
+  fill: #4762e0;
+}
+.finance [data-bar][data-picked] {
+  fill: var(--tomato);
+}
+.finance [data-bar]:focus-visible rect:first-child {
+  fill: color-mix(in srgb, var(--butter) 55%, transparent);
+}
+.finance .fi-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  font: 12px var(--mono);
+  color: var(--mute);
+}
+
+/* The Interval drawer, on the ink edge. */
+.finance [data-sashay-drawer] {
+  gap: 6px;
+  font: 600 13px var(--mono);
+}
+.finance [data-sashay-drawer] .fi-label {
+  color: var(--mint);
+}
+.finance [data-interval] {
+  padding: 8px 10px;
+  text-align: left;
+  border: 2px solid var(--paper);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+.finance [data-interval][aria-pressed="true"] {
+  background: var(--butter);
+  border-color: var(--butter);
+  color: var(--ink);
+}
+.finance [data-interval]:focus-visible {
+  outline: 3px solid var(--mint);
+  outline-offset: 2px;
+}
+
+/* Period: a ledger. */
+.finance ul {
+  list-style: none;
+  padding: 0;
+}
+.finance [data-txn] {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.6rem 0.5rem;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  background: transparent;
+  color: var(--ink);
+  font: 500 14px var(--sans);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.finance [data-txn]:hover {
+  background: color-mix(in srgb, var(--paper) 45%, transparent);
+}
+.finance [data-txn][aria-current] {
+  background: var(--tomato);
+}
+.finance [data-txn]:focus-visible {
+  outline: 3px solid var(--cobalt);
+  outline-offset: -3px;
+}
+.finance .fi-amt {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+/* Details: a receipt. */
+.finance dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.45rem 1rem;
+  font-size: 14px;
+}
+.finance dt {
+  color: color-mix(in srgb, var(--ink) 70%, transparent);
+}
+.finance dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.finance .fi-note {
+  margin-top: 1rem;
+  color: var(--ink);
+}

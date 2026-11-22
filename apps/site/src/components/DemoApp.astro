@@ -1,0 +1,41 @@
+---
+// A demo app at full size, with its main file in a collapsible panel.
+// Each app in src/demos/<name>/index.ts exports `mount(el)`.
+import { Code } from "@astrojs/starlight/components";
+import "@vcarl/sashay/style.css";
+
+const sources = import.meta.glob<string>("../demos/*/index.ts", { query: "?raw", import: "default", eager: true });
+const { name } = Astro.props as { name: string };
+---
+<div class="demo-app not-content" data-demo-app={name}></div>
+<details class="demo-source">
+  <summary>Source: <code>{name}/index.ts</code></summary>
+  <Code code={sources[`../demos/${name}/index.ts`]} lang="ts" />
+</details>
+
+<script>
+  const mods = import.meta.glob<{ mount(el: HTMLElement): () => void }>("../demos/*/index.ts");
+  for (const el of document.querySelectorAll<HTMLElement>("[data-demo-app]")) {
+    mods[`../demos/${el.dataset.demoApp}/index.ts`]().then((m) => m.mount(el));
+  }
+</script>
+
+<style>
+  :global(:root:has(.demo-app)) {
+    --sl-content-width: 64rem;
+  }
+  .demo-app {
+    margin-top: 1rem;
+  }
+  .demo-source {
+    margin-top: 0.75rem;
+  }
+  .demo-source summary {
+    cursor: pointer;
+    font: 600 14px var(--sans);
+    width: fit-content;
+  }
+  .demo-source summary code {
+    font-size: 13px;
+  }
+</style>
