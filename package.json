@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "biome check .",
+    "test": "pnpm -r --if-present test",
+    "test:browser": "pnpm -r --if-present test:browser",
+    "bench": "pnpm -r --if-present bench",
+    "build": "pnpm -r --if-present build",
+    "size": "pnpm -F @vcarl/sashay build && pnpm -F @vcarl/sashay size"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.8",
+    "@changesets/cli": "^3.0.3"
+  }
+}

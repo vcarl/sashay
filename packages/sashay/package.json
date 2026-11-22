@@ -1,0 +1,73 @@
+{
+  "name": "@vcarl/sashay",
+  "version": "0.0.0",
+  "license": "MIT",
+  "author": "Carl Vitullo",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --project unit --passWithNoTests",
+    "test:browser": "vitest run --project browser --passWithNoTests",
+    "bench": "vitest run --project bench --passWithNoTests",
+    "build": "tsdown && cp src/sashay.css dist/style.css",
+    "size": "size-limit"
+  },
+  "size-limit": [
+    {
+      "path": "dist/index.js",
+      "limit": "7 kB"
+    },
+    {
+      "path": "dist/react.js",
+      "limit": "8.5 kB",
+      "ignore": [
+        "react",
+        "react-dom"
+      ]
+    },
+    {
+      "path": "dist/style.css",
+      "limit": "2.5 kB",
+      "rolldown": false
+    }
+  ],
+  "devDependencies": {
+    "@size-limit/file": "^14.3.0",
+    "@size-limit/preset-small-lib": "^14.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitest/browser-playwright": "^5.1.1",
+    "playwright": "^1.65.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "size-limit": "^14.3.0",
+    "tsdown": "^0.23.7",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}

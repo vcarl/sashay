@@ -1,0 +1,14 @@
+{
+  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
+  "linter": { "enabled": true, "rules": { "preset": "recommended" } },
+  "files": {
+    "includes": [
+      "**/*.{ts,tsx,js,mjs,json,css}",
+      "!raw",
+      "!**/dist",
+      "!**/node_modules",
+      "!HANDOFF.md",
+      "!pnpm-lock.yaml"
+    ]
+  }
+}
