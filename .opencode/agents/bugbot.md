@@ -7,17 +7,25 @@ permissions:
   - { action: shell, resource: "gh pr review *--approve*", effect: deny }
   - { action: shell, resource: "gh api *merge*", effect: deny }
   - { action: shell, resource: "gh release *", effect: deny }
+  - { action: shell, resource: "gh release", effect: deny }
   - { action: shell, resource: "npm publish *", effect: deny }
+  - { action: shell, resource: "npm publish", effect: deny }
   - { action: shell, resource: "pnpm publish *", effect: deny }
+  - { action: shell, resource: "pnpm publish", effect: deny }
   - { action: shell, resource: "pnpm changeset publish *", effect: deny }
+  - { action: shell, resource: "pnpm changeset publish", effect: deny }
   - { action: shell, resource: "pnpm changeset version *", effect: deny }
+  - { action: shell, resource: "pnpm changeset version", effect: deny }
   - { action: shell, resource: "pnpm version *", effect: deny }
+  - { action: shell, resource: "pnpm version", effect: deny }
   - { action: shell, resource: "npm version *", effect: deny }
+  - { action: shell, resource: "npm version", effect: deny }
   - { action: shell, resource: "git push --force *", effect: deny }
   - { action: shell, resource: "git push -f *", effect: deny }
   - { action: shell, resource: "git push *--force-with-lease*", effect: deny }
   - { action: shell, resource: "git push *main*", effect: deny }
   - { action: shell, resource: "git tag *", effect: deny }
+  - { action: shell, resource: "git tag", effect: deny }
   - { action: shell, resource: "git reset --hard *", effect: deny }
   - { action: edit, resource: ".github/workflows/*", effect: deny }
   - { action: edit, resource: ".changeset/config.json", effect: deny }
