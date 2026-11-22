@@ -42,6 +42,19 @@ test("checkLength rejects invalid values", () => {
   expect(() => checkLength("12 parsecs")).toThrow(TypeError);
   expect(() => checkLength(-1)).toThrow(TypeError);
   expect(() => checkLength(Number.NaN)).toThrow(TypeError);
+  for (const k of [
+    "inherit",
+    "initial",
+    "unset",
+    "revert",
+    "revert-layer",
+    "auto",
+    "fit-content",
+    "min-content",
+    "max-content",
+    " Auto ",
+  ])
+    expect(() => checkLength(k)).toThrow(TypeError);
   expect(() => checkLength("0")).not.toThrow();
   expect(() => checkLength(0)).not.toThrow();
 });

@@ -172,7 +172,7 @@ const withDrawers = (a?: string, b = "14rem"): PaneOptions[] => [
 test("drawer", () => {
   drawer("b");
   mount({ panes: withDrawers(), layout: "48.0" });
-  const t = $('[data-sashay-edge="b"] [data-sashay-toggle]');
+  const t = $('[data-sashay-controls="b"] [data-sashay-toggle]');
   t.click();
   expect(t.getAttribute("aria-expanded")).toBe("true");
   expect(E("b").style.width).toBe("224px");
@@ -202,7 +202,7 @@ test("compact", () => {
   frame.style.width = "600px";
   drawer("a");
   drawer("b");
-  mount({ panes: withDrawers("10rem") });
+  mount({ panes: withDrawers("10rem"), layout: "48.0" });
   expect(frame.hasAttribute("data-compact")).toBe(true);
   expect(frame.querySelectorAll("[data-sashay-tab]").length).toBe(3);
   expect($('[data-sashay-tab="a"]').getAttribute("aria-pressed")).toBe("true");
@@ -284,4 +284,28 @@ test("destroy mid-drag restores the DOM", () => {
   h = undefined;
   expect(frame.innerHTML).toBe(before);
   expect(onChange).not.toHaveBeenCalled();
+});
+
+test("an API call mid-drag ends the gesture first", () => {
+  mount();
+  const C = E("c");
+  pointer(C, "pointerdown", 640);
+  pointer(C, "pointermove", 600);
+  h?.close("a");
+  expect(frame.hasAttribute("data-dragging")).toBe(false);
+  pointer(C, "pointermove", 590);
+  pointer(C, "pointerup", 590);
+  expect($('[data-sashay-pane="a"]').hasAttribute("data-closed")).toBe(true);
+});
+
+test("lostpointercapture ends the gesture", () => {
+  mount();
+  const B = E("b");
+  pointer(B, "pointerdown", 330);
+  pointer(B, "pointermove", 380);
+  B.dispatchEvent(new PointerEvent("lostpointercapture", { pointerId: 1, bubbles: true }));
+  expect(frame.hasAttribute("data-dragging")).toBe(false);
+  pointer(E("c"), "pointerdown", 650);
+  pointer(E("c"), "pointerup", 650);
+  expect($('[data-sashay-pane="c"]').hasAttribute("data-closed")).toBe(true);
 });

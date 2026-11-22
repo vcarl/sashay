@@ -157,12 +157,17 @@ export function diff<P extends { id: string; opensTo?: number[] }>(
   return view;
 }
 
-/** defaultLayout when it fits the list, else an equal split of the last six panes. */
-export function defaultView(n: number, defaultLayout?: number[]): View {
+/**
+ * defaultLayout when it fits the list, else an equal split of the last six panes, or of
+ * fewer while `fits` rejects the split (panes under their minimums).
+ */
+export function defaultView(n: number, defaultLayout?: number[], fits?: (v: View) => boolean): View {
   if (!n) return { offset: 0, div: [] };
   if (defaultLayout?.length === n - 1) return normalize({ offset: 0, div: defaultLayout.map((x) => nearest(x, 6)) }, n);
-  const m = Math.min(n, 6);
-  return normalize({ offset: n - m, div: Array.from({ length: m - 1 }, (_, k) => nearest((k + 1) / m, 6)) }, n);
+  for (let m = Math.min(n, 6); ; m--) {
+    const v = normalize({ offset: n - m, div: Array.from({ length: m - 1 }, (_, k) => nearest((k + 1) / m, 6)) }, n);
+    if (m === 1 || !fits || fits(v)) return v;
+  }
 }
 
 // Layout code: [offset "-"] dividers ["." drawers]. One hex digit per window

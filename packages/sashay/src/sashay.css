@@ -11,12 +11,20 @@
   }
 
   [data-sashay-pane],
-  [data-sashay-edge] {
+  [data-sashay-edge],
+  [data-sashay-controls] {
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     overflow: hidden;
+  }
+  /* Laid over its edge; only the controls inside take the pointer. */
+  [data-sashay-controls] {
+    pointer-events: none;
+  }
+  [data-sashay-controls] :is(button, [data-sashay-tabs]) {
+    pointer-events: auto;
   }
   [data-sashay-pane] {
     background: var(--sashay-pane-bg, Canvas);
@@ -26,13 +34,14 @@
     visibility: hidden;
   }
 
-  [data-sashay-frame]:not([data-dragging]) :is([data-sashay-pane], [data-sashay-edge], [data-sashay-drawer]) {
+  [data-sashay-frame]:not([data-dragging])
+    :is([data-sashay-pane], [data-sashay-edge], [data-sashay-controls], [data-sashay-drawer]) {
     transition:
       transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
       width 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   @media (prefers-reduced-motion: reduce) {
-    [data-sashay-frame] :is([data-sashay-pane], [data-sashay-edge], [data-sashay-drawer]) {
+    [data-sashay-frame] :is([data-sashay-pane], [data-sashay-edge], [data-sashay-controls], [data-sashay-drawer]) {
       transition: none !important;
     }
   }
@@ -140,15 +149,15 @@
     height: 14px;
     transition: transform 0.2s;
   }
-  [data-sashay-edge][data-open] [data-sashay-toggle] {
+  [data-sashay-controls][data-open] [data-sashay-toggle] {
     left: auto;
     right: 8px;
     margin-left: 0;
   }
-  [data-sashay-edge][data-open] [data-sashay-toggle] svg {
+  [data-sashay-controls][data-open] [data-sashay-toggle] svg {
     transform: rotate(180deg);
   }
-  [data-sashay-edge][data-open] [data-sashay-title] {
+  [data-sashay-controls][data-open] [data-sashay-title] {
     transform: none;
     top: 15px;
     left: 14px;

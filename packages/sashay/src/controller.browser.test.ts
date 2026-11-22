@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { frames, mountFrame, pane, tx } from "../test/dom.ts";
 import { createSashay, type PaneOptions, type SashayHandle } from "./index.ts";
+import { decodeLayout } from "./window.ts";
 
 const P3: PaneOptions[] = [
   { id: "a", title: "A", focus: 0.3, minWidth: "180px" },
@@ -223,4 +224,93 @@ test("toggleDrawer opens a drawer beside its edge", () => {
   h.toggleDrawer("b", false);
   expect(onChange).toHaveBeenLastCalledWith("48.0");
   expect(d.hasAttribute("data-open")).toBe(false);
+});
+
+test("focus leaves the spine for the first window edge when the spine hides", () => {
+  grow(6);
+  const spine = $("[data-spine]") as HTMLButtonElement;
+  for (let n = 0; !spine.hidden && n < 10; n++) {
+    spine.focus();
+    spine.click();
+  }
+  expect(spine.hidden).toBe(true);
+  expect(document.activeElement).toBe(frame.querySelector("[data-sashay-edge]"));
+});
+
+test("focus inside a pane that closes or becomes covered moves to its edge", () => {
+  const ba = document.createElement("button");
+  const bc = document.createElement("button");
+  P("a").append(ba);
+  P("c").append(bc);
+  h = createSashay(frame, { panes: P3, layout: "48" });
+  bc.focus();
+  h.close("c");
+  expect(document.activeElement).toBe(E("c"));
+  ba.focus();
+  h.fit([0.25, 0.5]);
+  expect(P("a").hasAttribute("data-covered")).toBe(true);
+  expect(document.activeElement).toBe(E("a"));
+});
+
+test("drawer toggles and compact tabs are not inside a role element", () => {
+  const d = document.createElement("div");
+  d.setAttribute("data-sashay-drawer", "b");
+  frame.append(d);
+  const panes = [P3[0], { ...P3[1], edge: { drawer: { width: "14rem", title: "Filters" } } }, P3[2]];
+  h = createSashay(frame, { panes, layout: "48.0" });
+  expect($("[data-sashay-toggle]").closest("[role]")).toBeNull();
+  h.destroy();
+  frame.style.width = "600px";
+  h = createSashay(frame, { panes, layout: "48.0" });
+  expect(frame.hasAttribute("data-compact")).toBe(true);
+  expect($("[data-sashay-tab]").closest("[role]")).toBeNull();
+});
+
+test("defaultLayout must be sorted fractions; fit() sorts and clamps", () => {
+  expect(() => createSashay(frame, { panes: P3, defaultLayout: [0.8, 0.2] })).toThrow(/defaultLayout/);
+  expect(() => createSashay(frame, { panes: P3, defaultLayout: [0.2, 1.5] })).toThrow(/defaultLayout/);
+  expect(frame.hasAttribute("data-sashay-frame")).toBe(false);
+  const onChange = vi.fn();
+  h = createSashay(frame, { panes: P3, layout: "48", onChange });
+  h.fit([0.75, 0.5]);
+  expect(onChange).toHaveBeenLastCalledWith("69");
+  h.fit([-1, 2]);
+  const c = onChange.mock.lastCall?.[0];
+  expect(decodeLayout(c, 3, () => false)).not.toBeNull();
+});
+
+test("a reveal that squeezes panes shut doesn't fire onClose", () => {
+  frame.remove();
+  const ids = ["p0", "p1", "p2", "p3"];
+  frame = mountFrame(ids, 1400);
+  const onClose = vi.fn();
+  h = createSashay(frame, { panes: stack(4), defaultLayout: [1 / 3, 2 / 3, 1], onClose });
+  E("p3").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+  expect(P("p3").hasAttribute("data-closed")).toBe(false);
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+test("handle methods are no-ops after destroy", () => {
+  const before = frame.innerHTML;
+  const x = createSashay(frame, { panes: P3, layout: "48" });
+  x.destroy();
+  x.reveal("a");
+  x.close("a");
+  x.toggleDrawer("a");
+  x.keepInView("a", 10);
+  x.setLayout("4c");
+  x.fit([0.5, 0.75]);
+  x.update({ panes: P3, compactBelow: "10rem" });
+  x.destroy();
+  expect(frame.innerHTML).toBe(before);
+});
+
+test("the default layout respects minWidth", () => {
+  frame.remove();
+  const ids = ["p0", "p1", "p2", "p3", "p4", "p5"];
+  frame = mountFrame(ids);
+  h = createSashay(frame, { panes: ids.map((id) => ({ id, title: id, focus: 0.2, minWidth: "200px" })) });
+  const open = ids.filter((id) => !P(id).hasAttribute("data-offscreen") && !P(id).hasAttribute("data-closed"));
+  expect(open.length).toBeGreaterThan(1);
+  for (const id of open) expect(Number.parseFloat(P(id).style.width)).toBeGreaterThanOrEqual(200);
 });

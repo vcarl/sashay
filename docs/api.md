@@ -110,7 +110,9 @@ Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
 
 ## Accessibility
 
-- Edges have `role="separator"`, take focus, and carry `aria-valuenow` and `aria-valuetext`.
+- Edges take focus. Edges with a divider have `role="separator"` and carry `aria-valuenow` and
+  `aria-valuetext`. The first edge, which has no divider, is a `role="button"` with `aria-expanded`.
+  Drawer toggles and compact tabs sit beside the edge, not inside it, so they are announced.
 - On a focused edge, ← and → move between snaps, and Enter or Space opens or closes the pane.
 - Drawer toggles carry `aria-expanded`.
 - Covered and off-screen panes are `inert`.
@@ -136,7 +138,9 @@ Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
 
 `<Pane>` renders its own element and registers itself with the nearest `<Sashay>`, so it can
 be wrapped in other components or rendered conditionally. Server rendering produces
-percentage widths from `layout`, so the first paint matches the hydrated layout.
+percentage widths from `layout`, so the first paint matches the hydrated layout on frames wide
+enough for the layout's grid. Narrower frames (compact mode, or a coarser snap grid) re-snap on
+hydration.
 
 ## Not public in 1.0
 

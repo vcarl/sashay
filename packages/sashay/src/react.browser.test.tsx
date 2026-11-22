@@ -74,6 +74,13 @@ test("renders and paints", async () => {
   expect(spy).toHaveBeenCalledWith("4c");
 });
 
+test("compactBelow returning to undefined restores the default", async () => {
+  await render(<App layout="48" compactBelow="70rem" />);
+  expect(host.querySelector("[data-sashay-frame]")?.hasAttribute("data-compact")).toBe(true);
+  await render(<App layout="48" />);
+  expect(host.querySelector("[data-sashay-frame]")?.hasAttribute("data-compact")).toBe(false);
+});
+
 test("wrapped, conditional pane", async () => {
   const spy = vi.fn();
   await render(<App layout="48" onLayoutChange={spy} extra={<Details />} />);

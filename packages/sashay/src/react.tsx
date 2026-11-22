@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { createSashay, EDGE, type Length, type PaneOptions, type SashayHandle, SPINE } from "./controller.ts";
+import { COMPACT, createSashay, EDGE, type Length, type PaneOptions, type SashayHandle, SPINE } from "./controller.ts";
 import { snapV, toWidths } from "./engine.ts";
 import { decodeLayout, defaultView, normalize, windowEnd } from "./window.ts";
 
@@ -108,7 +108,7 @@ export function Sashay(props: SashayProps): ReactElement {
       s.h = null;
     };
   }, [s]);
-  useLayoutEffect(() => s.h?.update({ compactBelow }), [s, compactBelow]);
+  useLayoutEffect(() => s.h?.update({ compactBelow: compactBelow ?? COMPACT }), [s, compactBelow]);
   useLayoutEffect(() => {
     if (!s.h || layout === undefined || layout === s.code) return;
     s.flush(); // a pane-list change in the same render goes first

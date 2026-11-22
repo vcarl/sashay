@@ -1,12 +1,14 @@
 export type Length = string | number;
 
 const valid = new Set<string>();
+// CSS accepts these as widths, but they aren't lengths sashay can measure.
+const KEYWORD = /^\s*(inherit|initial|unset|revert|revert-layer|auto|fit-content|min-content|max-content)\s*$/i;
 
 export function checkLength(v: Length): void {
   const ok =
     typeof v === "number"
       ? Number.isFinite(v) && v >= 0
-      : valid.has(v) || (typeof v === "string" && CSS.supports("width", v) && !!valid.add(v));
+      : valid.has(v) || (typeof v === "string" && !KEYWORD.test(v) && CSS.supports("width", v) && !!valid.add(v));
   if (!ok) throw new TypeError(`sashay: invalid length ${JSON.stringify(v)}`);
 }
 
