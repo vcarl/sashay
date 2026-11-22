@@ -11,7 +11,7 @@ const browser = (provider = playwright()) => ({
 export default defineConfig({
   test: {
     projects: [
-      { test: { name: "unit", environment: "node", include: ["src/**/*.test.{ts,tsx}"] } },
+      { test: { name: "unit", environment: "node", include: ["src/**/*.test.{ts,tsx}"], exclude: ["src/**/*.browser.test.{ts,tsx}"] } },
       { test: { name: "browser", include: ["src/**/*.browser.test.{ts,tsx}"], browser: browser() } },
       {
         test: {
