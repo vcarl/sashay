@@ -5,7 +5,16 @@ each with a draggable edge. Dragging snaps to simple fractions, a throw flings t
 squeezed pane slides under its neighbour, and drawers open from edges. The whole layout
 encodes to a short string that fits in a URL.
 
-Published as **`@vcarl/sashay`**, a production open-source library.
+Published as **`@vcarl/sashay`** (MIT), a production open-source library. It powers both
+fixed workspaces and deep drill-down navigation stacks.
+
+**The public API is specified in [`docs/api.md`](docs/api.md).** It is approved. Implement it
+as written, and change it only with Carl's sign-off.
+
+## Current goal
+
+Deliver **1.0 and the website**, with everything kept local. Do not create a remote, push,
+or publish. Carl reviews twice: the site's look, and the finished 1.0 before release.
 
 ## Status
 
@@ -24,8 +33,17 @@ both `raw/` and `HANDOFF.md` get deleted.
 - **Zero runtime dependencies** in the core. React is an optional peer dependency (`>=19`).
 - **Accessible by default:** separators with arrow keys and `aria-valuenow`/`valuetext`,
   `inert` on covered panes, and `aria-expanded` on drawer toggles.
+- **Fixed workspaces and navigation stacks**, through one API (panes diffed by `id`), with
+  deep stacks folding into a spine. The performance budget in `docs/api.md` is a
+  requirement.
 - **A landing page that sells it with a live demo, plus concise docs.** Short pages with
   runnable examples, not exhaustive prose.
+
+**Site direction.** "Sashay" is a pun on sash windows, which are made of sliding panes. Use
+bold colours, and make it lighthearted, leaning cute but ultimately professional. Carl is a
+respected figure in the web space: the site must **not** look generic or AI-generated (no
+stock gradient hero, no default Starlight look, no emoji bullets). Commit to a distinctive
+direction. Carl will refine it.
 
 **Non-goals:** React Native, other framework wrappers (until someone asks), a theming
 system beyond CSS custom properties, and backwards compatibility with `raw/`.
@@ -66,13 +84,15 @@ GitHub Actions:
   and no stored token).
 - **Site:** built in CI. It will be served from a subdirectory of vcarl.com (Astro `base`),
   but that's **not wired yet**. Don't add deploy steps until Carl says how.
+- There's no remote yet, so the workflows can't run. Verify each of their steps by running it
+  locally.
 
 ## Bug bot
 
 `scripts/bugbot` starts a local OpenCode session for Carl to drive. The model is served
 locally by **oMLX** (OpenAI-compatible, `localhost:8000`) running **Qwen3.8 Flash**. oMLX
 owns the model process, so the script never starts its own server. The API key comes from
-the environment and is never committed.
+`OMLX_API_KEY` and is never committed. Read the model id from oMLX's `/v1/models`.
 
 - It works in a fresh git worktree, and seeds the session with open issues and PRs via `gh`
   plus an agent config (`.opencode/`) that covers three workflows:
