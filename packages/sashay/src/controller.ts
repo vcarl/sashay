@@ -68,10 +68,14 @@ export interface SashayHandle {
   destroy(): void;
 }
 
-export const EDGE = "0.75rem"; // internal: shared with react.tsx, not re-exported
-export const COMPACT = "40rem"; // internal, as EDGE
+const EDGE = "0.75rem";
+/** An edge's width: a drawer's edge defaults wide enough for its toggle. Internal, shared with react.tsx. */
+export const edgeWidth = (e?: EdgeOptions): Length => e?.width ?? (e?.drawer ? "2.75rem" : EDGE);
+export const COMPACT = "40rem"; // internal: shared with react.tsx, not re-exported
 const TABS = "var(--sashay-tabs-width, 2.75rem)";
-export const SPINE = "var(--sashay-spine-width, 1.5rem)"; // internal, as EDGE
+export const SPINE = "var(--sashay-spine-width, 1.5rem)"; // internal, as COMPACT
+// Compact: the most panes the window (and so the tab strip) holds; the rest are in the spine.
+const COMPACT_CAP = 6;
 const CHEVRON =
   '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -142,7 +146,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     return list.map((p, k) => {
       const dr = p.edge?.drawer;
       return {
-        closedPx: px(c ? (k === 0 ? TABS : EDGE) : (p.edge?.width ?? EDGE)),
+        closedPx: px(c ? (k === 0 ? TABS : EDGE) : edgeWidth(p.edge)),
         openPx: !c && dr ? px(dr.width) : undefined,
         open: Boolean(drawers.get(p.id)),
       };
@@ -162,8 +166,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const sizes = () => sizesOf(panes, view.offset, windowEnd(view));
   const sizesFor = (a: number, b: number) => sizesOf(panes, a, b);
   // The default view: an equal split over as many trailing panes as fit their minimums.
+  // Compact shows one pane at a time anyway, so it keeps the whole split.
   const fits = (v: View) => {
-    if (W <= 0) return true;
+    if (W <= 0 || compact()) return true;
     const to = windowEnd(v);
     const o = gridOrder(contentWidth(W - spineW(v.offset), edgeSpecs(panes.slice(v.offset, to))));
     return toWidths(fitIdx(v.div.map(snapV), sizesFor(v.offset, to), o).map(snapV)).every(isOpen);
@@ -482,7 +487,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
 
   const indexOf = (id: string) => panes.findIndex((p) => p.id === id);
-  const revealAt = (p: number) => commit(revealIn(view, p, panes.length, sizesFor, order(), panes[p]?.opensTo));
+  const cap = () => (compact() ? COMPACT_CAP : undefined);
+  const revealAt = (p: number) => commit(revealIn(view, p, panes.length, sizesFor, order(), panes[p]?.opensTo, cap()));
   const closeAt = (p: number, user = false) =>
     commit(closeIn(view, p, panes.length, sizesFor, order()), undefined, user ? panes[p]?.id : undefined);
   // An edge is its pane's open/close toggle.
@@ -690,7 +696,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const ids = new Set(panes.map((p) => p.id));
       for (const id of keep.keys()) if (!ids.has(id)) keep.delete(id);
       for (const el of orig.keys()) if (!el.isConnected) orig.delete(el);
-      commit(diff(prev, panes, view, ord, sizesOf) ?? defaultView(panes.length, opts.defaultLayout, fits));
+      commit(diff(prev, panes, view, ord, sizesOf, cap()) ?? defaultView(panes.length, opts.defaultLayout, fits));
     },
     destroy() {
       if (destroyed) return;

@@ -184,6 +184,14 @@ test("drawer", () => {
   expect(t.getAttribute("aria-expanded")).toBe("false");
 });
 
+test("an edge with a drawer defaults to 2.75rem wide, others to 0.75rem", () => {
+  drawer("b");
+  mount({ panes: withDrawers(), layout: "48.0" });
+  expect(E("a").style.width).toBe("12px");
+  expect(E("b").style.width).toBe("44px");
+  expect(E("c").style.width).toBe("12px");
+});
+
 test("drawer body drags but doesn't toggle", () => {
   const d = drawer("b");
   mount({ panes: withDrawers(), layout: "48.1" });

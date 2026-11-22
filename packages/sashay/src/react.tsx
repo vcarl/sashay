@@ -13,7 +13,15 @@ import {
   useRef,
   useState,
 } from "react";
-import { COMPACT, createSashay, EDGE, type Length, type PaneOptions, type SashayHandle, SPINE } from "./controller.ts";
+import {
+  COMPACT,
+  createSashay,
+  edgeWidth,
+  type Length,
+  type PaneOptions,
+  type SashayHandle,
+  SPINE,
+} from "./controller.ts";
 import { snapV, toWidths } from "./engine.ts";
 import { decodeLayout, defaultView, normalize, windowEnd } from "./window.ts";
 
@@ -163,7 +171,7 @@ function SsrStyle({ s, scope, layout, defaultLayout }: { s: Store; scope: string
   let j = 0;
   const edges = win.map((p) => {
     const dr = p.edge?.drawer;
-    return len(dr && d?.drawers[j++] ? dr.width : (p.edge?.width ?? EDGE));
+    return len(dr && d?.drawers[j++] ? dr.width : edgeWidth(p.edge));
   });
   const spine = v.offset ? SPINE : "0px";
   const C = `(100% - ${spine} - (${edges.join(" + ")}))`;

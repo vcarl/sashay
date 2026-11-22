@@ -44,7 +44,7 @@ fractions, because they live on the snap grid.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `width` | `Length` | `"0.75rem"` | Edge width. Edges sit outside the fractional layout. |
+| `width` | `Length` | `"2.75rem"` with a `drawer`, else `"0.75rem"` | Edge width. Edges sit outside the fractional layout. |
 | `drawer` | `{ width: Length; title: string }` | none | The edge opens a drawer `width` wide. Its content goes in `[data-sashay-drawer]`. In compact mode, the drawer is an overlay sheet, one open at a time. |
 
 ### `SashayHandle`
@@ -77,6 +77,8 @@ stack (drill-down: picking an item adds a pane on the right; going back removes 
   left that shows a count. Clicking it, or pressing ← on it, reveals the newest hidden pane.
   Closed panes keep their own edges and never
   fold into the spine, so a fixed workspace that fits never shows one.
+- **Compact.** The tab strip lists the visible window, up to six panes; panes fold into the
+  spine only past six, so a workspace of six or fewer shows one tab per pane and no spine.
 - **Layout code.** It holds one hex digit (the snap index) per visible divider, plus the
   offset where the visible window starts and the drawer bitsets, so it can be any length.
   After a list change, dividers that didn't move keep their positions. The code stores

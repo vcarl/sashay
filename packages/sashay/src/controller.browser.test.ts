@@ -323,3 +323,53 @@ test("the default layout respects minWidth", () => {
   expect(open.length).toBeGreaterThan(1);
   for (const id of open) expect(Number.parseFloat(P(id).style.width)).toBeGreaterThanOrEqual(200);
 });
+
+const shown = (id: string) => !P(id).hasAttribute("data-offscreen") && !P(id).hasAttribute("data-closed");
+const tabs = () => frame.querySelectorAll("[data-sashay-tab]");
+
+test("compact: a fixed workspace shows a tab per pane and never a spine", () => {
+  frame.style.width = "390px";
+  h = createSashay(frame, { panes: P3 });
+  expect(frame.hasAttribute("data-compact")).toBe(true);
+  for (const id of ["a", "b", "c", "a"]) {
+    expect($("[data-spine]").hidden).toBe(true);
+    expect(tabs().length).toBe(3);
+    $(`[data-sashay-tab="${id}"]`).click();
+    expect(shown(id)).toBe(true);
+    expect($(`[data-sashay-tab="${id}"]`).getAttribute("aria-pressed")).toBe("true");
+  }
+  expect($("[data-spine]").hidden).toBe(true);
+});
+
+test("compact: every pane of a deep stack is reachable by tab or spine", () => {
+  frame.remove();
+  const panes = stack(50);
+  frame = mountFrame(
+    panes.map((p) => p.id),
+    390,
+  );
+  h = createSashay(frame, { panes });
+  const spine = $("[data-spine]");
+  expect(spine.hidden).toBe(false);
+  expect(tabs().length).toBeLessThanOrEqual(7);
+  const reached = new Set<string>();
+  for (const t of [...tabs()] as HTMLElement[]) {
+    const id = t.dataset.sashayTab as string;
+    t.click();
+    expect(shown(id)).toBe(true);
+    reached.add(id);
+  }
+  while (!spine.hidden) {
+    spine.click();
+    expect(tabs().length).toBeLessThanOrEqual(7);
+    const open = panes.filter((p) => shown(p.id));
+    expect(open.length).toBe(1);
+    reached.add(open[0].id);
+  }
+  expect(reached.size).toBe(50);
+  for (let i = 1; i < 50; i++) {
+    $(`[data-sashay-tab="p${i}"]`).click();
+    expect(shown(`p${i}`)).toBe(true);
+    expect(tabs().length).toBeLessThanOrEqual(7);
+  }
+});

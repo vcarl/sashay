@@ -5,6 +5,9 @@
 // Panes fold into the spine only when a reveal squeezes open panes shut (they
 // overflow the frame). Panes the user closes keep their edges, so a fixed
 // workspace that fits never shows a spine.
+//
+// Compact mode passes a cap instead: one pane shows at a time, so a squeeze is
+// normal and folding waits until the window holds more than `cap` panes.
 import {
   closePane,
   decode,
@@ -43,9 +46,17 @@ export function normalize({ offset, div }: View, n: number): View {
 
 // After overflow: a leading closed run folds into the spine (a lone closed
 // first pane keeps its edge while there is no spine), and a trailing closed
-// run shrinks to the one edge.
-function fold({ offset, div }: View): View {
+// run shrinks to the one edge. With a cap: closed panes drop, oldest first,
+// until the window holds `cap` panes.
+function fold({ offset, div }: View, cap?: number): View {
   const w = widths(div);
+  if (cap) {
+    let a = 0;
+    let b = w.length;
+    while (b - a > cap && !isOpen(w[a])) a++;
+    while (b - a > cap && !isOpen(w[b - 1])) b--;
+    return { offset: offset + a, div: div.slice(a, b - 1) };
+  }
   let r = 0;
   while (r < w.length - 1 && !isOpen(w[r])) r++;
   if (offset > 0 ? r >= 1 : r >= 2) {
@@ -63,7 +74,15 @@ function fold({ offset, div }: View): View {
  * Open pane p, or uncover it. In the window: focus it. Next to the window:
  * extend the window by it, then focus it. Anywhere else: the window jumps to it.
  */
-export function reveal(v: View, p: number, n: number, sizes: SizesFor, order: number, opensTo?: number[]): View {
+export function reveal(
+  v: View,
+  p: number,
+  n: number,
+  sizes: SizesFor,
+  order: number,
+  opensTo?: number[],
+  cap?: number,
+): View {
   if (p < 0 || p >= n) return v;
   let { offset, div } = v;
   const end = windowEnd(v);
@@ -82,7 +101,7 @@ export function reveal(v: View, p: number, n: number, sizes: SizesFor, order: nu
   const after = widths(d);
   const squeezed = before.some((x, j) => isOpen(x) && !isOpen(after[j]));
   const next = { offset, div: d };
-  return normalize(squeezed ? fold(next) : next, n);
+  return normalize(squeezed || cap ? fold(next, cap) : next, n);
 }
 
 /** Close pane p, giving its width to the nearest open pane. */
@@ -133,6 +152,7 @@ export function diff<P extends { id: string; opensTo?: number[] }>(
   v: View,
   order: number,
   sizes: (panes: P[], from: number, to: number) => Sizes,
+  cap?: number,
 ): View | null {
   const nextIds = new Set(next.map((p) => p.id));
   const prevIds = new Set(prev.map((p) => p.id));
@@ -152,7 +172,7 @@ export function diff<P extends { id: string; opensTo?: number[] }>(
     if (prevIds.has(next[i].id)) continue;
     const cur = list.toSpliced(i, 0, next[i]);
     list = cur;
-    view = reveal(insert(view, i), i, cur.length, (a, b) => sizes(cur, a, b), order, next[i].opensTo);
+    view = reveal(insert(view, i), i, cur.length, (a, b) => sizes(cur, a, b), order, next[i].opensTo, cap);
   }
   return view;
 }

@@ -39,7 +39,7 @@ Every size option is a `Length`: a CSS length string (`"12rem"`, `"180px"`, `"20
 
 | Field | Type | Default | What it does |
 |---|---|---|---|
-| `width` | `Length` | `"0.75rem"` | Edge width. Edges sit outside the fractional layout. In compact mode, every edge after the first is a 12px grip. |
+| `width` | `Length` | `"2.75rem"` with a `drawer`, else `"0.75rem"` | Edge width. Edges sit outside the fractional layout. In compact mode, every edge after the first is a 12px grip. |
 | `drawer` | `{ width: Length; title: string }` | none | The edge opens a drawer `width` wide, with content from `[data-sashay-drawer]`. In compact mode, an overlay sheet, one open at a time. |
 
 ## `SashayHandle`
