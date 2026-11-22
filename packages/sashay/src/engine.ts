@@ -304,19 +304,6 @@ export interface EdgeSpec {
 }
 export interface PaneSpec {
   focus: number;
-  focusX?: number | null | undefined;
-}
-interface Box {
-  x: number;
-  w: number;
-  z: number;
-}
-interface PaneBox {
-  x: number;
-  visible: number;
-  width: number;
-  shift: number;
-  z: number;
 }
 
 const edgeWidth = (e: EdgeSpec) => (e.open && e.openPx ? e.openPx : e.closedPx);
@@ -330,15 +317,14 @@ export function layout(W: number, dividers: number[], edges: EdgeSpec[], panes: 
   const C = contentWidth(W, edges);
   const frac = (i: number) => (i === 0 ? 0 : i === panes.length ? 1 : dividers[i - 1]);
   const through = (b: number) => edges.slice(0, b + 1).reduce((s, e) => s + edgeWidth(e), 0);
-  const edgeBoxes: Box[] = edges.map((e, b) => {
+  const edgeBoxes = edges.map((e, b) => {
     const w = edgeWidth(e);
-    return { x: frac(b) * C + through(b) - w, w, z: b };
+    return { x: frac(b) * C + through(b) - w, w };
   });
-  const paneBoxes: PaneBox[] = panes.map((p, i) => {
+  const paneBoxes = panes.map((p, i) => {
     const x = frac(i) * C + through(i);
     const visible = Math.max(0, frac(i + 1) * C + through(i) - x);
-    const width = Math.max(visible, p.focus * C);
-    return { x, visible, width, shift: focusShift(width, visible, p.focusX), z: i };
+    return { x, visible, width: Math.max(visible, p.focus * C) };
   });
   return { C, edgeBoxes, paneBoxes };
 }
