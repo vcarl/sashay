@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Local maintainer session: OpenCode in a fresh worktree, model served by oMLX.
+set -euo pipefail
+
+for c in opencode git curl jq; do
+  command -v "$c" >/dev/null || { echo "Missing $c. Install OpenCode, then re-run: brew install sst/tap/opencode" >&2; exit 1; }
+done
+[ -n "${OMLX_API_KEY:-}" ] || { echo "Set OMLX_API_KEY (oMLX API key) and re-run." >&2; exit 1; }
+
+models=$(curl -fsS -H "Authorization: Bearer $OMLX_API_KEY" localhost:8000/v1/models) ||
+  { echo "oMLX not reachable at :8000 (oMLX owns the model; start it there)" >&2; exit 1; }
+id=$(jq -r '[.data[].id] | (map(select(test("qwen3.8.*flash"; "i"))) + .) | first // empty' <<<"$models")
+[ -n "$id" ] || { echo "oMLX lists no models" >&2; exit 1; }
+jq -e --arg id "$id" 'any(.data[]; .id == $id) and ($id | test("qwen3.8.*flash"; "i"))' <<<"$models" >/dev/null ||
+  echo "warning: no Qwen3.8 Flash model found, using $id" >&2
+
+root=$(git rev-parse --show-toplevel)
+dir=$(mktemp -d)/bugbot-$(date +%s)-$$
+# main until it carries .opencode/ (pre-1.0 it does not), then the current branch
+base=main; git -C "$root" cat-file -e main:.opencode/opencode.jsonc 2>/dev/null || base=HEAD
+git -C "$root" worktree add -q -b "bugbot/$(basename "$dir")" "$dir" "$base"
+
+issues=$(cd "$dir" && gh issue list --state open --json number,title,labels --limit 30 2>/dev/null) || issues="(none: gh unavailable or no remote yet)"
+prs=$(cd "$dir" && gh pr list --state open --json number,title,author,isCrossRepository --limit 30 2>/dev/null) || prs="(none: gh unavailable or no remote yet)"
+
+# Overlay the model id (known only at launch) on .opencode/opencode.jsonc.
+OPENCODE_CONFIG_CONTENT=$(jq -nc --arg id "$id" '{model: "omlx/\($id)", providers: {omlx: {models: {($id): {name: $id, capabilities: {tools: true}}}}}}')
+export OPENCODE_CONFIG_CONTENT
+
+echo "bugbot worktree: $dir (remove with: git worktree remove --force $dir)" >&2
+cd "$dir"
+exec opencode --prompt "Open issues:
+$issues
+
+Open PRs:
+$prs
+
+Ask Carl which workflow to run."
