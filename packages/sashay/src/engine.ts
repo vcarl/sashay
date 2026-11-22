@@ -1,13 +1,13 @@
 // Sliding panes: pure layout math for a row of panes separated by edges.
 // Pane widths are fractions of the content width (the frame minus its edges);
-// N panes have N-1 dividers, each resting on a snap. The component in
-// components/Panes.tsx feeds pointer/key input in and paints the result.
+// N panes have N-1 dividers, each resting on a snap. controller.ts feeds
+// pointer/key input in and paints the result.
 
 // ── Snap grid ────────────────────────────────────────────────────────────
 // A divider rests only on a "simple" fraction k/n (n ≤ MAX_DEN), plus 0
 // (pane to its left fully covered) and 1 (panes to its right pushed off).
 // The list is fixed, so a position's index in it IS its persisted form.
-export interface Snap {
+interface Snap {
   k: number;
   n: number;
   v: number;
@@ -30,8 +30,7 @@ export const snapV = (i: number): number => SNAPS[i].v;
 // ~1320px+ (a wide desktop) → all sixths.
 // ponytail: flat px heuristic; per-pane minimums replace it once UX is tuned.
 const UNIT_PX = 220;
-export const gridOrder = (contentPx: number): number =>
-  Math.max(1, Math.min(MAX_DEN, Math.floor(contentPx / UNIT_PX)));
+export const gridOrder = (contentPx: number): number => Math.max(1, Math.min(MAX_DEN, Math.floor(contentPx / UNIT_PX)));
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const allowedIdx = (order: number) => SNAPS.map((_, i) => i).filter((i) => SNAPS[i].n <= order); // always has 0 and 1
@@ -202,8 +201,7 @@ export function focusPane(dividers: number[], p: number, S: Sizes, order: number
     d = toDividers(r.w);
   }
   const s = d.map(
-    (x, k) =>
-      SNAPS[k === p - 1 ? snapToward(x, -1, order) : k === p ? snapToward(x, 1, order) : nearest(x, order)].v,
+    (x, k) => SNAPS[k === p - 1 ? snapToward(x, -1, order) : k === p ? snapToward(x, 1, order) : nearest(x, order)].v,
   );
   for (let k = p - 2; k >= 0; k--) s[k] = Math.min(s[k], s[k + 1]);
   for (let k = p + 1; k < s.length; k++) s[k] = Math.max(s[k], s[k - 1]);
@@ -308,12 +306,12 @@ export interface PaneSpec {
   focus: number;
   focusX?: number | null | undefined;
 }
-export interface Box {
+interface Box {
   x: number;
   w: number;
   z: number;
 }
-export interface PaneBox {
+interface PaneBox {
   x: number;
   visible: number;
   width: number;

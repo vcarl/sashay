@@ -12,8 +12,8 @@ import {
   nearest,
   ratio,
   releaseTarget,
-  SNAPS,
   type Sizes,
+  SNAPS,
   settle,
   toWidths,
   velocity,
@@ -21,7 +21,9 @@ import {
 
 const near = (a: number[], b: number[]) => {
   expect(a).toHaveLength(b.length);
-  a.forEach((x, k) => expect(x).toBeCloseTo(b[k], 9));
+  a.forEach((x, k) => {
+    expect(x).toBeCloseTo(b[k], 9);
+  });
 };
 const F = [0.2, 0.2, 0.2];
 const Z = [0, 0, 0];
@@ -51,7 +53,10 @@ describe("snaps and persistence", () => {
     expect(nearest(0.7, 1)).toBe(12);
   });
   it("encode/decode round-trip", () => {
-    expect(decode(encode([4, 8], [[true, false, false]]), 2, [3])).toEqual({ div: [4, 8], bits: [[true, false, false]] });
+    expect(decode(encode([4, 8], [[true, false, false]]), 2, [3])).toEqual({
+      div: [4, 8],
+      bits: [[true, false, false]],
+    });
   });
   it("decode rejects junk", () => {
     for (const s of ["zz0", "840", "d00", "48f"]) expect(decode(s, 2, [3])).toBeNull();
@@ -111,7 +116,11 @@ describe("settle", () => {
     for (const i of [0, 1])
       for (let r = 0; r <= 200; r++) {
         const raw = r / 200;
-        check(toWidths(drag(start, i, raw, APP)), widthsOf(settle(start, i, raw, 0, 6, APP)), `divider ${i} raw ${raw}`);
+        check(
+          toWidths(drag(start, i, raw, APP)),
+          widthsOf(settle(start, i, raw, 0, 6, APP)),
+          `divider ${i} raw ${raw}`,
+        );
       }
   };
   it("from 1:1:1 a release that closes a pane leaves every open pane ≥ min, and ≤ max unless the drag forced it", () => {
@@ -140,6 +149,7 @@ describe("focus and close", () => {
     const o = gridOrder(C);
     const S = { focus: [0.4, 0.25, 1 / 3], min: [180 / C, 150 / C, 180 / C], max: [1, 460 / C, 560 / C] };
     const shown = (idx: number[]) => isOpen(toWidths(idx.map((k) => SNAPS[k].v))[2]);
+    // biome-ignore lint/suspicious/noFocusedTests: the engine's fit(), not vitest's
     expect(shown(fit([1 / 6, 2 / 3], S, o))).toBe(false);
     expect(shown(focusPane([2 / 3, 1], 2, S, o))).toBe(true);
   });
@@ -164,7 +174,15 @@ describe("fling", () => {
     expect(releaseTarget(0.36, -2, 6)).toBe(3);
   });
   it("pause before release = 0 velocity", () => {
-    expect(velocity([{ t: 0, x: 0 }, { t: 10, x: 50 }], 200)).toBe(0);
+    expect(
+      velocity(
+        [
+          { t: 0, x: 0 },
+          { t: 10, x: 50 },
+        ],
+        200,
+      ),
+    ).toBe(0);
   });
 });
 
