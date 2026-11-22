@@ -1,0 +1,250 @@
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { mountFrame, pane, pointer, tx } from "../test/dom.ts";
+import { createSashay, type PaneOptions, type SashayHandle, type SashayOptions } from "./index.ts";
+
+const P3: PaneOptions[] = [
+  { id: "a", title: "A", focus: 0.3, minWidth: "180px" },
+  { id: "b", title: "B", focus: 0.25, minWidth: "150px" },
+  { id: "c", title: "C", focus: 1 / 3, minWidth: "180px" },
+];
+
+let frame: HTMLElement;
+let h: SashayHandle | undefined;
+let onChange: ReturnType<typeof vi.fn<(code: string) => void>>;
+let onClose: ReturnType<typeof vi.fn<(id: string) => void>>;
+const $ = (sel: string) => frame.querySelector(sel) as HTMLElement;
+const E = (id: string) => $(`[data-sashay-edge="${id}"]`);
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const centre = (el: Element) => {
+  const r = el.getBoundingClientRect();
+  return r.left + r.width / 2;
+};
+const key = (el: Element, k: string) =>
+  el.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true }));
+const drawer = (id: string) => {
+  const d = document.createElement("div");
+  d.setAttribute("data-sashay-drawer", id);
+  d.innerHTML = "<p>body</p>";
+  frame.append(d);
+  return d;
+};
+const mount = (o: Partial<SashayOptions> = {}) => {
+  h = createSashay(frame, { panes: P3, layout: "48", onChange, onClose, ...o });
+  return h;
+};
+/** Seven 22px moves right from x0, `gap` ms apart. */
+const drag7 = async (el: Element, x0: number, gap = 0) => {
+  pointer(el, "pointerdown", x0);
+  for (let i = 1; i <= 7; i++) {
+    if (gap) await wait(gap);
+    pointer(el, "pointermove", x0 + 22 * i);
+  }
+  return x0 + 154;
+};
+
+beforeEach(() => {
+  document.documentElement.style.fontSize = "16px";
+  onChange = vi.fn<(code: string) => void>();
+  onClose = vi.fn<(id: string) => void>();
+  frame = mountFrame(["a", "b", "c"]);
+});
+afterEach(() => {
+  h?.destroy();
+  h = undefined;
+  frame.remove();
+});
+
+test("slow drag snaps to nearest", async () => {
+  mount();
+  const B = E("b");
+  const x = await drag7(B, centre(B));
+  await wait(120);
+  pointer(B, "pointerup", x);
+  expect(onChange.mock.calls).toEqual([["69"]]);
+  expect(frame.hasAttribute("data-dragging")).toBe(false);
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+test("drag writes the DOM without reporting", () => {
+  mount();
+  const B = E("b");
+  const x0 = centre(B);
+  pointer(B, "pointerdown", x0);
+  pointer(B, "pointermove", x0 + 22);
+  expect(frame.hasAttribute("data-dragging")).toBe(true);
+  expect(onChange).not.toHaveBeenCalled();
+  expect(tx($('[data-sashay-pane="b"]'))).toBeGreaterThan(332);
+  expect(frame.querySelectorAll("[data-sashay-mark]").length).toBe(2);
+  expect($("[data-sashay-mark][data-primary]")).toBe(frame.querySelectorAll("[data-sashay-mark]")[0]);
+  pointer(B, "pointercancel", x0 + 22);
+  expect(frame.hasAttribute("data-dragging")).toBe(false);
+  expect(onChange).not.toHaveBeenCalled(); // settles back on "48"
+});
+
+test("fast fling carries two snaps", async () => {
+  mount();
+  const B = E("b");
+  const x = await drag7(B, centre(B), 10);
+  pointer(B, "pointerup", x);
+  expect(onChange.mock.calls).toEqual([["9c"]]);
+  expect(onClose.mock.calls).toEqual([["c"]]);
+});
+
+test("release below minWidth closes", async () => {
+  mount();
+  const C = E("c");
+  const x0 = centre(C);
+  const x = x0 + (0.9 - 2 / 3) * 924;
+  pointer(C, "pointerdown", x0);
+  pointer(C, "pointermove", (x0 + x) / 2);
+  pointer(C, "pointermove", x);
+  await wait(120);
+  pointer(C, "pointerup", x);
+  expect(onChange.mock.calls).toEqual([["4c"]]);
+  expect(onClose.mock.calls).toEqual([["c"]]);
+});
+
+test("click toggles; cancel without movement does nothing", () => {
+  mount();
+  const C = E("c");
+  pointer(C, "pointerdown", 700);
+  pointer(C, "pointercancel", 700);
+  expect(onChange).not.toHaveBeenCalled();
+  pointer(C, "pointerdown", 700);
+  pointer(C, "pointermove", 702);
+  pointer(C, "pointerup", 702);
+  expect(onChange).toHaveBeenLastCalledWith("4c");
+  expect(onClose.mock.calls).toEqual([["c"]]);
+  pointer(C, "pointerdown", 700);
+  pointer(C, "pointerup", 700);
+  expect(onChange).toHaveBeenLastCalledWith("48");
+});
+
+test("keyboard", () => {
+  mount();
+  E("b").focus();
+  key(E("b"), "ArrowRight");
+  expect(onChange).toHaveBeenLastCalledWith("69");
+  h?.destroy();
+  mount();
+  key(E("c"), "ArrowLeft");
+  expect(onChange).toHaveBeenLastCalledWith("36");
+  key(E("c"), "Enter");
+  expect(onChange.mock.lastCall?.[0]).toMatch(/c$/);
+  expect(onClose).toHaveBeenLastCalledWith("c");
+});
+
+test("spine: ArrowLeft reveals the newest hidden pane", () => {
+  const ids = ["p0", "p1", "p2", "p3", "p4", "p5"];
+  frame.replaceChildren(...ids.map(pane));
+  mount({ panes: ids.map((id) => ({ id, title: id, focus: 1 / 3 })), layout: "3-48" });
+  key($("[data-spine]"), "ArrowLeft");
+  expect(onChange).toHaveBeenLastCalledWith("2-48c");
+});
+
+test("aria", () => {
+  mount();
+  const B = E("b");
+  expect(B.getAttribute("role")).toBe("separator");
+  expect(B.getAttribute("aria-valuenow")).toBe("33");
+  expect(B.getAttribute("aria-valuetext")).toBe("1:1:1");
+  key(B, "ArrowRight");
+  expect(B.getAttribute("aria-valuenow")).toBe("50");
+  expect(B.getAttribute("aria-valuetext")).toBe("2:1:1");
+  expect(E("a").getAttribute("role")).toBe("button");
+});
+
+test("leaf ×", () => {
+  mount();
+  const x = $("[data-sashay-close]");
+  expect(x.getAttribute("aria-label")).toBe("Close C");
+  x.click();
+  expect(onChange).toHaveBeenLastCalledWith("4c");
+  expect(onClose.mock.calls).toEqual([["c"]]);
+});
+
+const withDrawers = (a?: string, b = "14rem"): PaneOptions[] => [
+  a ? { ...P3[0], edge: { drawer: { width: a, title: "Data" } } } : P3[0],
+  { ...P3[1], edge: { drawer: { width: b, title: "Filters" } } },
+  P3[2],
+];
+
+test("drawer", () => {
+  drawer("b");
+  mount({ panes: withDrawers(), layout: "48.0" });
+  const t = $('[data-sashay-edge="b"] [data-sashay-toggle]');
+  t.click();
+  expect(t.getAttribute("aria-expanded")).toBe("true");
+  expect(E("b").style.width).toBe("224px");
+  expect(E("b").hasAttribute("data-open")).toBe(true);
+  expect($('[data-sashay-drawer="b"]').hasAttribute("data-open")).toBe(true);
+  expect(onChange).toHaveBeenLastCalledWith("48.1");
+  h?.toggleDrawer("b");
+  expect(onChange).toHaveBeenLastCalledWith("48.0");
+  expect(t.getAttribute("aria-expanded")).toBe("false");
+});
+
+test("drawer body drags but doesn't toggle", () => {
+  const d = drawer("b");
+  mount({ panes: withDrawers(), layout: "48.1" });
+  const body = d.querySelector("p") as HTMLElement;
+  pointer(body, "pointerdown", 400);
+  pointer(body, "pointerup", 400);
+  expect(onChange).not.toHaveBeenCalled();
+  pointer(body, "pointerdown", 400);
+  pointer(body, "pointermove", 430);
+  expect(frame.hasAttribute("data-dragging")).toBe(true);
+  pointer(body, "pointerup", 430);
+  expect(frame.hasAttribute("data-dragging")).toBe(false);
+});
+
+test("compact", () => {
+  frame.style.width = "600px";
+  drawer("a");
+  drawer("b");
+  mount({ panes: withDrawers("10rem") });
+  expect(frame.hasAttribute("data-compact")).toBe(true);
+  expect(frame.querySelectorAll("[data-sashay-tab]").length).toBe(3);
+  expect($('[data-sashay-tab="a"]').getAttribute("aria-pressed")).toBe("true");
+  expect(E("a").querySelector("[data-sashay-toggle]")).toBeNull();
+  $('[data-sashay-drawer-tab="b"]').click();
+  const db = $('[data-sashay-drawer="b"]');
+  expect(db.hasAttribute("data-sheet")).toBe(true);
+  expect(tx(db)).toBeCloseTo(44, 1);
+  expect(db.style.width).toBe("224px");
+  expect(db.querySelector("[data-sashay-sheet-head]")?.textContent).toContain("Filters");
+  expect($('[data-sashay-drawer-tab="b"]').getAttribute("aria-expanded")).toBe("true");
+  $('[data-sashay-drawer-tab="a"]').click();
+  expect($('[data-sashay-drawer="a"]').hasAttribute("data-open")).toBe(true);
+  expect(db.hasAttribute("data-open")).toBe(false);
+  expect(db.querySelector("[data-sashay-sheet-head]")).toBeNull();
+  expect(E("b").style.width).toBe("12px");
+  ($('[data-sashay-drawer="a"] [data-sashay-sheet-close]') as HTMLElement).click();
+  expect($('[data-sashay-drawer="a"]').hasAttribute("data-open")).toBe(false);
+});
+
+test("update mid-drag settles first", async () => {
+  mount();
+  const B = E("b");
+  const x = await drag7(B, centre(B));
+  await wait(120);
+  frame.append(pane("d"));
+  h?.update({ panes: [...P3, { id: "d", title: "D", focus: 0.25 }] });
+  expect(onChange.mock.calls[0]).toEqual(["69"]);
+  expect(onChange).toHaveBeenCalledTimes(2);
+  expect(frame.hasAttribute("data-dragging")).toBe(false);
+  pointer(B, "pointerup", x);
+  expect(onChange).toHaveBeenCalledTimes(2);
+});
+
+test("destroy mid-drag restores the DOM", () => {
+  const before = frame.innerHTML;
+  mount();
+  const B = E("b");
+  pointer(B, "pointerdown", 400);
+  pointer(B, "pointermove", 440);
+  h?.destroy();
+  h = undefined;
+  expect(frame.innerHTML).toBe(before);
+  expect(onChange).not.toHaveBeenCalled();
+});

@@ -3,6 +3,7 @@
 // Everything is keyed by pane id so state survives list changes.
 import {
   contentWidth,
+  drag,
   type EdgeSpec,
   fit as fitIdx,
   focusShift,
@@ -11,9 +12,13 @@ import {
   layout,
   nearest,
   ratio,
+  type Sample,
   type Sizes,
+  settle,
   snapV,
+  step,
   toWidths,
+  velocity,
 } from "./engine.ts";
 import { checkLength, createMeasure, type Length } from "./length.ts";
 import {
@@ -105,8 +110,11 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const measure = createMeasure(frame);
   const px = measure.px;
   let W = frame.clientWidth;
-  // Task 7: the live dividers during a drag; a resize while dragging waits for release.
-  const live: number[] | null = null;
+  // The live dividers during a drag, and where they would settle (the marks).
+  // A resize while dragging waits for release.
+  let live: number[] | null = null;
+  let preview: { d: number; idx: number[] } | null = null;
+  let gesture: { end(ev: PointerEvent | null): void; stop(): void } | null = null;
   let dirty = false;
   let lastCode = "";
 
@@ -186,6 +194,18 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   leaf.setAttribute("data-sashay-close", "");
   leaf.textContent = "×";
   frame.prepend(spine, leaf);
+  const marks: HTMLElement[] = [];
+  const tabs = document.createElement("div");
+  tabs.setAttribute("data-sashay-tabs", "");
+  let tabsKey = "";
+  const sheetHead = document.createElement("div");
+  sheetHead.setAttribute("data-sashay-sheet-head", "");
+  const sheetTitle = document.createElement("span");
+  const sheetClose = document.createElement("button");
+  sheetClose.type = "button";
+  sheetClose.setAttribute("data-sashay-sheet-close", "");
+  sheetClose.textContent = "×";
+  sheetHead.append(sheetTitle, sheetClose);
 
   const offscreen = (el: HTMLElement | undefined) => {
     if (!el) return;
@@ -195,8 +215,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     el.inert = true;
   };
 
-  const makeEdge = (e: HTMLElement, p: PaneOptions) => {
-    const dr = p.edge?.drawer;
+  const makeEdge = (e: HTMLElement, dr: EdgeOptions["drawer"]) => {
     const t = e.querySelector("[data-sashay-title]");
     if (e.firstChild && Boolean(dr) === Boolean(t) && (!t || t.textContent === dr?.title)) return;
     const dots = document.createElement("span");
@@ -244,7 +263,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         el.removeAttribute("data-offscreen");
         el.inert = false;
       }
-      makeEdge(e, p);
+      makeEdge(e, c ? undefined : p.edge?.drawer);
       e.setAttribute("aria-label", p.title);
       if (k === 0) {
         e.setAttribute("role", "button");
@@ -267,8 +286,60 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const t = e.querySelector("[data-sashay-toggle]");
       t?.setAttribute("aria-expanded", String(open));
       t?.setAttribute("aria-label", `${open ? "Close" : "Open"} ${dr?.title}`);
-      drawerEls.get(p.id)?.toggleAttribute("data-open", open);
+      const de = drawerEls.get(p.id);
+      de?.toggleAttribute("data-open", open);
+      de?.toggleAttribute("data-sheet", open && c);
+      if (de && open && c) {
+        sheetTitle.textContent = dr?.title ?? "";
+        sheetClose.setAttribute("aria-label", `Close ${dr?.title}`);
+        if (sheetHead.parentElement !== de) de.prepend(sheetHead);
+      }
     });
+    if (!w.some((p) => c && drawers.get(p.id) && drawerEls.has(p.id))) sheetHead.remove();
+    // Compact: a tab per window pane, and a drawer tab per drawer, in the first edge.
+    const e0 = c && w.length ? edges.get(w[0].id) : undefined;
+    if (!e0) tabs.remove();
+    else {
+      const k = JSON.stringify(w.map((p) => [p.id, p.title, p.edge?.drawer?.title]));
+      if (k !== tabsKey) {
+        tabsKey = k;
+        tabs.replaceChildren(
+          ...w.flatMap((p) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.setAttribute("data-sashay-tab", p.id);
+            b.textContent = p.title;
+            const dr = p.edge?.drawer;
+            if (!dr) return [b];
+            const t = document.createElement("button");
+            t.type = "button";
+            t.setAttribute("data-sashay-drawer-tab", p.id);
+            t.innerHTML = CHEVRON;
+            t.append(dr.title);
+            return [b, t];
+          }),
+        );
+      }
+      if (tabs.parentElement !== e0) e0.append(tabs);
+      w.forEach((p, k) => {
+        tabs
+          .querySelector(`[data-sashay-tab="${CSS.escape(p.id)}"]`)
+          ?.setAttribute("aria-pressed", String(isOpen(widths[k])));
+        const t = tabs.querySelector(`[data-sashay-drawer-tab="${CSS.escape(p.id)}"]`);
+        const open = Boolean(drawers.get(p.id));
+        t?.setAttribute("aria-expanded", String(open));
+        t?.setAttribute("aria-label", `${open ? "Close" : "Open"} ${p.edge?.drawer?.title}`);
+      });
+    }
+    // One release mark per window divider.
+    while (marks.length < w.length - 1) {
+      const m = document.createElement("div");
+      m.setAttribute("data-sashay-mark", "");
+      m.setAttribute("aria-hidden", "true");
+      frame.append(m);
+      marks.push(m);
+    }
+    while (marks.length > Math.max(0, w.length - 1)) marks.pop()?.remove();
   };
 
   // Geometry for window panes only: safe to call every frame.
@@ -315,13 +386,27 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       es.width = `${eb.w}px`;
       es.zIndex = String(2 * k + 1);
       const d = drawerEls.get(p.id);
-      if (d && !c && drawers.get(p.id)) {
+      if (d && drawers.get(p.id)) {
         const ds = touch(d);
-        ds.transform = es.transform;
-        ds.width = es.width;
-        ds.zIndex = es.zIndex;
+        if (c) {
+          const tw = px(TABS);
+          ds.transform = `translateX(${sw + tw}px)`;
+          ds.width = `${Math.min(px(p.edge?.drawer?.width ?? 0), W - sw - tw - px(EDGE))}px`;
+          ds.zIndex = "";
+        } else {
+          ds.transform = es.transform;
+          ds.width = es.width;
+          ds.zIndex = es.zIndex;
+        }
       }
     });
+    if (preview) {
+      const ghost = layout(W - sw, preview.idx.map(snapV), specs, []).edgeBoxes;
+      marks.forEach((m, k) => {
+        m.style.transform = `translateX(${(ghost[k + 1]?.x ?? 0) + sw}px)`;
+        m.toggleAttribute("data-primary", k === preview?.d);
+      });
+    }
     leaf.hidden = right < 0;
     leaf.style.transform = `translateX(${right}px)`;
     if (leaf.getAttribute("aria-label") !== `Close ${last}`) leaf.setAttribute("aria-label", `Close ${last}`);
@@ -355,17 +440,124 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
 
   const indexOf = (id: string) => panes.findIndex((p) => p.id === id);
-  const revealAt = (p: number) => commit(revealIn(view, p, panes.length, sizesFor, order(), panes[p]?.opensTo));
+  const revealAt = (p: number, user = false) =>
+    commit(revealIn(view, p, panes.length, sizesFor, order(), panes[p]?.opensTo), undefined, user);
+  const closeAt = (p: number, user = false) =>
+    commit(closeIn(view, p, panes.length, sizesFor, order()), undefined, user);
+  // An edge is its pane's open/close toggle.
+  const toggle = (k: number) =>
+    isOpen(toWidths(effective())[k]) ? closeAt(view.offset + k, true) : revealAt(view.offset + k, true);
+  const setDrawer = (id: string, open?: boolean) => {
+    const p = panes.find((q) => q.id === id);
+    if (!p?.edge?.drawer || !edges.has(id)) return;
+    const on = open ?? !drawers.get(id);
+    // Compact: one sheet at a time.
+    commit(view, (on && compact() ? new Map<string, boolean>() : new Map(drawers)).set(id, on));
+  };
+  const winIndex = (id: string | undefined) => (id === undefined ? -1 : win().findIndex((p) => p.id === id));
 
   const onClick = (e: MouseEvent) => {
     const t = e.target as Element;
     if (t.closest("[data-sashay-frame]") !== frame) return;
+    const at = (name: string) => t.closest(`[${name}]`)?.getAttribute(name);
+    const tab = at("data-sashay-tab");
+    const drawerTab = at("data-sashay-drawer-tab");
     if (t.closest("[data-spine]")) revealAt(view.offset - 1);
     else if (t.closest("[data-sashay-close]")) {
-      const w = toWidths(effIdx().map(snapV));
-      const k = w.findLastIndex(isOpen);
-      if (k >= 0) commit(closeIn(view, view.offset + k, panes.length, sizesFor, order()), undefined, true);
+      const k = toWidths(effIdx().map(snapV)).findLastIndex(isOpen);
+      if (k >= 0) closeAt(view.offset + k, true);
+    } else if (t.closest("[data-sashay-toggle]")) setDrawer(at("data-sashay-edge") ?? "");
+    else if (tab != null) revealAt(indexOf(tab), true);
+    else if (drawerTab != null) setDrawer(drawerTab);
+    else if (t.closest("[data-sashay-sheet-close]")) setDrawer(at("data-sashay-drawer") ?? "", false);
+  };
+
+  // Click → toggle its pane; drag → move divider k-1 (window edge 0 drives none).
+  // The whole edge drags, an open drawer included; only its controls don't.
+  const onPointerDown = (e: PointerEvent) => {
+    const t = e.target as Element;
+    if (e.button !== 0 || gesture || t.closest("[data-sashay-frame]") !== frame) return;
+    if (t.closest("button, input, label, select, textarea, a")) return;
+    const dr = t.closest<HTMLElement>("[data-sashay-drawer]");
+    if (dr && (!dr.hasAttribute("data-open") || dr.hasAttribute("data-sheet"))) return;
+    const src = dr ?? t.closest<HTMLElement>("[data-sashay-edge]");
+    const id = dr ? dr.dataset.sashayDrawer : src?.dataset.sashayEdge;
+    const k = winIndex(id);
+    if (!src || k < 0) return;
+    const d = k - 1;
+    src.setPointerCapture(e.pointerId);
+    const x0 = e.clientX;
+    const start = effective();
+    const C = Math.max(content(), 1);
+    const S = sizes();
+    const o = order();
+    const samples: Sample[] = [{ t: e.timeStamp, x: e.clientX }];
+    let moved = false;
+    let raw = start[d];
+    const move = (ev: PointerEvent) => {
+      samples.push({ t: ev.timeStamp, x: ev.clientX });
+      if (samples.length > 32) samples.shift();
+      const dx = ev.clientX - x0;
+      if (d < 0 || (!moved && Math.abs(dx) < 4)) return; // below this it's a click
+      if (!moved) frame.setAttribute("data-dragging", "");
+      moved = true;
+      raw = start[d] + dx / C;
+      live = drag(start, d, raw, S);
+      preview = { d, idx: settle(start, d, raw, velocity(samples, ev.timeStamp), o, S) };
+      paint();
+    };
+    const stop = () => {
+      src.removeEventListener("pointermove", move);
+      src.removeEventListener("pointerup", end);
+      src.removeEventListener("pointercancel", end);
+      frame.removeAttribute("data-dragging");
+      gesture = null;
+      live = null;
+      preview = null;
+    };
+    // ev null: ended by update()/setLayout(); settles where it is.
+    function end(ev: PointerEvent | null) {
+      stop();
+      if (!moved) {
+        if (ev?.type === "pointerup" && !dr) toggle(k);
+        return;
+      }
+      const v = ev?.type === "pointerup" ? velocity(samples, ev.timeStamp) : 0;
+      commit({ offset: view.offset, div: settle(start, d, raw, v, o, S) }, undefined, true);
     }
+    src.addEventListener("pointermove", move);
+    src.addEventListener("pointerup", end);
+    src.addEventListener("pointercancel", end);
+    gesture = { end, stop };
+  };
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    const t = e.target as HTMLElement;
+    if (t.closest("[data-sashay-frame]") !== frame) return;
+    if (t.hasAttribute("data-spine")) {
+      if (e.key !== "ArrowLeft") return;
+      e.preventDefault();
+      revealAt(view.offset - 1);
+      return;
+    }
+    const k = winIndex(t.dataset.sashayEdge);
+    if (k < 0) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle(k);
+      return;
+    }
+    const dir = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+    const d = k - 1;
+    if (!dir || d < 0) return;
+    e.preventDefault();
+    const o = order();
+    const cur = effIdx();
+    commit(
+      { offset: view.offset, div: settle(cur.map(snapV), d, snapV(step(cur[d], dir, o)), 0, o, sizes()) },
+      undefined,
+      true,
+    );
   };
   const onResize = () => {
     dirty = true;
@@ -373,6 +565,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
   const ro = new ResizeObserver(onResize);
   frame.addEventListener("click", onClick);
+  frame.addEventListener("pointerdown", onPointerDown);
+  frame.addEventListener("keydown", onKeyDown);
   document.fonts?.addEventListener("loadingdone", onResize);
 
   // Mount.
@@ -392,13 +586,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     },
     close(id) {
       const p = indexOf(id);
-      if (p >= 0) commit(closeIn(view, p, panes.length, sizesFor, order()));
+      if (p >= 0) closeAt(p);
     },
-    toggleDrawer(id, open) {
-      const p = panes.find((q) => q.id === id);
-      if (!p?.edge?.drawer || !edges.has(id)) return;
-      commit(view, new Map(drawers).set(id, open ?? !drawers.get(id)));
-    },
+    toggleDrawer: setDrawer,
     keepInView(id, x) {
       if (x === null) keep.delete(id);
       else {
@@ -408,6 +598,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       paint();
     },
     setLayout(c) {
+      gesture?.end(null);
       ({ v: view, m: drawers } = decodeState(c));
       refresh();
       lastCode = code();
@@ -420,6 +611,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     update(o) {
       if (o.compactBelow !== undefined) checkLength(o.compactBelow);
       const f = o.panes && scan(frame, o.panes);
+      if (o.panes || o.compactBelow !== undefined) gesture?.end(null);
       if ("onChange" in o) opts.onChange = o.onChange;
       if ("onClose" in o) opts.onClose = o.onClose;
       if (o.compactBelow !== undefined) opts.compactBelow = o.compactBelow;
@@ -439,13 +631,19 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       commit(diff(prev, panes, view, ord, sizesOf) ?? defaultView(panes.length, opts.defaultLayout));
     },
     destroy() {
+      gesture?.stop();
       ro.disconnect();
       frame.removeEventListener("click", onClick);
+      frame.removeEventListener("pointerdown", onPointerDown);
+      frame.removeEventListener("keydown", onKeyDown);
       document.fonts?.removeEventListener("loadingdone", onResize);
       for (const e of edges.values()) e.remove();
       edges.clear();
       spine.remove();
       leaf.remove();
+      tabs.remove();
+      sheetHead.remove();
+      for (const m of marks) m.remove();
       measure.destroy();
       for (const el of [...els.values(), ...drawerEls.values()]) {
         for (const a of ["data-covered", "data-closed", "data-offscreen", "data-open", "data-sheet"])
