@@ -51,6 +51,7 @@ fractions, because they live on the snap grid.
 
 | Method | Description |
 |---|---|
+| `layout` (getter) | The current layout code. |
 | `reveal(id)` | Opens the pane, or uncovers it, including bringing it back from the spine. Uses `opensTo` if set. |
 | `close(id)` | Closes the pane. |
 | `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |

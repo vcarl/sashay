@@ -56,6 +56,8 @@ export interface SashayOptions {
   compactBelow?: Length;
 }
 export interface SashayHandle {
+  /** The current layout code, as the last onChange reported or setLayout applied. */
+  readonly layout: string;
   reveal(id: string): void;
   close(id: string): void;
   toggleDrawer(id: string, open?: boolean): void;
@@ -140,7 +142,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     return list.map((p, k) => {
       const dr = p.edge?.drawer;
       return {
-        closedPx: px(c && k === 0 ? TABS : c && dr ? EDGE : (p.edge?.width ?? EDGE)),
+        closedPx: px(c ? (k === 0 ? TABS : EDGE) : (p.edge?.width ?? EDGE)),
         openPx: !c && dr ? px(dr.width) : undefined,
         open: Boolean(drawers.get(p.id)),
       };
@@ -628,6 +630,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   frame.setAttribute("data-sashay-ready", "");
 
   return {
+    get layout() {
+      return lastCode;
+    },
     reveal(id) {
       if (destroyed) return;
       const p = indexOf(id);

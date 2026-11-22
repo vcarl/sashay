@@ -58,6 +58,15 @@ test("slide-over marks covered panes inert", () => {
   expect(P("a").inert).toBe(true);
 });
 
+test("layout reads the current code", () => {
+  h = createSashay(frame, { panes: P3, layout: "48" });
+  expect(h.layout).toBe("48");
+  h.close("c");
+  expect(h.layout).toBe("4c");
+  h.setLayout("69");
+  expect(h.layout).toBe("69");
+});
+
 test("reveal, close and fit fire onChange; setLayout doesn't", () => {
   const onChange = vi.fn();
   const onClose = vi.fn();

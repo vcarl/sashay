@@ -182,7 +182,7 @@
     align-content: start;
     font-size: var(--sashay-font-size, 0.6875rem);
     color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
-    min-width: 200px;
+    box-sizing: border-box;
     overflow-y: auto;
     touch-action: pan-y;
   }
@@ -278,7 +278,6 @@
   [data-sashay-drawer][data-sheet] {
     z-index: 100;
     padding: 0;
-    min-width: 0;
     display: block;
     background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
     border-right: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));

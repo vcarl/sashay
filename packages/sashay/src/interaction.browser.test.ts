@@ -309,3 +309,22 @@ test("lostpointercapture ends the gesture", () => {
   pointer(E("c"), "pointerup", 650);
   expect($('[data-sashay-pane="c"]').hasAttribute("data-closed")).toBe(true);
 });
+
+test("compact: edges after the first are grips, with or without drawers", () => {
+  frame.style.width = "600px";
+  drawer("b");
+  const wide = { width: "3rem" };
+  mount({
+    panes: [P3[0], { ...P3[1], edge: { ...wide, drawer: { width: "10rem", title: "F" } } }, { ...P3[2], edge: wide }],
+    layout: "48.0",
+  });
+  expect(frame.hasAttribute("data-compact")).toBe(true);
+  expect(E("b").style.width).toBe("12px");
+  expect(E("c").style.width).toBe("12px");
+});
+
+test("a drawer renders at its configured width", () => {
+  const d = drawer("b");
+  mount({ panes: withDrawers(undefined, "10rem"), layout: "48.1" });
+  expect(d.getBoundingClientRect().width).toBe(160);
+});

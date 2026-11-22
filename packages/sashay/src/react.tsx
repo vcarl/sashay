@@ -124,6 +124,9 @@ export function Sashay(props: SashayProps): ReactElement {
           (...a: unknown[]) => (s.h?.[k] as ((...x: unknown[]) => void) | undefined)?.apply(s.h, a),
         ]),
       ) as unknown as SashayHandle),
+      get layout() {
+        return s.h?.layout ?? s.code ?? "";
+      },
       setLayout(c: string) {
         s.code = c; // so a later `layout` prop equal to the old code still applies
         s.h?.setLayout(c);

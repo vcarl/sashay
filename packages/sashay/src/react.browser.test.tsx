@@ -72,6 +72,7 @@ test("renders and paints", async () => {
   expect(tx(P("b"))).toBeCloseTo(332, 1);
   await act(() => h.current?.close("c"));
   expect(spy).toHaveBeenCalledWith("4c");
+  expect(h.current?.layout).toBe("4c");
 });
 
 test("compactBelow returning to undefined restores the default", async () => {
