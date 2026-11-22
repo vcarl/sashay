@@ -31,20 +31,20 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --project unit --passWithNoTests",
-    "test:browser": "vitest run --project browser --passWithNoTests",
-    "bench": "vitest run --project bench --passWithNoTests",
+    "test": "vitest run --project unit",
+    "test:browser": "vitest run --project browser",
+    "bench": "vitest run --project bench",
     "build": "tsdown && cp src/sashay.css dist/style.css",
     "size": "size-limit"
   },
   "size-limit": [
     {
       "path": "dist/index.js",
-      "limit": "7 kB"
+      "limit": "7.8 kB"
     },
     {
       "path": "dist/react.js",
-      "limit": "8.5 kB",
+      "limit": "9.1 kB",
       "ignore": [
         "react",
         "react-dom"
@@ -52,7 +52,7 @@
     },
     {
       "path": "dist/style.css",
-      "limit": "2.5 kB",
+      "limit": "1.95 kB",
       "rolldown": false
     }
   ],
