@@ -3,16 +3,27 @@ import { type Bar, INTERVALS, type Interval, money, series, type Txn, transactio
 import "./finance.css";
 
 // A fixed workspace of three panes: Overview → Period → Details.
-// The Guide grows it one step at a time: `drawer` adds the Interval drawer,
-// `url` keeps the layout in ?layout=, and `compactBelow` is passed straight through.
+// The Guide grows it one step at a time: `drawer` adds the Interval drawer, `compactBelow` is
+// passed straight through, and `initial` opens it on a layout, a period, a transaction or the drawer.
+// `onUrl` gets the app's URL (layout, period, transaction) whenever it changes.
 // The `#region` comments mark the excerpts the Guide shows.
+type Initial = { layout?: string; period?: number; txn?: number; drawerOpen?: boolean };
 export function mount(
   el: HTMLElement,
-  { drawer = true, url = false, compactBelow }: { drawer?: boolean; url?: boolean; compactBelow?: Length } = {},
+  {
+    drawer = true,
+    compactBelow,
+    initial = {},
+    // #region url
+    onUrl = (url: string) => history.replaceState(history.state, "", url),
+    // #endregion
+  }: { drawer?: boolean; compactBelow?: Length; initial?: Initial; onUrl?: (url: string) => void } = {},
 ) {
   let interval: Interval = "1M";
   let bars: Bar[] = [];
   let txns: Txn[] = [];
+  let picked = -1;
+  let current = -1;
 
   el.classList.add("finance");
   // #region frame
@@ -36,10 +47,11 @@ export function mount(
     );
   // #endregion
   // #region url
-  const params = new URLSearchParams(location.search);
-  const saveToUrl = (code: string) => {
-    params.set("layout", code);
-    history.replaceState(history.state, "", `?${params}`);
+  const saveToUrl = (layout = sash.layout) => {
+    const params = new URLSearchParams({ layout });
+    if (picked >= 0) params.set("period", bars[picked].label.toLowerCase().replace(/\W+/g, "-"));
+    if (current >= 0) params.set("txn", txns[current].id);
+    onUrl(`?${params}`);
   };
   // #endregion
 
@@ -59,15 +71,18 @@ export function mount(
     ],
     defaultLayout: [1, 1], // only Overview open
     // #region url
-    layout: (url && params.get("layout")) || undefined,
-    onChange: url ? saveToUrl : undefined,
+    layout: initial.layout, // a saved code, say from new URLSearchParams(location.search)
+    onChange: saveToUrl,
     // #endregion
     // #region compact
     compactBelow, // a Length; "40rem" when left out
     // #endregion
     onClose(id) {
       if (id === "period") pick(-1);
-      if (id === "details") el.querySelector("[aria-current]")?.removeAttribute("aria-current");
+      if (id === "details") {
+        current = -1;
+        el.querySelector("[aria-current]")?.removeAttribute("aria-current");
+      }
     },
   });
   // #endregion
@@ -94,6 +109,8 @@ export function mount(
   }
 
   function pick(i: number) {
+    picked = i;
+    current = -1;
     for (const g of el.querySelectorAll("[data-bar]"))
       g.toggleAttribute("data-picked", g.getAttribute("data-bar") === String(i));
     // #region frame
@@ -101,7 +118,7 @@ export function mount(
     const x = `calc(1.25rem + ${(i + 0.5) / bars.length} * (100% - 2.5rem))`;
     sash.keepInView("overview", i < 0 ? null : x);
     // #endregion
-    if (i < 0) return;
+    if (i < 0) return saveToUrl();
     const bar = bars[i];
     txns = transactions(interval, i, bar);
     const net = txns.reduce((s, t) => s + t.amount, 0);
@@ -113,10 +130,12 @@ export function mount(
     sash.close("details");
     sash.reveal("period");
     // #endregion
+    saveToUrl();
   }
 
   function open(j: number) {
     const t = txns[j];
+    current = j;
     for (const b of el.querySelectorAll("[data-txn]"))
       b.toggleAttribute("aria-current", b.getAttribute("data-txn") === String(j));
     $('[data-sashay-pane="details"]').innerHTML = `
@@ -124,6 +143,7 @@ export function mount(
       <dl><dt>Date</dt><dd>${t.date}</dd>${t.ticker ? `<dt>Holding</dt><dd>${t.ticker}</dd>` : ""}<dt>Account</dt><dd>Brokerage ··7310</dd><dt>Reference</dt><dd>${t.id}</dd></dl>
       <p class="fi-note">${t.note}</p>`;
     sash.reveal("details");
+    saveToUrl();
   }
 
   const onClick = (e: Event) => {
@@ -152,6 +172,11 @@ export function mount(
   chart();
   $('[data-sashay-pane="period"]').innerHTML = `<p class="fi-empty">Pick a bar to see its transactions.</p>`;
   $('[data-sashay-pane="details"]').innerHTML = `<p class="fi-empty">Pick a transaction.</p>`;
+  if (initial.period !== undefined) pick(initial.period);
+  if (initial.txn !== undefined) open(initial.txn);
+  if (initial.layout) sash.setLayout(initial.layout); // reveal() may have moved the dividers
+  if (initial.drawerOpen) sash.toggleDrawer("overview", true);
+  saveToUrl();
   return () => {
     el.removeEventListener("click", onClick);
     el.removeEventListener("keydown", onKey);

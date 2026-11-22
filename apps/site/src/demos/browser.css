@@ -1,0 +1,54 @@
+/* A small browser window in the site's own terms: an ink rule, paper chrome, a butter address bar. */
+.mb {
+  --mb-h: 30rem;
+  border: var(--rule, 3px) solid var(--ink);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--ink);
+}
+.mb-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 10px;
+  border-bottom: var(--rule, 3px) solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+}
+.mb-chrome {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.mb-chrome i {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--tomato);
+}
+.mb-chrome i:nth-child(2) {
+  background: var(--butter);
+}
+.mb-chrome i:nth-child(3) {
+  margin-right: 8px;
+  background: var(--mint);
+}
+.mb-chrome b {
+  font: 600 18px / 1 var(--mono);
+  color: var(--mute);
+}
+.mb-url {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--butter);
+  font: 500 12px / 1.4 var(--mono);
+  overflow-wrap: anywhere; /* wraps on a narrow frame, so the whole URL stays readable */
+}
+.mb-view {
+  zoom: 0.8;
+  height: calc(var(--mb-h) / 0.8);
+}

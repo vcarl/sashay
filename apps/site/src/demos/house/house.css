@@ -1,8 +1,4 @@
 .house {
-  height: 30rem;
-  border: var(--rule, 3px) solid var(--ink);
-  border-radius: 10px;
-  overflow: hidden;
   font: 15px / 1.45 var(--sans);
   --sashay-bg: var(--ink);
   --sashay-fg: var(--paper);

@@ -42,6 +42,12 @@ for (const width of [1440, 390]) {
     assert.notEqual(await details.getAttribute("data-closed"), null, "leaf × closes details");
   }
 
+  assert.match(
+    await fi.locator("xpath=..").locator(".mb-url").textContent(),
+    /txn=TX-/,
+    "URL bar shows the transaction",
+  );
+
   // House: drill 6 levels (it opens with the first room), see the spine (narrow), go back, open an item.
   const hs = page.locator(".house");
   const panes = hs.locator("[data-sashay-pane]");
@@ -60,6 +66,9 @@ for (const width of [1440, 390]) {
   assert.equal(await item.count(), 1, "item preview opens");
   assert.equal(await item.locator("svg").count(), 1);
   assert.equal(await item.getAttribute("inert"), null, "preview is visible");
+  const path = await hs.locator("xpath=..").locator(".mb-url").textContent();
+  assert.equal(path.split("/").length, 7, `URL bar shows the path (${path})`);
+  assert.equal(new URL(page.url()).search, "", "the page's own URL stays put");
   await page.close();
 }
 

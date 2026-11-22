@@ -18,7 +18,7 @@ for (const width of [1440, 390]) {
   for (const path of ["guide/", "reference/"]) {
     const page = await open(path, width);
     const apps = page.locator(".demo-app");
-    for (let i = 0; i < (await apps.count()); i++) await apps.nth(i).and(page.locator("[data-sashay-ready]")).waitFor();
+    for (let i = 0; i < (await apps.count()); i++) await apps.nth(i).locator("[data-sashay-ready]").waitFor();
     const wide = await page.$$eval("pre", (els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1).length);
     assert.equal(wide, 0, `${path} at ${width}: code blocks fit`);
     const scroll = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -29,24 +29,61 @@ for (const width of [1440, 390]) {
 
 let page = await open("guide/");
 const steps = page.locator(".demo-app");
+for (let i = 0; i < 6; i++) await steps.nth(i).locator("[data-sashay-ready]").waitFor();
+const urls = await page.$$eval(".demo-app .mb-url", (els) => els.map((e) => e.value));
+const pane = (i, id) => steps.nth(i).locator(`[data-sashay-pane="${id}"]`);
 assert.equal(await steps.count(), 6, "five finance steps and the house");
 assert.equal(await steps.nth(0).locator("[data-sashay-drawer]").count(), 0, "first frame has no drawer");
+assert.equal(await pane(0, "period").getAttribute("data-closed"), null, "first frame opens on Period");
+assert.match(urls[1], /^portfolio\.example\/\?layout=6a&period=[\w-]+&txn=TX-/, "URL step shows its layout code");
 assert.equal(await steps.nth(2).locator("[data-sashay-drawer]").count(), 1, "drawers step has one");
-assert.notEqual(await steps.nth(3).getAttribute("data-compact"), null, "compact step is compact");
+assert.equal(await steps.nth(2).locator("[data-sashay-toggle]").getAttribute("aria-expanded"), "true", "drawer opens");
+assert.notEqual(await steps.nth(3).locator(".finance").getAttribute("data-compact"), null, "compact step is compact");
+assert.equal(await pane(4, "details").getAttribute("data-closed"), null, "styling step shows all three panes");
+assert.match(urls[5], /^house\.example\/[\w-]+\/[\w-]+\/[\w-]+\/[\w-]+$/, "house opens four levels down");
+assert.equal(await page.locator(".mb-chrome[aria-hidden='true']").count(), 6, "chrome is decorative");
 assert.equal(await page.locator(".expressive-code .frame.is-terminal").count(), 0, "no terminal frames");
 
-// Layout in the URL: a keypress writes ?layout=.
+// Under the 80% zoom, a dragged edge stays under the pointer, and a release snaps near it.
+const first = steps.nth(0);
+await first.scrollIntoViewIfNeeded();
+const sep = first.locator('[role="separator"]').first();
+const mid = async () => {
+  const b = await sep.boundingBox();
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+};
+let { x, y } = await mid();
+await page.mouse.move(x, y);
+await page.mouse.down();
+for (let i = 1; i <= 10; i++) await page.mouse.move(x - 12 * i, y);
+assert.ok(Math.abs((await mid()).x - (x - 120)) < 1.5, "edge tracks the pointer under zoom");
+await page.mouse.up();
+await page.waitForTimeout(400);
+assert.ok(Math.abs((await mid()).x - (x - 120)) < 40, "release snaps near the pointer");
+assert.match(await first.locator(".mb-url").textContent(), /layout=/, "the URL bar follows a drag");
+const before = await first.locator(".mb-url").textContent();
+// A throw: a short fast flick carries the edge past where the pointer let go.
+({ x, y } = await mid());
+await page.mouse.move(x, y);
+await page.mouse.down();
+for (let i = 1; i <= 4; i++) await page.mouse.move(x - 10 * i, y);
+await page.mouse.up();
+await page.waitForTimeout(400);
+assert.ok((await mid()).x < x - 60, "a fling carries the edge on");
+assert.notEqual(await first.locator(".mb-url").textContent(), before, "the URL bar follows a fling");
+// A click under zoom lands on the bar under the pointer.
+await first.locator('[data-bar="3"]').click();
+await page.waitForTimeout(400);
+assert.match(await first.locator(".mb-url").textContent(), /period=/);
+assert.notEqual(await first.locator('[data-bar="3"]').getAttribute("data-picked"), null, "click picks the bar");
+
+// Layout in the URL: a keypress rewrites the mini URL bar, never the page's.
 const url = steps.nth(1);
 await url.scrollIntoViewIfNeeded();
-await url.locator("[data-bar]").first().click();
-await page.waitForTimeout(300);
 await url.locator('[role="separator"]').first().press("ArrowLeft");
-const code = new URL(page.url()).searchParams.get("layout");
-assert.match(code ?? "", /^[0-9a-f]/, "the URL step writes ?layout=");
-page = await open(`guide/?layout=${code}`);
-const period = page.locator('.demo-app[data-sashay-ready] [data-sashay-pane="period"]').nth(1);
-await period.waitFor({ state: "attached" });
-assert.equal(await period.getAttribute("data-closed"), null, "the layout survives a reload");
+assert.doesNotMatch(await url.locator(".mb-url").textContent(), /layout=6a&/, "the mini URL bar follows a keypress");
+assert.equal(new URL(page.url()).search, "", "the page's own URL stays put");
+await page.close();
 
 page = await open("reference/");
 await page.locator(".demo").scrollIntoViewIfNeeded();

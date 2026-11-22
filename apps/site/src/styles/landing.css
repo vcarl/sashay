@@ -659,7 +659,7 @@ pre .s {
   min-width: 0;
 }
 .seeit .demo-app {
-  height: 26rem;
+  --mb-h: 26rem;
 }
 .seeit figcaption {
   margin-top: 12px;

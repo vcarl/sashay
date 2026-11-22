@@ -42,8 +42,10 @@ assert.deepEqual(hrefs, [
   "#layout-in-the-url",
 ]);
 assert.match(await page.getByRole("link", { name: "Read the docs" }).getAttribute("href"), /\/guide\/$/);
-for (const name of ["finance", "house"])
-  await page.locator(`.seeit [data-demo-app="${name}"][data-sashay-ready]`).waitFor();
+for (const name of ["finance", "house"]) {
+  await page.locator(`.seeit [data-demo-app="${name}"] [data-sashay-ready]`).waitFor();
+  assert.match(await page.locator(`.seeit [data-demo-app="${name}"] .mb-url`).textContent(), /^\w+\.example\//);
+}
 
 assert.deepEqual(errors, []);
 await browser.close();

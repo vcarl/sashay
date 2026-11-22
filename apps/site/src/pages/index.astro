@@ -170,6 +170,8 @@ sash.reveal(<span class="s">"detail"</span>);</pre>
 
   mountHero(document.getElementById("hero") as HTMLElement, document.getElementById("readout") as HTMLElement);
   mountCells(document.querySelector(".poster") as HTMLElement);
-  import("../demos/finance/index.ts").then((m) => m.mount(document.querySelector('[data-demo-app="finance"]') as HTMLElement, { compactBelow: "30rem" }));
-  import("../demos/house/index.ts").then((m) => m.mount(document.querySelector('[data-demo-app="house"]') as HTMLElement));
+  import("../demos/browser.ts").then(({ browse }) => {
+    browse(document.querySelector('[data-demo-app="finance"]') as HTMLElement, { compactBelow: "30rem" });
+    browse(document.querySelector('[data-demo-app="house"]') as HTMLElement);
+  });
 </script>

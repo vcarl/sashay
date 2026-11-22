@@ -1,5 +1,5 @@
 ---
-// A demo app at full size. Each app in src/demos/<name>/index.ts exports `mount(el, options?)`.
+// A demo app in a mini browser (src/demos/browser.ts). Each app in src/demos/<name>/index.ts exports `mount(el, options?)`.
 // With `region`, it shows the lines of the app's files marked `#region <region>` (the Guide's
 // excerpts); without, the whole index.ts in a collapsible panel.
 import { Code } from "@astrojs/starlight/components";
@@ -48,11 +48,9 @@ const files = region
 )}
 
 <script>
-  const mods = import.meta.glob<{ mount(el: HTMLElement, options?: object): () => void }>("../demos/*/index.ts");
-  for (const el of document.querySelectorAll<HTMLElement>("[data-demo-app]")) {
-    const options = el.dataset.options ? JSON.parse(el.dataset.options) : undefined;
-    mods[`../demos/${el.dataset.demoApp}/index.ts`]().then((m) => m.mount(el, options));
-  }
+  import { browse } from "../demos/browser";
+  for (const el of document.querySelectorAll<HTMLElement>("[data-demo-app]"))
+    browse(el, el.dataset.options && JSON.parse(el.dataset.options));
 </script>
 
 <style>

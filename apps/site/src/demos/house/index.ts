@@ -3,7 +3,8 @@ import { kids, type Node, picture, root } from "./data";
 import "./house.css";
 
 // A navigation stack: the panes are just the path you've opened, an array the app edits.
-export function mount(el: HTMLElement) {
+// It opens `depth` levels down the first branch; `onUrl` gets the path, like "parlour/dresser".
+export function mount(el: HTMLElement, { depth = 1, onUrl }: { depth?: number; onUrl?: (url: string) => void } = {}) {
   let path: Node[] = [root];
   const byId = new Map<string, Node>([[root.id, root]]);
 
@@ -32,11 +33,11 @@ export function mount(el: HTMLElement) {
   // #endregion
 
   el.classList.add("house");
-  // Start with the first room open, so there's a stack to see.
+  // Start a few levels down, so there's a stack to see.
   el.innerHTML = pane(root);
-  path = [root, kids(root)[0]];
-  el.insertAdjacentHTML("beforeend", pane(path[1], root));
-  el.querySelector(`[data-open="${path[1].id}"]`)?.setAttribute("aria-current", "");
+  while (path.length <= depth) path.push(kids(path[path.length - 1])[0]);
+  for (const [i, p] of path.entries()) if (i) el.insertAdjacentHTML("beforeend", pane(p, path[i - 1]));
+  mark();
   const sash = createSashay(el, {
     panes: panes(),
     // The leaf × pops the stack back to the pane before it.
@@ -53,16 +54,26 @@ export function mount(el: HTMLElement) {
       if (!path.includes(p)) el.insertAdjacentHTML("beforeend", pane(p, next[i - 1]));
     path = next;
     // #endregion
-    for (const b of el.querySelectorAll<HTMLElement>("[data-open]"))
-      b.toggleAttribute(
-        "aria-current",
-        path.some((p) => p.id === b.dataset.open),
-      );
+    mark();
     // #region stack
     sash.update({ panes: panes() });
     sash.reveal(n.id);
   }
   // #endregion
+
+  function mark() {
+    for (const b of el.querySelectorAll<HTMLElement>("[data-open]"))
+      b.toggleAttribute(
+        "aria-current",
+        path.some((p) => p.id === b.dataset.open),
+      );
+    onUrl?.(
+      path
+        .slice(1)
+        .map((p) => p.name.toLowerCase().replace(/\W+/g, "-"))
+        .join("/"),
+    );
+  }
 
   const onClick = (e: Event) => {
     const b = (e.target as Element).closest<HTMLElement>("[data-open], [data-go]");
