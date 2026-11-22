@@ -70,25 +70,44 @@ createSashay(frame, {"{"}
         <span class="num">02 / Fling</span>
         <h2>Throw it.</h2>
         <p>A quick throw carries the divider one or two snaps past where you let go. Release speed is read from the last 90&nbsp;ms, so a slow drag still lands exactly where you put it.</p>
-        <div class="art fling" aria-hidden="true"><div class="ghost"></div><span class="zip" style="top:28%;width:30%"></span><span class="zip" style="top:50%;width:38%"></span><span class="zip" style="top:72%;width:24%"></span><div class="bar"></div></div>
+        <div class="art mf" id="cell-fling">
+          <div data-sashay-pane="a"><div class="line" style="width:70%"></div><div class="line" style="width:45%"></div></div>
+          <div data-sashay-pane="b"><div class="line" style="width:60%"></div><div class="line" style="width:80%"></div><div class="line" style="width:40%"></div></div>
+        </div>
       </div>
       <div class="cell c-2">
         <span class="num">03 / Drawers</span>
         <h2>Drawers in the frame.</h2>
         <p>Any edge can open a drawer: filters, settings, a table of contents. On a phone it becomes a sheet.</p>
-        <div class="art mini" aria-hidden="true"><div class="md"><b>Filters</b><i class="on"></i>Open<br><i class="on"></i>Mine<br><i></i>Archived</div><div class="me"></div><div class="mp"><div class="line" style="width:70%"></div><div class="line" style="width:50%"></div><div class="line" style="width:60%"></div></div></div>
+        <div class="art mf" id="cell-drawer">
+          <div data-sashay-pane="list"><div class="line" style="width:70%"></div><div class="line" style="width:50%"></div><div class="line" style="width:60%"></div></div>
+          <div data-sashay-drawer="list" class="md"><label><input type="checkbox" checked /> Open</label><label><input type="checkbox" checked /> Mine</label><label><input type="checkbox" /> Archived</label></div>
+        </div>
       </div>
       <div class="cell c-2 mint">
         <span class="num">04 / Spine</span>
         <h2>Deep stacks fold into a spine.</h2>
         <p>Drill down as far as you like. Panes that no longer fit fold into one slim spine with a count. Drag cost stays flat at a thousand deep.</p>
-        <div class="art spine" aria-hidden="true"><div class="sp">7<small>more</small></div><div class="sq"><div class="line" style="width:80%"></div><div class="line" style="width:55%"></div></div><div class="sq focus"><div class="line" style="width:60%"></div><div class="line" style="width:85%"></div><div class="line" style="width:40%"></div></div></div>
+        <div class="art">
+          <div class="mf" id="cell-spine">
+            <div data-sashay-pane="s1"><b>1</b><div class="line" style="width:80%"></div><div class="line" style="width:55%"></div></div>
+            <div data-sashay-pane="s2"><b>2</b><div class="line" style="width:60%"></div><div class="line" style="width:85%"></div></div>
+          </div>
+          <div class="acts"><button type="button" data-act="add">Add pane</button><button type="button" data-act="back">Back</button></div>
+        </div>
       </div>
       <div class="cell c-2 butter">
         <span class="num">05 / Persist</span>
         <h2>The layout is a word.</h2>
         <p>One hex digit per divider plus the drawer bits. Short enough for a query string, stable across list changes.</p>
-        <div class="art bigcode">8<span>c</span>0</div>
+        <div class="art">
+          <div class="mf" id="cell-code">
+            <div data-sashay-pane="x"><div class="line" style="width:70%"></div></div>
+            <div data-sashay-pane="y"><div class="line" style="width:50%"></div></div>
+            <div data-sashay-pane="z"><div class="line" style="width:60%"></div></div>
+          </div>
+          <input class="bigcode" aria-label="Layout code" spellcheck="false" autocomplete="off" value="58" />
+        </div>
       </div>
     </section>
 
@@ -127,3 +146,12 @@ sash.reveal(<span class="s">"detail"</span>);</pre>
     </section>
   </main>
 </Landing>
+
+<script>
+  import "@vcarl/sashay/style.css";
+  import { mountCells } from "../scripts/cells.ts";
+  import { mountHero } from "../scripts/hero.ts";
+
+  mountHero(document.getElementById("hero") as HTMLElement, document.getElementById("readout") as HTMLElement);
+  mountCells(document.querySelector(".poster") as HTMLElement);
+</script>

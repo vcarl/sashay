@@ -98,6 +98,7 @@ button:focus-visible {
   border-radius: 18px;
   background: var(--ink);
   touch-action: pan-y;
+  --stile: var(--edge);
   --sashay-bg: var(--ink);
   --sashay-fg: var(--ink);
   --sashay-pane-bg: var(--paper);
@@ -185,6 +186,28 @@ button:focus-visible {
   color: var(--paper);
 }
 .frame [data-sashay-edge]:focus-visible {
+  outline: 3px solid var(--butter);
+  outline-offset: -3px;
+}
+/* Compact: the first edge is a tab strip; the other edges have no width. */
+.frame[data-compact] [data-sashay-edge]::before {
+  display: none;
+}
+.frame [data-sashay-tab] {
+  flex: 1;
+  background: var(--tomato);
+  color: var(--ink);
+  border-bottom: var(--rule) solid var(--ink);
+  transform: rotate(180deg);
+  font: 700 12px var(--sans);
+  letter-spacing: 0.18em;
+}
+.frame [data-sashay-tab][aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: none;
+}
+.frame [data-sashay-tab]:focus-visible {
   outline: 3px solid var(--butter);
   outline-offset: -3px;
 }
@@ -484,94 +507,96 @@ pre .s {
   white-space: nowrap;
   padding-bottom: 4px;
 }
-/* art: fling */
-.fling {
-  position: relative;
-  height: 96px;
-}
-.fling .bar {
-  position: absolute;
-  left: 62%;
-  top: 0;
-  bottom: 0;
-  width: 22px;
-  background: var(--tomato);
-  border-radius: 4px;
-}
-.fling .bar::after {
-  content: "";
-  position: absolute;
-  left: 9px;
-  top: 50%;
-  width: 4px;
-  height: 30px;
-  margin-top: -15px;
-  background: repeating-linear-gradient(var(--ink) 0 4px, transparent 4px 8px);
-}
-.fling .zip {
-  position: absolute;
-  left: 12%;
-  height: 4px;
-  background: currentColor;
-  border-radius: 2px;
-  opacity: 0.85;
-}
-.fling .ghost {
-  position: absolute;
-  left: 20%;
-  top: 0;
-  bottom: 0;
-  width: 22px;
-  border: 3px dashed currentColor;
-  border-radius: 4px;
-  opacity: 0.45;
-}
-/* art: drawer */
-.mini {
+/* art: mini frames, each a real sashay */
+.mf {
   position: relative;
   height: 150px;
   border: 3px solid var(--ink);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--paper);
+  color: var(--ink);
+  --sashay-bg: var(--ink);
+  --sashay-fg: var(--ink);
+  --sashay-pane-bg: var(--paper);
+  --sashay-accent: var(--butter);
+  --sashay-border: var(--ink);
+  --sashay-spine-width: 48px;
+}
+.mf[data-sashay-ready] {
+  user-select: none;
+}
+.mf:not([data-sashay-ready]) {
   display: flex;
 }
-.mini .mp {
+.mf:not([data-sashay-ready]) > * {
+  position: relative;
   flex: 1;
-  padding: 10px;
 }
-.mini .me {
-  width: 18px;
+.mf [data-sashay-pane] {
+  padding: 10px 12px;
+  border-left: 3px solid var(--ink);
+}
+.mf [data-sashay-pane] b {
+  font: 600 18px var(--display);
+}
+.mf [data-sashay-edge] {
   background: var(--tomato);
+  border: 0;
+  color: var(--ink);
 }
-.mini .md {
-  width: 46%;
+.mf [data-sashay-edge][data-open] {
+  background: var(--ink);
+  color: var(--butter);
+}
+.mf [data-sashay-edge]:hover {
   background: var(--ink);
   color: var(--paper);
-  padding: 10px 12px;
+}
+.mf [data-sashay-edge]:focus-visible,
+.mf [data-spine]:focus-visible {
+  outline: 3px solid var(--butter);
+  outline-offset: -3px;
+}
+.mf [data-spine] {
+  background: var(--ink);
+  color: var(--paper);
+  font: 600 20px var(--display);
+}
+.mf [data-sashay-close] {
+  display: none;
+}
+.md {
+  min-width: 0;
+  background: var(--ink);
+  color: var(--paper);
   font: 600 12px var(--mono);
-  line-height: 1.9;
 }
-.mini .md b {
-  display: block;
-  font: 700 11px var(--sans);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--butter);
-  margin-bottom: 4px;
+.md label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
-.mini .md i {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--paper);
-  border-radius: 2px;
-  margin-right: 8px;
-  vertical-align: -1px;
+.md input {
+  accent-color: var(--mint);
+  margin: 0;
 }
-.mini .md i.on {
-  background: var(--mint);
-  border-color: var(--mint);
+.acts {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.acts button {
+  font: 700 14px var(--sans);
+  color: var(--ink);
+  background: none;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.acts button:hover {
+  background: var(--ink);
+  color: var(--paper);
 }
 .line {
   height: 8px;
@@ -580,46 +605,22 @@ pre .s {
   opacity: 0.25;
   margin: 8px 0;
 }
-/* art: spine */
-.spine {
-  display: flex;
-  gap: 6px;
-  height: 150px;
-  align-items: stretch;
-}
-.spine .sp {
-  width: 48px;
-  background: var(--ink);
-  color: var(--paper);
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  font: 600 20px var(--display);
-}
-.spine .sp small {
-  font: 600 10px var(--sans);
-  letter-spacing: 0.14em;
-  display: block;
-  text-align: center;
-}
-.spine .sq {
-  flex: 1;
-  border: 3px solid var(--ink);
-  border-radius: 8px;
-  background: var(--paper);
-  padding: 10px;
-  color: var(--ink);
-}
-.spine .sq.focus {
-  flex: 2.2;
-}
 /* art: code */
 .bigcode {
-  font: 600 clamp(72px, 9vw, 128px) / 1 var(--mono);
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font: 600 clamp(64px, 7vw, 104px) / 1 var(--mono);
   letter-spacing: -0.04em;
 }
-.bigcode span {
-  color: var(--tomato);
+.bigcode:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 4px;
 }
 
 /* ── specs ───────────────────────────────────────────────── */
@@ -830,6 +831,7 @@ footer b {
   }
   .frame {
     --edge: 44px;
+    --stile: 0px;
   }
   .frame:not([data-sashay-ready]) {
     flex-direction: column;

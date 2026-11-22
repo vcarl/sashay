@@ -1,0 +1,36 @@
+// Feature-cell checks against a running preview: node scripts/cells.check.mjs [url]
+import assert from "node:assert/strict";
+import { chromium } from "playwright";
+
+const url = process.argv[2] ?? "http://localhost:4321/";
+const browser = await chromium.launch({ args: ["--no-sandbox"] });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const errors = [];
+page.on("pageerror", (e) => errors.push(e.message));
+await page.goto(url, { waitUntil: "networkidle" });
+
+for (const id of ["fling", "drawer", "spine", "code"]) await page.locator(`#cell-${id}[data-sashay-ready]`).waitFor();
+
+const spine = page.locator("#cell-spine [data-spine]");
+for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Add pane" }).click();
+await spine.waitFor();
+const before = Number(await spine.textContent());
+assert.ok(before > 0, "spine shows a count");
+await spine.click();
+await page.waitForTimeout(300);
+assert.ok(Number((await spine.isVisible()) ? await spine.textContent() : 0) < before, "spine click reveals one");
+await page.getByRole("button", { name: "Back" }).click();
+
+const toggle = page.locator("#cell-drawer [data-sashay-toggle]");
+assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+await toggle.click();
+assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+
+const word = page.locator(".bigcode");
+const first = await word.inputValue();
+await page.locator('#cell-code [role="separator"]').first().press("ArrowRight");
+assert.notEqual(await word.inputValue(), first, "the word follows the layout");
+
+assert.deepEqual(errors, []);
+await browser.close();
+console.log("cells: ok");
