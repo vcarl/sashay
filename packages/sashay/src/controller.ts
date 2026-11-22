@@ -543,19 +543,23 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     if (!src || k < 0) return;
     const d = k - 1;
     src.setPointerCapture(e.pointerId);
-    const x0 = e.clientX;
+    // Pointer x in the frame's own px: a zoomed or scaled ancestor makes viewport px differ.
+    // Measured once per gesture, never per move.
+    const scale = frame.getBoundingClientRect().width / frame.offsetWidth || 1;
+    const x0 = e.clientX / scale;
     const start = effective();
     const C = Math.max(content(), 1);
     const S = sizes();
     const o = order();
-    const samples: Sample[] = [{ t: e.timeStamp, x: e.clientX }];
+    const samples: Sample[] = [{ t: e.timeStamp, x: x0 }];
     let moved = false;
     let raw = start[d];
     const move = (ev: PointerEvent) => {
-      samples.push({ t: ev.timeStamp, x: ev.clientX });
+      const x = ev.clientX / scale;
+      samples.push({ t: ev.timeStamp, x });
       if (samples.length > 32) samples.shift();
-      const dx = ev.clientX - x0;
-      if (d < 0 || (!moved && Math.abs(dx) < 4)) return; // below this it's a click
+      const dx = x - x0;
+      if (d < 0 || (!moved && Math.abs(dx * scale) < 4)) return; // below 4 pointer px it's a click
       if (!moved) frame.setAttribute("data-dragging", "");
       moved = true;
       raw = start[d] + dx / C;

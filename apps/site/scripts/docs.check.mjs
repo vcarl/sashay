@@ -55,11 +55,12 @@ const mid = async () => {
 let { x, y } = await mid();
 await page.mouse.move(x, y);
 await page.mouse.down();
-for (let i = 1; i <= 10; i++) await page.mouse.move(x - 12 * i, y);
-assert.ok(Math.abs((await mid()).x - (x - 120)) < 1.5, "edge tracks the pointer under zoom");
+for (let i = 1; i <= 10; i++) await page.mouse.move(x - 8 * i, y);
+assert.ok(Math.abs((await mid()).x - (x - 80)) < 1.5, "edge tracks the pointer under zoom");
+await page.waitForTimeout(150); // past the velocity window, so the release is a drop, not a throw
 await page.mouse.up();
 await page.waitForTimeout(400);
-assert.ok(Math.abs((await mid()).x - (x - 120)) < 40, "release snaps near the pointer");
+assert.ok(Math.abs((await mid()).x - (x - 80)) < 40, "release snaps near the pointer");
 assert.match(await first.locator(".mb-url").textContent(), /layout=/, "the URL bar follows a drag");
 const before = await first.locator(".mb-url").textContent();
 // A throw: a short fast flick carries the edge past where the pointer let go.

@@ -36,7 +36,8 @@ export function createMeasure(frame: HTMLElement) {
         }
         box.style.width = ref === undefined ? "100%" : `${ref}px`;
         probe.style.width = v;
-        n = probe.getBoundingClientRect().width;
+        // Computed width is in the frame's own px; a rect would shrink under a zoomed or scaled ancestor.
+        n = Number.parseFloat(getComputedStyle(probe).width);
         cache.set(key, n);
       }
       return n;

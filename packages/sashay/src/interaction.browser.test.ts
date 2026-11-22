@@ -336,3 +336,54 @@ test("a drawer renders at its configured width", () => {
   mount({ panes: withDrawers(undefined, "10rem"), layout: "48.1" });
   expect(d.getBoundingClientRect().width).toBe(160);
 });
+
+// Pointer deltas are viewport px; the frame lays out in its own px. A scaled ancestor must not
+// make the edge trail the pointer, and fling and click must behave as at scale 1.
+for (const [css, s] of [
+  ["zoom: 0.8", 0.8],
+  ["transform: scale(0.5)", 0.5],
+] as const) {
+  const scaled = () => {
+    const wrap = document.createElement("div");
+    wrap.style.cssText = `${css}; transform-origin: 0 0`;
+    document.body.append(wrap);
+    wrap.append(frame);
+    return wrap;
+  };
+
+  test(`under ${css}: a dragged edge stays under the pointer`, () => {
+    const wrap = scaled();
+    mount();
+    const B = E("b");
+    const x0 = centre(B);
+    pointer(B, "pointerdown", x0);
+    pointer(B, "pointermove", x0 + 50);
+    pointer(B, "pointermove", x0 + 100);
+    expect(Math.abs(centre(B) - (x0 + 100))).toBeLessThan(1.5);
+    pointer(B, "pointercancel", x0 + 100);
+    wrap.remove();
+  });
+
+  test(`under ${css}: fling and click`, async () => {
+    const wrap = scaled();
+    mount();
+    const B = E("b");
+    const x0 = centre(B);
+    pointer(B, "pointerdown", x0);
+    for (let i = 1; i <= 7; i++) {
+      await wait(10);
+      pointer(B, "pointermove", x0 + 21 * s * i);
+    }
+    pointer(B, "pointerup", x0 + 147 * s);
+    expect(onChange.mock.calls).toEqual([["8c"]]); // a slow release here snaps to "69"
+    h?.destroy();
+    onChange.mockClear();
+    mount();
+    const C = E("c");
+    pointer(C, "pointerdown", centre(C));
+    pointer(C, "pointermove", centre(C) + 3);
+    pointer(C, "pointerup", centre(C) + 3);
+    expect(onChange).toHaveBeenLastCalledWith("4c");
+    wrap.remove();
+  });
+}
