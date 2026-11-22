@@ -1,5 +1,4 @@
 import { createSashay, type PaneOptions } from "@vcarl/sashay";
-import { report } from "./hero.ts";
 
 const compactBelow = "12rem";
 const edge = { width: "18px" };
@@ -65,7 +64,7 @@ export function mountCells(root: HTMLElement): () => void {
       input.value = c;
     },
   });
-  report(codeEl, word);
+  input.value = word.layout;
   const onInput = () => word.setLayout(input.value.trim());
   input.addEventListener("input", onInput);
   off.push(() => input.removeEventListener("input", onInput), word.destroy);

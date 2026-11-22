@@ -3,25 +3,12 @@ title: Layout codes.
 description: The whole layout as a short string you can put in a URL.
 ---
 
+import Demo from "../../components/Demo.astro";
+
 `onChange` hands you a code: one hex digit per visible divider, plus the spine offset and the drawer bits. It fires on release, click, keypress or a pane-list change, never during a drag. Pass a saved code back as `layout`; invalid input falls back to `defaultLayout`.
+
+`sash.layout` reads the current code at any time. `setLayout(code)` applies a code without firing `onChange`; `fit(fractions)` sorts and clamps the fractions, moves to the nearest snaps and fires it.
 
 The code stores geometry only. Which panes exist is app state, such as the route, so store it separately.
 
-{/* demo */}
-
-```ts
-const params = new URLSearchParams(location.search);
-
-const sash = createSashay(frame, {
-  panes,
-  layout: params.get("layout") ?? undefined,
-  defaultLayout: [1 / 2, 3 / 4],
-  onChange(code) {
-    params.set("layout", code);
-    history.replaceState(null, "", `?${params}`);
-  },
-});
-
-sash.setLayout("58"); // applies a code; does not fire onChange
-sash.fit([0.3, 0.7]); // nearest snaps; fires onChange
-```
+<Demo name="layout-codes" />

@@ -3,6 +3,8 @@ title: Styling.
 description: Data attributes and --sashay-* custom properties.
 ---
 
+import Demo from "../../components/Demo.astro";
+
 The stylesheet sits in `@layer sashay`, so any unlayered rule of yours beats it. Theme the frame with `--sashay-*` custom properties for colour, radius, font size and shadow; every one has a fallback. State shows up as attributes:
 
 | Hook | Where | Meaning |
@@ -13,8 +15,9 @@ The stylesheet sits in `@layer sashay`, so any unlayered rule of yours beats it.
 | `data-spine` | spine element | The collapsed stack. |
 | `data-dragging` | frame | A drag is in progress. |
 | `data-compact` | frame | Compact mode is active. |
+| `data-sashay-controls="<id>"` | controls element | Laid over each edge, holding its drawer toggle, title and, in compact mode, the tab strip. Style those through it, not through `[data-sashay-edge]`. |
 
-{/* demo */}
+<Demo name="styling" />
 
 ```css
 #frame {

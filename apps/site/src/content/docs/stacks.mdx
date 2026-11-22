@@ -3,27 +3,10 @@ title: Navigation stacks.
 description: Drill-down panes from an array your app edits.
 ---
 
+import Demo from "../../components/Demo.astro";
+
 A stack is just an array. Picking an item adds a pane on the right; going back removes it. There are no push or pop helpers: add or remove the pane elements, then call `update({ panes })`. sashay diffs by `id`: a new pane slides in and opens to its `focus`; a removed pane closes, gives its width to its neighbour, then leaves.
 
 When the open panes no longer fit, the oldest fold into one spine at the left with a count. Clicking it, or pressing ← on it, reveals the newest hidden pane. Closed panes never fold, so a fixed workspace that fits never shows a spine.
 
-{/* demo */}
-
-```ts
-const stack = [{ id: "inbox", title: "Inbox", focus: 1 / 3 }];
-const sash = createSashay(frame, { panes: stack });
-
-function open(id: string, title: string) {
-  frame.append(paneElement(id)); // your markup, with data-sashay-pane={id}
-  stack.push({ id, title, focus: 1 / 3 });
-  sash.update({ panes: stack });
-}
-
-function back() {
-  const { id } = stack.pop()!;
-  frame.querySelector(`[data-sashay-pane="${id}"]`)!.remove();
-  sash.update({ panes: stack });
-}
-
-sash.reveal("inbox"); // uncovers it, even from the spine
-```
+<Demo name="stacks" />

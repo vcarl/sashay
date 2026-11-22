@@ -48,7 +48,7 @@ kbd,
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 0 14px;
+  padding-block: 18px 14px;
   border-bottom: var(--rule) solid var(--line);
 }
 .mast .brand {
@@ -98,7 +98,6 @@ button:focus-visible {
   border-radius: 18px;
   background: var(--ink);
   touch-action: pan-y;
-  --stile: var(--edge);
   --sashay-bg: var(--ink);
   --sashay-fg: var(--ink);
   --sashay-pane-bg: var(--paper);
@@ -189,7 +188,7 @@ button:focus-visible {
   outline: 3px solid var(--butter);
   outline-offset: -3px;
 }
-/* Compact: the first edge is a tab strip; the other edges have no width. */
+/* Compact: the first edge holds the tab strip; the others are bare grips. */
 .frame[data-compact] [data-sashay-edge]::before {
   display: none;
 }
@@ -831,7 +830,6 @@ footer b {
   }
   .frame {
     --edge: 44px;
-    --stile: 0px;
   }
   .frame:not([data-sashay-ready]) {
     flex-direction: column;

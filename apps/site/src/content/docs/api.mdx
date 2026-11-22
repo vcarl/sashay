@@ -18,9 +18,9 @@ Every size option is a `Length`: a CSS length string (`"12rem"`, `"180px"`, `"20
 |---|---|---|---|
 | `panes` | `PaneOptions[]` | required | Left to right. May change at any time; diffed by `id`. |
 | `layout` | `string` | none | A saved code. Invalid input falls back to `defaultLayout`. |
-| `defaultLayout` | `number[]` | equal split | Divider positions as fractions (0–1). |
+| `defaultLayout` | `number[]` | equal split | Divider positions as fractions (0–1), ascending. Unsorted input throws. |
 | `onChange` | `(layout: string) => void` | none | Fires on release, click, keypress or a pane-list change. Never during a drag. |
-| `onClose` | `(id: string) => void` | none | Fires when the user closes a pane: ×, edge click, Enter/Space, or dragging it below `minWidth`. Not fired by `close()`. |
+| `onClose` | `(id: string) => void` | none | Fires for the pane the user closed (its ×, an edge click, Enter/Space) or dragged below its `minWidth`. Panes that close as a side effect, or by `close()`, don't fire it. |
 | `compactBelow` | `Length` | `"40rem"` | Below this frame width, compact mode applies. |
 
 ## `PaneOptions`
@@ -39,19 +39,20 @@ Every size option is a `Length`: a CSS length string (`"12rem"`, `"180px"`, `"20
 
 | Field | Type | Default | What it does |
 |---|---|---|---|
-| `width` | `Length` | `"0.75rem"` | Edge width. Edges sit outside the fractional layout. |
+| `width` | `Length` | `"0.75rem"` | Edge width. Edges sit outside the fractional layout. In compact mode, every edge after the first is a 12px grip. |
 | `drawer` | `{ width: Length; title: string }` | none | The edge opens a drawer `width` wide, with content from `[data-sashay-drawer]`. In compact mode, an overlay sheet, one open at a time. |
 
 ## `SashayHandle`
 
 | Method | What it does |
 |---|---|
+| `layout` | Getter: the current layout code. |
 | `reveal(id)` | Opens or uncovers the pane, including from the spine. Uses `opensTo` if set. |
 | `close(id)` | Closes the pane. |
 | `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |
 | `keepInView(id, x \| null)` | While covered, keeps point `x` inside the visible slice. `x` is a `Length` from the pane's left; `"40%"` is 40% of the pane's width. |
 | `setLayout(code)` | Applies a code. Does not fire `onChange`. |
-| `fit(fractions)` | Moves the dividers to the nearest snaps. Fires `onChange`. |
+| `fit(fractions)` | Sorts and clamps the fractions, then moves the dividers to the nearest snaps. Fires `onChange`. |
 | `update(options)` | Replaces `panes` or the callbacks without rebuilding. |
 | `destroy()` | Removes the listeners, the observer and the controls sashay added. |
 

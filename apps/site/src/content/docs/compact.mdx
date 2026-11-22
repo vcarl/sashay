@@ -3,18 +3,13 @@ title: Compact mode.
 description: What happens on a phone.
 ---
 
-Below `compactBelow` (a `Length`, `"40rem"` by default) a frame switches to compact mode. The edges become a tab strip, and drawers open as overlay sheets, one at a time. The frame gets `data-compact`, so your CSS can follow.
+import Demo from "../../components/Demo.astro";
+
+Below `compactBelow` (a `Length`, `"40rem"` by default) a frame switches to compact mode. The first edge becomes a tab strip, every other edge a 12px grip whatever its `width`, and drawers open as overlay sheets, one at a time. The frame gets `data-compact`, so your CSS can follow.
 
 The width is the frame's, not the window's, so a narrow sidebar frame goes compact on a wide screen too.
 
-{/* demo */}
-
-```ts
-createSashay(frame, {
-  panes,
-  compactBelow: "36rem",
-});
-```
+<Demo name="compact" />
 
 ```css
 [data-compact] .toolbar {

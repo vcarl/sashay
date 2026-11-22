@@ -105,6 +105,7 @@ Enforced by browser-mode benchmarks in CI.
 | `data-spine` | spine element | The collapsed stack. |
 | `data-dragging` | frame | A drag is in progress. |
 | `data-compact` | frame | Compact mode is active. |
+| `data-sashay-controls="<id>"` | controls element | A sibling laid over each edge. It holds the drawer toggle, the title and, in compact mode, the tab strip. |
 | `--sashay-*` | frame | Colour, radius, font size and shadow, all with fallbacks. |
 
 Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.

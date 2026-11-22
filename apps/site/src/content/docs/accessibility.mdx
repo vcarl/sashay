@@ -3,18 +3,10 @@ title: Accessibility.
 description: Keyboard, ARIA and inert, built in.
 ---
 
-Every edge is a `role="separator"` that takes focus and reports its position with `aria-valuenow` and `aria-valuetext`. On a focused edge, ← and → move between snaps, and Enter or Space opens or closes the pane. No drag is ever required.
+import Demo from "../../components/Demo.astro";
 
-Drawer toggles carry `aria-expanded`. Covered and off-screen panes are `inert`, so focus and screen readers skip what you can't see. The `title` you give each pane names its edge, its compact tab and its close button.
+Every edge takes focus. An edge with a divider is a `role="separator"` that reports its position with `aria-valuenow` and `aria-valuetext`. The first edge has no divider, so it is a `role="button"` with `aria-expanded`. On a focused edge, ← and → move between snaps, and Enter or Space opens or closes the pane. No drag is ever required.
 
-{/* demo */}
+Drawer toggles and compact tabs sit beside the edge, not inside it, so screen readers announce them. Drawer toggles carry `aria-expanded`. Covered and off-screen panes are `inert`, so focus and screen readers skip what you can't see. The `title` you give each pane names its edge, its compact tab and its close button.
 
-```ts
-createSashay(frame, {
-  panes: [
-    { id: "list", title: "Messages", focus: 1 / 3 },
-    { id: "detail", title: "Message", focus: 2 / 3 },
-  ],
-});
-// Tab to the edge labelled "Message", then press ← or →.
-```
+<Demo name="accessibility" />

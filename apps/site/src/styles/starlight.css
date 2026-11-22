@@ -278,3 +278,23 @@ h1#_top code {
   font-family: var(--display);
   color: var(--ink);
 }
+
+/* Docs demos: a live frame under each example's source. */
+.demo {
+  height: 14rem;
+  margin-top: 0.75rem;
+  border: var(--rule) solid var(--ink);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 15px;
+  --sashay-pane-bg: var(--paper);
+  --sashay-accent: var(--cobalt);
+}
+.demo [data-sashay-pane],
+.demo [data-sashay-drawer] {
+  padding: 14px 16px;
+}
+.demo button {
+  font: 600 14px var(--sans);
+  margin: 0 6px 6px 0;
+}
