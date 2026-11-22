@@ -8,7 +8,7 @@ const errors = [];
 const open = async (width) => {
   const page = await browser.newPage({ viewport: { width, height: 900 } });
   page.on("pageerror", (e) => errors.push(`${width}: ${e.message}`));
-  page.on("console", (m) => m.type() === "error" && errors.push(`${width}: ${m.text()}`));
+  page.on("console", (m) => (m.type() === "error" || /hydrat/i.test(m.text())) && errors.push(`${width}: ${m.text()}`));
   await page.goto(new URL("demos/", base).href, { waitUntil: "networkidle" });
   await page.locator(".finance[data-sashay-ready]").waitFor();
   await page.locator(".house[data-sashay-ready]").waitFor();
@@ -35,18 +35,15 @@ for (const width of [1440, 390]) {
   const details = fi.locator('[data-sashay-pane="details"]');
   assert.equal(await details.getAttribute("data-closed"), null, "details opens");
   assert.match(await details.textContent(), /Reference/);
+  const finUrl = page.locator(".mb:has(.finance) .mb-url");
+  assert.match(await finUrl.textContent(), /txn=TX-/, "URL bar shows the transaction");
   // Compact shows one pane at a time, and the library keeps the last open pane: its × is a no-op there.
   if (width >= 640) {
     await fi.locator("[data-sashay-close]").click();
     await settle(page);
     assert.notEqual(await details.getAttribute("data-closed"), null, "leaf × closes details");
+    assert.doesNotMatch(await finUrl.textContent(), /txn=/, "closing details drops the transaction");
   }
-
-  assert.match(
-    await fi.locator("xpath=..").locator(".mb-url").textContent(),
-    /txn=TX-/,
-    "URL bar shows the transaction",
-  );
 
   // House: drill 6 levels (it opens with the first room), see the spine (narrow), go back, open an item.
   const hs = page.locator(".house");
@@ -62,11 +59,11 @@ for (const width of [1440, 390]) {
   assert.equal(await panes.count(), 6, "back pops one level");
   await hs.locator("[data-sashay-pane]:last-of-type [data-open]:not(:has(.hs-chev))").first().click();
   await settle(page);
-  const item = hs.locator(".hs-item");
+  const item = hs.locator("[data-sashay-pane]:has(> .hs-item)");
   assert.equal(await item.count(), 1, "item preview opens");
   assert.equal(await item.locator("svg").count(), 1);
   assert.equal(await item.getAttribute("inert"), null, "preview is visible");
-  const path = await hs.locator("xpath=..").locator(".mb-url").textContent();
+  const path = await page.locator(".mb:has(.house) .mb-url").textContent();
   assert.equal(path.split("/").length, 7, `URL bar shows the path (${path})`);
   assert.equal(new URL(page.url()).search, "", "the page's own URL stays put");
   await page.close();

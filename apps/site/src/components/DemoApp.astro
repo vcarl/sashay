@@ -1,11 +1,12 @@
 ---
-// A demo app in a mini browser (src/demos/browser.ts). Each app in src/demos/<name>/index.ts exports `mount(el, options?)`.
-// With `region`, it shows the lines of the app's files marked `#region <region>` (the Guide's
-// excerpts); without, the whole index.ts in a collapsible panel.
+// A demo app in a mini browser (src/demos/browser.tsx), a React island. Each app is a component in
+// src/demos/<name>/index.tsx. With `region`, it shows the lines of the app's files marked
+// `#region <region>` (the Guide's excerpts); without, the whole index.tsx in a collapsible panel.
 import { Code } from "@astrojs/starlight/components";
 import "@vcarl/sashay/style.css";
+import { FinanceDemo, HouseDemo } from "../demos/browser";
 
-const sources = import.meta.glob<string>("../demos/*/*.{ts,css}", { query: "?raw", import: "default", eager: true });
+const sources = import.meta.glob<string>("../demos/*/*.{tsx,css}", { query: "?raw", import: "default", eager: true });
 const { name, region, options } = Astro.props as { name: string; region?: string; options?: object };
 
 // Lines whose innermost region is `region`; separate stretches are joined with an ellipsis.
@@ -14,9 +15,9 @@ function excerpt(src: string) {
   const stack: string[] = [];
   let inChunk = false;
   for (const line of src.split("\n")) {
-    const open = line.match(/^\s*(?:\/\/|\/\*)\s*#region\s+(\S+)/);
+    const open = line.match(/^\s*\{?(?:\/\/|\/\*)\s*#region\s+(\S+)/);
     if (open) stack.push(open[1]);
-    else if (/^\s*(?:\/\/|\/\*)\s*#endregion/.test(line)) stack.pop();
+    else if (/^\s*\{?(?:\/\/|\/\*)\s*#endregion/.test(line)) stack.pop();
     else if (stack.at(-1) === region) {
       if (!inChunk) chunks.push([]);
       chunks.at(-1)?.push(line);
@@ -39,19 +40,15 @@ const files = region
   : [];
 ---
 {files.map((f) => <Code code={f.code} lang={f.lang} title={f.file} />)}
-<div class="demo-app not-content" data-demo-app={name} data-options={options && JSON.stringify(options)}></div>
+<div class="demo-app not-content">
+  {name === "finance" ? <FinanceDemo client:load {...options} /> : <HouseDemo client:load {...options} />}
+</div>
 {!region && (
   <details class="demo-source">
-    <summary>Source: <code>{name}/index.ts</code></summary>
-    <Code code={sources[`../demos/${name}/index.ts`]} lang="ts" />
+    <summary>Source: <code>{name}/index.tsx</code></summary>
+    <Code code={sources[`../demos/${name}/index.tsx`]} lang="tsx" />
   </details>
 )}
-
-<script>
-  import { browse } from "../demos/browser";
-  for (const el of document.querySelectorAll<HTMLElement>("[data-demo-app]"))
-    browse(el, el.dataset.options && JSON.parse(el.dataset.options));
-</script>
 
 <style>
   :global(:root:has(.demo-app)) {

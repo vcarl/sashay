@@ -24,7 +24,7 @@
   overflow-y: auto;
   container-type: inline-size;
 }
-/* Each level wears a colour band, so you can see how deep you are. */
+/* Each level wears a colour band, so you can see how deep you are. <Pane> takes no class, so match its content. */
 .house [data-sashay-pane]::before {
   content: "";
   display: block;
@@ -32,13 +32,13 @@
   margin: -1rem -1.25rem 1rem;
   background: var(--band);
 }
-.house [data-depth="0"] {
+.house [data-sashay-pane]:has(> [data-depth="0"]) {
   --band: var(--cobalt);
 }
-.house [data-depth="1"] {
+.house [data-sashay-pane]:has(> [data-depth="1"]) {
   --band: var(--butter);
 }
-.house [data-depth="2"] {
+.house [data-sashay-pane]:has(> [data-depth="2"]) {
   --band: var(--mint);
 }
 .house :is(h3, p, ul) {
@@ -129,10 +129,10 @@
 }
 
 /* An item: its picture on a butter mat. */
-.house .hs-item {
+.house [data-sashay-pane]:has(> .hs-item) {
   background: var(--butter);
 }
-.house .hs-item::before {
+.house [data-sashay-pane]:has(> .hs-item)::before {
   display: none;
 }
 .house .hs-item .hs-back {
