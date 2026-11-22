@@ -71,8 +71,8 @@
   /* Edges: a grip, optionally with a drawer toggle. */
   [data-sashay-edge] {
     background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
-    border-left: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
-    border-right: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+    border-left: 1px solid var(--sashay-edge-border, color-mix(in srgb, CanvasText 55%, Canvas));
+    border-right: 1px solid var(--sashay-edge-border, color-mix(in srgb, CanvasText 55%, Canvas));
     box-shadow: -10px 0 18px -12px var(--sashay-shadow, rgb(0 0 0 / 0.5));
     cursor: ew-resize;
     touch-action: none;
@@ -90,21 +90,37 @@
     );
     color: var(--sashay-fg, CanvasText);
   }
+  [data-sashay-edge]:active {
+    background: color-mix(
+      in srgb,
+      var(--sashay-accent, oklch(0.62 0.19 255)) 16%,
+      var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas))
+    );
+  }
   [data-sashay-edge]:focus-visible,
   [data-sashay-toggle]:focus-visible {
     outline: 2px solid var(--sashay-accent, oklch(0.62 0.19 255));
     outline-offset: -2px;
   }
 
+  /* Grip: dots, centred on the edge. Compact gets a smaller one. */
   [data-sashay-dots] {
+    --g: 6px;
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 4px;
-    height: 28px;
-    margin: -14px 0 0 -2px;
-    background: radial-gradient(circle, currentColor 1.2px, transparent 1.6px) 0 0 / 4px 7px;
-    opacity: 0.6;
+    width: var(--g);
+    height: calc(var(--g) * 7);
+    margin: calc(var(--g) * -3.5) 0 0 calc(var(--g) / -2);
+    background:
+      radial-gradient(circle, var(--sashay-grip, color-mix(in srgb, CanvasText 65%, Canvas)) 35%, transparent 40%) 0 0 /
+      var(--g) calc(var(--g) * 1.75);
+  }
+  [data-sashay-frame][data-compact] [data-sashay-dots] {
+    --g: 4px;
+  }
+  [data-sashay-edge]:is(:hover, :active) [data-sashay-dots] {
+    background-image: radial-gradient(circle, var(--sashay-grip-hover, currentColor) 35%, transparent 40%);
   }
   [data-sashay-edge][role="button"] [data-sashay-dots],
   [data-sashay-edge][data-open] [data-sashay-dots] {

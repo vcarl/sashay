@@ -102,6 +102,9 @@ button:focus-visible {
   --sashay-fg: var(--ink);
   --sashay-pane-bg: var(--paper);
   --sashay-accent: var(--butter);
+  --sashay-grip: var(--ink);
+  --sashay-grip-hover: var(--paper);
+  --sashay-edge-border: var(--ink);
 }
 .frame[data-sashay-ready] {
   user-select: none;
@@ -523,6 +526,9 @@ pre .s {
   --sashay-pane-bg: var(--paper);
   --sashay-accent: var(--butter);
   --sashay-border: var(--ink);
+  --sashay-grip: var(--ink);
+  --sashay-grip-hover: var(--paper);
+  --sashay-edge-border: var(--ink);
   --sashay-spine-width: 48px;
 }
 .mf[data-sashay-ready] {
@@ -544,7 +550,6 @@ pre .s {
 }
 .mf [data-sashay-edge] {
   background: var(--tomato);
-  border: 0;
   color: var(--ink);
 }
 .mf [data-sashay-edge][data-open] {
