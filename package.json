@@ -9,7 +9,8 @@
     "test:browser": "pnpm -r --if-present test:browser",
     "bench": "pnpm -r --if-present bench",
     "build": "pnpm -r --if-present build",
-    "size": "pnpm -F @vcarl/sashay build && pnpm -F @vcarl/sashay size"
+    "size": "pnpm -F @vcarl/sashay build && pnpm -F @vcarl/sashay size",
+    "site:build": "pnpm -F @vcarl/sashay build && pnpm -F site build"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.8",

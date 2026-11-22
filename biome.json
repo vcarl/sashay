@@ -6,6 +6,7 @@
       "**/*.{ts,tsx,js,mjs,json,css}",
       "!raw",
       "!**/dist",
+      "!**/.astro",
       "!**/node_modules",
       "!HANDOFF.md",
       "!pnpm-lock.yaml"
