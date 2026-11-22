@@ -44,7 +44,33 @@ export default defineConfig({
           frames: { shadowColor: "transparent", frameBoxShadowCssValue: "none" },
         },
       },
-      sidebar: [],
+      sidebar: [
+        {
+          label: "Start",
+          items: [
+            { slug: "install", label: "Install" },
+            { slug: "first-frame", label: "Your first frame" },
+            { slug: "layout-codes", label: "Layout codes" },
+          ],
+        },
+        {
+          label: "Guides",
+          items: [
+            { slug: "drawers", label: "Drawers" },
+            { slug: "stacks", label: "Navigation stacks" },
+            { slug: "compact", label: "Compact mode" },
+            { slug: "styling", label: "Styling" },
+          ],
+        },
+        {
+          label: "Reference",
+          items: [
+            { slug: "api", label: "createSashay()" },
+            { slug: "react", label: "<Sashay> for React" },
+            { slug: "accessibility", label: "Accessibility" },
+          ],
+        },
+      ],
     }),
   ],
 });

@@ -1,0 +1,36 @@
+---
+title: "`<Sashay>` for React."
+description: The React wrapper, @vcarl/sashay/react.
+head:
+  - tag: title
+    content: React | sashay
+---
+
+`<Sashay>` takes `layout`, `defaultLayout` and `compactBelow` as the options do, and `onLayoutChange` in place of `onChange`. Its `ref` gives you the handle methods. Each `<Pane>` takes every `PaneOptions` field, plus `keepInView` (a `Length` or `null`) and `onClose`, which fires when this pane is closed. `edge.drawer` also takes `content`.
+
+`<Pane>` renders its own element and registers with the nearest `<Sashay>`, so wrap it or render it conditionally: that is how a stack grows. `children` can be a function of `{ offscreen }`, to unmount heavy content in very deep stacks. Server rendering produces percentage widths from `layout`, so the first paint matches the hydrated layout.
+
+{/* demo */}
+
+```tsx
+import { useRef } from "react";
+import type { SashayHandle } from "@vcarl/sashay";
+import { Pane, Sashay } from "@vcarl/sashay/react";
+import "@vcarl/sashay/style.css";
+
+export function Mail({ open }: { open: string | null }) {
+  const sash = useRef<SashayHandle>(null);
+  return (
+    <Sashay ref={sash} defaultLayout={[1 / 3]} onLayoutChange={saveToUrl}>
+      <Pane id="inbox" title="Inbox" focus={1 / 3}>
+        <Inbox />
+      </Pane>
+      {open && (
+        <Pane id={open} title="Message" focus={2 / 3} keepInView="40%">
+          {({ offscreen }) => (offscreen ? null : <Message id={open} />)}
+        </Pane>
+      )}
+    </Sashay>
+  );
+}
+```

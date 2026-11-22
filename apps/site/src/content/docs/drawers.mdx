@@ -1,0 +1,33 @@
+---
+title: Drawers.
+description: An edge that opens a drawer of filters, settings or contents.
+---
+
+Give a pane's edge a `drawer` and that edge opens a panel `width` wide. `width` is a `Length`: a CSS length string or a number of pixels. The drawer's content goes in a `[data-sashay-drawer]` element with the pane's id. The toggle carries `aria-expanded`.
+
+In compact mode the drawer becomes an overlay sheet, one open at a time.
+
+{/* demo */}
+
+```html
+<div id="frame">
+  <aside data-sashay-drawer="results">Filters…</aside>
+  <section data-sashay-pane="results">…</section>
+</div>
+```
+
+```ts
+const sash = createSashay(frame, {
+  panes: [
+    {
+      id: "results",
+      title: "Results",
+      focus: 1,
+      edge: { drawer: { width: "16rem", title: "Filters" } },
+    },
+  ],
+});
+
+sash.toggleDrawer("results"); // toggle
+sash.toggleDrawer("results", false); // close
+```

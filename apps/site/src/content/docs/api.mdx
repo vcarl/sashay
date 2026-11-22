@@ -1,0 +1,61 @@
+---
+title: "`createSashay(frame, options)`"
+description: Every option, field and method of @vcarl/sashay.
+head:
+  - tag: title
+    content: createSashay | sashay
+---
+
+Attaches to `frame`, which holds one `[data-sashay-pane="<id>"]` element per pane and, optionally, one `[data-sashay-drawer="<id>"]` per pane with a drawer. sashay creates and owns every control: edges, the leaf × button, the compact tab strip, grips and the spine. Returns a handle.
+
+## Lengths
+
+Every size option is a `Length`: a CSS length string (`"12rem"`, `"180px"`, `"20ch"`, `"30%"`, `"clamp(10rem, 20vw, 18rem)"`, `"var(--rail)"`) or a number, which means pixels. Percentages are relative to the frame's width. Each value is measured in place, again on resize and font load, never during a drag. Invalid values throw. Pane widths (`focus`, layouts) are fractions, because they live on the snap grid.
+
+## Options
+
+| Option | Type | Default | What it does |
+|---|---|---|---|
+| `panes` | `PaneOptions[]` | required | Left to right. May change at any time; diffed by `id`. |
+| `layout` | `string` | none | A saved code. Invalid input falls back to `defaultLayout`. |
+| `defaultLayout` | `number[]` | equal split | Divider positions as fractions (0–1). |
+| `onChange` | `(layout: string) => void` | none | Fires on release, click, keypress or a pane-list change. Never during a drag. |
+| `onClose` | `(id: string) => void` | none | Fires when the user closes a pane: ×, edge click, Enter/Space, or dragging it below `minWidth`. Not fired by `close()`. |
+| `compactBelow` | `Length` | `"40rem"` | Below this frame width, compact mode applies. |
+
+## `PaneOptions`
+
+| Field | Type | Default | What it does |
+|---|---|---|---|
+| `id` | `string` | required | Matches `data-sashay-pane`. Stable across list changes. |
+| `title` | `string` | required | Edge label, compact tab and accessible names. |
+| `focus` | `number` | required | Fraction the pane opens to. When covered, the narrowest it is ever drawn. |
+| `minWidth` | `Length` | `0` | Released narrower than this, the pane closes. A drag may go below it. |
+| `maxWidth` | `Length` | none | Caps growth from dragging *other* edges, never the pane's own. |
+| `opensTo` | `number[]` | none | Divider fractions to snap to when this pane is revealed. |
+| `edge` | `EdgeOptions` | `{ width: "0.75rem" }` | The pane's leading edge. |
+
+## `EdgeOptions`
+
+| Field | Type | Default | What it does |
+|---|---|---|---|
+| `width` | `Length` | `"0.75rem"` | Edge width. Edges sit outside the fractional layout. |
+| `drawer` | `{ width: Length; title: string }` | none | The edge opens a drawer `width` wide, with content from `[data-sashay-drawer]`. In compact mode, an overlay sheet, one open at a time. |
+
+## `SashayHandle`
+
+| Method | What it does |
+|---|---|
+| `reveal(id)` | Opens or uncovers the pane, including from the spine. Uses `opensTo` if set. |
+| `close(id)` | Closes the pane. |
+| `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |
+| `keepInView(id, x \| null)` | While covered, keeps point `x` inside the visible slice. `x` is a `Length` from the pane's left; `"40%"` is 40% of the pane's width. |
+| `setLayout(code)` | Applies a code. Does not fire `onChange`. |
+| `fit(fractions)` | Moves the dividers to the nearest snaps. Fires `onChange`. |
+| `update(options)` | Replaces `panes` or the callbacks without rebuilding. |
+| `destroy()` | Removes the listeners, the observer and the controls sashay added. |
+
+```ts
+const sash = createSashay(el, { panes, layout: params.get("layout") ?? undefined });
+sash.reveal("detail");
+```

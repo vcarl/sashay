@@ -1,0 +1,30 @@
+---
+title: Styling.
+description: Data attributes and --sashay-* custom properties.
+---
+
+The stylesheet sits in `@layer sashay`, so any unlayered rule of yours beats it. Theme the frame with `--sashay-*` custom properties for colour, radius, font size and shadow; every one has a fallback. State shows up as attributes:
+
+| Hook | Where | Meaning |
+|---|---|---|
+| `data-covered` | pane | Partly covered by the next pane, and marked `inert`. |
+| `data-closed` | pane | Closed. |
+| `data-offscreen` | pane | In the spine or otherwise not visible. |
+| `data-spine` | spine element | The collapsed stack. |
+| `data-dragging` | frame | A drag is in progress. |
+| `data-compact` | frame | Compact mode is active. |
+
+{/* demo */}
+
+```css
+#frame {
+  --sashay-bg: #1b1a17;
+  --sashay-pane-bg: #f6eedc;
+  --sashay-accent: #ffc846;
+  --sashay-radius: 12px;
+}
+
+#frame [data-sashay-pane][data-covered] {
+  filter: brightness(0.9);
+}
+```

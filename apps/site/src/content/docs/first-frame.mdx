@@ -1,0 +1,33 @@
+---
+title: Your first frame.
+description: Three panes, one call to createSashay.
+---
+
+A frame is any element with a height. Put one `[data-sashay-pane]` element inside it per pane, in order. sashay creates the edges, grips and close buttons itself.
+
+```html
+<div id="frame" style="height: 24rem">
+  <section data-sashay-pane="list">…</section>
+  <section data-sashay-pane="detail">…</section>
+  <section data-sashay-pane="preview">…</section>
+</div>
+```
+
+Then describe the panes, left to right. `focus` is the fraction of the frame a pane opens to. `title` labels its edge and its compact tab.
+
+{/* demo */}
+
+```ts
+import { createSashay } from "@vcarl/sashay";
+
+const sash = createSashay(document.getElementById("frame")!, {
+  panes: [
+    { id: "list", title: "List", focus: 1 / 3 },
+    { id: "detail", title: "Detail", focus: 1 / 3 },
+    { id: "preview", title: "Preview", focus: 1 / 3 },
+  ],
+});
+
+// Later, when the frame leaves the page:
+sash.destroy();
+```

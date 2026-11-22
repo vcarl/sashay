@@ -63,6 +63,15 @@ starlight-theme-select {
   letter-spacing: 0;
   color: var(--mute);
 }
+@media (max-width: 50rem) {
+  .site-title::after {
+    display: none;
+  }
+}
+.main-pane .sl-container {
+  --sl-content-margin-inline: 0;
+  margin-inline: 0;
+}
 .social-icons {
   gap: 22px;
   font-size: 15px;

@@ -1,0 +1,20 @@
+---
+title: Accessibility.
+description: Keyboard, ARIA and inert, built in.
+---
+
+Every edge is a `role="separator"` that takes focus and reports its position with `aria-valuenow` and `aria-valuetext`. On a focused edge, ← and → move between snaps, and Enter or Space opens or closes the pane. No drag is ever required.
+
+Drawer toggles carry `aria-expanded`. Covered and off-screen panes are `inert`, so focus and screen readers skip what you can't see. The `title` you give each pane names its edge, its compact tab and its close button.
+
+{/* demo */}
+
+```ts
+createSashay(frame, {
+  panes: [
+    { id: "list", title: "Messages", focus: 1 / 3 },
+    { id: "detail", title: "Message", focus: 2 / 3 },
+  ],
+});
+// Tab to the edge labelled "Message", then press ← or →.
+```
