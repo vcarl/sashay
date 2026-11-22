@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sashay — panes that sashay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* ── tokens ─────────────────────────────────────────────── */
+:root {
+  --paper: #F6EEDC; --ink: #1B1A17; --mute: #5B574D;
+  --cobalt: #1F3FCB; --tomato: #E4472C; --butter: #FFC846; --mint: #7FD1B4;
+  --line: #1B1A17;
+  --display: "Fraunces", Georgia, serif;
+  --sans: "Instrument Sans", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --edge: 32px; --rule: 3px;
+  --ease: cubic-bezier(.2, .8, .2, 1); --dur: .24s;
+}
+@media (prefers-reduced-motion: reduce) { :root { --dur: 0s; } }
+
+* { box-sizing: border-box; }
+html { background: var(--paper); color: var(--ink); }
+body { margin: 0; font: 17px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+h1, h2, h3 { font-family: var(--display); font-weight: 500; margin: 0; line-height: 1; letter-spacing: -.02em; text-wrap: balance; }
+code, kbd, .mono { font-family: var(--mono); font-size: .88em; }
+.wrap { max-width: 1360px; margin: 0 auto; padding: 0 clamp(16px, 3vw, 40px); }
+.wonk { font-variation-settings: "WONK" 1, "SOFT" 60; font-style: italic; font-weight: 600; }
+
+/* ── masthead ───────────────────────────────────────────── */
+.mast { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 18px 0 14px; border-bottom: var(--rule) solid var(--line); }
+.mast .brand { font: 600 26px/1 var(--display); letter-spacing: -.03em; }
+.mast .brand small { font: 500 13px var(--mono); margin-left: 10px; color: var(--mute); }
+.mast nav { display: flex; gap: 22px; font-size: 15px; font-weight: 600; }
+.mast nav a { text-decoration: none; border-bottom: 2px solid transparent; }
+.mast nav a:hover { border-color: var(--tomato); }
+
+/* ── the window (hero) ──────────────────────────────────── */
+.window { margin-top: 20px; }
+.frame { position: relative; height: clamp(520px, 66vh, 680px); overflow: hidden; border: 6px solid var(--ink); border-radius: 18px;
+  background: var(--ink); touch-action: pan-y; user-select: none; }
+.pane, .edge { position: absolute; top: 0; bottom: 0; left: 0; overflow: hidden; will-change: transform; }
+.frame:not([data-dragging]) .pane, .frame:not([data-dragging]) .edge, .frame:not([data-dragging]) .mark {
+  transition: transform var(--dur) var(--ease), width var(--dur) var(--ease), opacity var(--dur); }
+.pane { background: var(--paper); border-radius: 12px 0 0 12px; }
+.pane[data-covered] { filter: brightness(.9); }
+.pane .in { position: absolute; inset: 0 auto 0 0; width: var(--w); min-width: 240px; padding: clamp(22px, 3.2vw, 44px); display: flex; flex-direction: column; justify-content: space-between; }
+
+.edge { width: var(--edge); background: var(--tomato); color: var(--ink); cursor: ew-resize; touch-action: none;
+  box-shadow: -14px 0 24px -14px rgba(27,26,23,.65); }
+.edge[data-i="0"] { cursor: pointer; box-shadow: none; }
+.edge:hover, .edge[data-active] { background: var(--ink); color: var(--paper); }
+.edge:focus-visible { outline: 3px solid var(--butter); outline-offset: -3px; }
+.edge .t { position: absolute; top: 18px; left: 50%; transform: translateX(-50%) rotate(180deg); writing-mode: vertical-rl;
+  font: 700 12px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; white-space: nowrap; pointer-events: none; }
+.edge .grip { position: absolute; left: 50%; top: 50%; width: 4px; height: 36px; margin: -18px 0 0 -2px; border-radius: 2px;
+  background: repeating-linear-gradient(currentColor 0 4px, transparent 4px 9px); opacity: .75; }
+.edge[data-i="0"] .grip { display: none; }
+.mark { position: absolute; top: 14%; bottom: 14%; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--butter); opacity: 0; z-index: 50; pointer-events: none; }
+.frame[data-dragging] .mark[data-on] { opacity: 1; }
+
+/* pane contents */
+.p-hello { background: var(--cobalt); color: var(--paper); }
+.p-hello .eyebrow { font: 600 13px var(--mono); letter-spacing: .04em; opacity: .9; }
+.p-hello h1 { font-size: clamp(56px, 8.4vw, 136px); font-variation-settings: "opsz" 144, "SOFT" 30; font-weight: 500; margin-top: 10px; }
+.p-hello h1 em { font-style: italic; font-weight: 600; font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
+.p-hello p { font-size: clamp(17px, 1.4vw, 22px); line-height: 1.4; max-width: 34ch; margin: 18px 0 0; }
+.p-hello .cta { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 22px; }
+.btn { display: inline-block; padding: 12px 18px; border: 3px solid var(--paper); border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 15px; }
+.btn.fill { background: var(--paper); color: var(--cobalt); }
+.btn.fill:hover { background: var(--butter); border-color: var(--butter); color: var(--ink); }
+.hint { font-size: 14px; opacity: .85; display: flex; gap: 8px; align-items: center; }
+.hint svg { flex: none; }
+.hint .narrow { display: none; }
+@media (max-width: 640px) { .hint .wide { display: none; } .hint .narrow { display: inline; } }
+
+.p-why .in, .p-install .in { padding: clamp(22px, 2.2vw, 30px); }
+.p-why h2 { font-size: clamp(28px, 2.7vw, 40px); }
+.p-why ol { list-style: none; margin: 22px 0 0; padding: 0; counter-reset: n; }
+.p-why li { counter-increment: n; display: grid; grid-template-columns: 2em 1fr; gap: 6px; padding: 10px 0; border-top: 2px solid var(--ink); font-size: 15px; line-height: 1.35; }
+.p-why li::before { content: counter(n, decimal-leading-zero); font: 600 14px var(--mono); padding-top: 3px; color: var(--tomato); }
+.p-why li b { font-family: var(--display); font-weight: 600; font-size: 1.1em; display: block; }
+
+.p-install { background: var(--butter); }
+.p-install h2 { font-size: clamp(28px, 2.7vw, 40px); }
+pre { margin: 0; padding: 14px 16px; background: var(--ink); color: var(--paper); border-radius: 10px; font: 500 13.5px/1.55 var(--mono); overflow-x: auto; }
+pre .c { color: var(--mint); } pre .k { color: var(--butter); } pre .s { color: #FFB199; }
+.p-install pre { margin-top: 18px; }
+.p-install .meta { font: 600 13px var(--mono); margin-top: 18px; display: flex; gap: 18px; flex-wrap: wrap; }
+
+/* compact (<640px) tab strip */
+.frame[data-compact] .edge:not([data-i="0"]) { display: none; }
+.frame[data-compact] .edge[data-i="0"] { width: 44px; cursor: default; }
+.frame[data-compact] .edge[data-i="0"] .t { display: none; }
+.tabs { display: none; position: absolute; inset: 0; flex-direction: column; }
+.frame[data-compact] .tabs { display: flex; }
+.tabs button { flex: 1; border: 0; border-bottom: 3px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; padding: 0;
+  writing-mode: vertical-rl; transform: rotate(180deg); font: 700 12px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; }
+.tabs button:first-child { border-bottom: 0; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+
+/* readout */
+.readout { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 14px 0; border-bottom: var(--rule) solid var(--line); font-size: 15px; }
+.url { display: inline-flex; align-items: center; gap: 0; border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; font: 600 14px var(--mono); }
+.url span { padding: 6px 10px; }
+.url span:first-child { background: var(--ink); color: var(--paper); }
+.url .code { background: var(--butter); min-width: 3ch; text-align: center; }
+.readout .say { color: var(--mute); }
+.readout button { margin-left: auto; font: 700 14px var(--sans); background: none; border: 2px solid var(--ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.readout button:hover { background: var(--ink); color: var(--paper); }
+
+/* ── poster grid ─────────────────────────────────────────── */
+.poster { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--rule); background: var(--ink); border: var(--rule) solid var(--ink); border-top: 0; }
+.cell { background: var(--paper); padding: clamp(20px, 2.6vw, 36px); display: flex; flex-direction: column; gap: 18px; min-height: 300px; }
+.cell .num { font: 600 13px var(--mono); color: var(--tomato); }
+.cell h2 { font-size: clamp(30px, 2.9vw, 44px); }
+.cell p { margin: 0; max-width: 42ch; color: var(--mute); font-size: 16px; }
+.cell .art { margin-top: auto; }
+.c-3 { grid-column: span 3; } .c-2 { grid-column: span 2; } .c-4 { grid-column: span 4; } .c-6 { grid-column: span 6; }
+.cell.cobalt { background: var(--cobalt); color: var(--paper); } .cell.cobalt p { color: var(--paper); opacity: .9; } .cell.cobalt .num { color: var(--butter); }
+.cell.mint { background: var(--mint); } .cell.mint p { color: var(--ink); }
+.cell.butter { background: var(--butter); } .cell.butter p { color: var(--ink); }
+
+/* art: ruler */
+.ruler { position: relative; height: 84px; border-bottom: 3px solid currentColor; }
+.ruler i { position: absolute; bottom: 0; width: 3px; height: 28px; background: currentColor; transform: translateX(-50%); }
+.ruler i.big { height: 56px; }
+.ruler i::after { content: attr(data-f); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font: 600 20px var(--display); font-variant-numeric: diagonal-fractions; white-space: nowrap; padding-bottom: 4px; }
+/* art: fling */
+.fling { position: relative; height: 96px; }
+.fling .bar { position: absolute; left: 62%; top: 0; bottom: 0; width: 22px; background: var(--tomato); border-radius: 4px; }
+.fling .bar::after { content: ""; position: absolute; left: 9px; top: 50%; width: 4px; height: 30px; margin-top: -15px; background: repeating-linear-gradient(var(--ink) 0 4px, transparent 4px 8px); }
+.fling .zip { position: absolute; left: 12%; height: 4px; background: currentColor; border-radius: 2px; opacity: .85; }
+.fling .ghost { position: absolute; left: 20%; top: 0; bottom: 0; width: 22px; border: 3px dashed currentColor; border-radius: 4px; opacity: .45; }
+/* art: drawer */
+.mini { position: relative; height: 150px; border: 3px solid var(--ink); border-radius: 10px; overflow: hidden; background: var(--paper); display: flex; }
+.mini .mp { flex: 1; padding: 10px; }
+.mini .me { width: 18px; background: var(--tomato); }
+.mini .md { width: 46%; background: var(--ink); color: var(--paper); padding: 10px 12px; font: 600 12px var(--mono); line-height: 1.9; }
+.mini .md b { display: block; font: 700 11px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--butter); margin-bottom: 4px; }
+.mini .md i { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--paper); border-radius: 2px; margin-right: 8px; vertical-align: -1px; }
+.mini .md i.on { background: var(--mint); border-color: var(--mint); }
+.line { height: 8px; border-radius: 4px; background: currentColor; opacity: .25; margin: 8px 0; }
+/* art: spine */
+.spine { display: flex; gap: 6px; height: 150px; align-items: stretch; }
+.spine .sp { width: 48px; background: var(--ink); color: var(--paper); border-radius: 8px; display: grid; place-items: center; font: 600 20px var(--display); }
+.spine .sp small { font: 600 10px var(--sans); letter-spacing: .14em; display: block; text-align: center; }
+.spine .sq { flex: 1; border: 3px solid var(--ink); border-radius: 8px; background: var(--paper); padding: 10px; color: var(--ink); }
+.spine .sq.focus { flex: 2.2; }
+/* art: code */
+.bigcode { font: 600 clamp(72px, 9vw, 128px)/1 var(--mono); letter-spacing: -.04em; }
+.bigcode span { color: var(--tomato); }
+
+/* ── specs ───────────────────────────────────────────────── */
+.specs { display: grid; grid-template-columns: repeat(4, 1fr); border: var(--rule) solid var(--ink); border-top: 0; }
+.specs div { padding: 22px clamp(16px, 2vw, 30px); border-right: var(--rule) solid var(--ink); }
+.specs div:last-child { border-right: 0; }
+.specs b { display: block; font: 500 clamp(36px, 3.6vw, 56px)/1 var(--display); letter-spacing: -.03em; }
+.specs b em { font-style: italic; font-variation-settings: "WONK" 1; }
+.specs span { display: block; font: 600 13px var(--mono); color: var(--mute); margin-top: 8px; }
+
+/* ── docs sketch ─────────────────────────────────────────── */
+.docs-head { padding: 72px 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: end; }
+.docs-head h2 { font-size: clamp(40px, 4.6vw, 72px); }
+.docs-head p { margin: 0; color: var(--mute); max-width: 48ch; }
+.docs { display: grid; grid-template-columns: 220px 1fr; border: var(--rule) solid var(--ink); border-radius: 14px; overflow: hidden; min-height: 460px; background: var(--paper); margin-bottom: 72px; }
+.docs .side { background: var(--ink); color: var(--paper); padding: 22px 0; font-size: 14px; }
+.docs .side .brand { font: 600 20px var(--display); padding: 0 22px 18px; }
+.docs .side h4 { margin: 14px 22px 6px; font: 700 11px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--mint); }
+.docs .side a { display: block; padding: 6px 22px; text-decoration: none; opacity: .85; position: relative; }
+.docs .side a[aria-current] { opacity: 1; background: var(--tomato); color: var(--ink); font-weight: 700; margin-left: 10px; border-radius: 8px 0 0 8px; }
+.docs .main { padding: clamp(22px, 3vw, 44px); min-width: 0; overflow-x: auto; }
+.docs .main .bc { font: 600 13px var(--mono); color: var(--mute); }
+.docs .main h1 { font-size: clamp(34px, 3.6vw, 56px); margin: 10px 0 14px; }
+.docs .main h1 { overflow-wrap: anywhere; }
+.docs .main h1 code { font-size: .85em; background: var(--butter); padding: 0 .2em; border-radius: 6px; }
+.docs .main p { max-width: 62ch; color: var(--ink); }
+.docs table { border-collapse: collapse; width: 100%; max-width: 760px; margin: 18px 0; font-size: 15px; }
+.docs th, .docs td { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--ink); vertical-align: top; }
+.docs th { font: 700 12px var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+.docs td code { background: #EBE1C9; padding: 1px 5px; border-radius: 4px; }
+.docs pre { max-width: 760px; }
+
+/* ── footer ──────────────────────────────────────────────── */
+footer { border-top: var(--rule) solid var(--ink); padding: 26px 0 56px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 15px; color: var(--mute); }
+footer b { color: var(--ink); font-family: var(--display); font-weight: 600; font-size: 18px; }
+
+/* ── responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .poster { grid-template-columns: 1fr 1fr; } .c-3, .c-2, .c-4, .c-6 { grid-column: span 2; }
+  .specs { grid-template-columns: 1fr 1fr; } .specs div:nth-child(2) { border-right: 0; } .specs div:nth-child(-n+2) { border-bottom: var(--rule) solid var(--ink); }
+  .docs-head { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .mast { flex-wrap: wrap; } .mast nav { gap: 16px; font-size: 14px; }
+  .frame { height: 560px; border-radius: 14px; border-width: 5px; }
+  .pane .in { padding: 22px 20px; min-width: 0; width: 100% !important; }
+  .p-hello h1 { font-size: 54px; }
+  .readout { font-size: 13px; } .readout .say { flex-basis: 100%; }
+  .poster, .c-3, .c-2, .c-4, .c-6 { grid-template-columns: 1fr; grid-column: span 1; }
+  .cell { min-height: 0; }
+  .specs { grid-template-columns: 1fr 1fr; }
+  .docs { grid-template-columns: 1fr; } .docs .main h1 { font-size: 26px; } .docs table { font-size: 13px; }
+  .ruler i:not(.big)::after { display: none; } .docs .side { display: flex; gap: 6px; overflow-x: auto; padding: 14px 16px; }
+  .docs .side .brand, .docs .side h4 { display: none; } .docs .side a { white-space: nowrap; padding: 6px 12px; } .docs .side a[aria-current] { margin: 0; border-radius: 8px; }
+}
+</style>
+
+<header class="wrap mast">
+  <div class="brand">sashay<small>@vcarl/sashay · 1.0 · MIT</small></div>
+  <nav><a href="#docs">Docs</a><a href="#">GitHub</a><a href="#">npm</a></nav>
+</header>
+
+<main class="wrap">
+  <section class="window" aria-label="Live demo">
+    <div class="frame" id="frame">
+      <div class="pane p-hello" data-pane="hello"><div class="in">
+        <div>
+          <div class="eyebrow">@vcarl/sashay — sliding panes for the web</div>
+          <h1>Panes that <em>sashay.</em></h1>
+          <p>A webOS-style layout. Drag an edge and it snaps to a fraction. Throw it and it flings. Panes slide over each other instead of squishing, and the whole arrangement fits in a URL.</p>
+          <div class="cta"><a class="btn fill" href="#docs">Read the docs</a><a class="btn" href="#install">npm i @vcarl/sashay</a></div>
+        </div>
+        <div class="hint"><svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1 9h24M7 3 1 9l6 6M19 3l6 6-6 6"/></svg> <span class="wide">This headline is a pane. Grab the red edge to its right.</span><span class="narrow">This headline is a pane. On a phone the edges become tabs: tap one.</span></div>
+      </div></div>
+
+      <div class="pane p-why" data-pane="why"><div class="in">
+        <div>
+          <h2>Why panes?</h2>
+          <ol>
+            <li><div><b>Fractions, not pixels.</b> Dividers rest at ½, ⅓, ¼ … so layouts survive a window resize.</div></li>
+            <li><div><b>Nothing ever squishes.</b> A squeezed pane keeps its width; the next one slides over it.</div></li>
+            <li><div><b>Stacks go deep.</b> Drill a thousand levels; old panes fold into a spine.</div></li>
+            <li><div><b>Zero dependencies.</b> Vanilla DOM controller, React wrapper optional.</div></li>
+          </ol>
+        </div>
+      </div></div>
+
+      <div class="pane p-install" data-pane="install" id="install"><div class="in">
+        <div>
+          <h2>Hang it in a frame.</h2>
+<pre><span class="c">// npm i @vcarl/sashay</span>
+<span class="k">import</span> { createSashay }
+  <span class="k">from</span> <span class="s">"@vcarl/sashay"</span>;
+
+createSashay(frame, {
+  panes: [
+    { id: <span class="s">"list"</span>,
+      title: <span class="s">"List"</span>,
+      focus: <span class="s">1/3</span> },
+    { id: <span class="s">"detail"</span>,
+      title: <span class="s">"Detail"</span>,
+      focus: <span class="s">1/2</span> },
+  ],
+  onChange: saveToUrl,
+});</pre>
+          <div class="meta"><span>ESM only</span><span>0 deps</span><span>React ≥19 optional</span><span>MIT</span></div>
+        </div>
+      </div></div>
+
+      <div class="edge" data-i="0" role="separator" tabindex="0" aria-label="Hello"><span class="t">Hello</span><span class="grip"></span>
+        <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-k="0">Hello</button><button role="tab" data-k="1">Why</button><button role="tab" data-k="2">Install</button></div></div>
+      <div class="edge" data-i="1" role="separator" tabindex="0" aria-label="Why"><span class="t">Why</span><span class="grip"></span></div>
+      <div class="edge" data-i="2" role="separator" tabindex="0" aria-label="Install"><span class="t">Install</span><span class="grip"></span></div>
+      <div class="mark" id="mark"></div>
+    </div>
+
+    <div class="readout">
+      <span class="url"><span>?layout=</span><span class="code" id="code">6a</span></span>
+      <span class="say"><span id="say">That's the whole layout: one hex digit per divider. Drag an edge, throw it, or click one to open and close.</span></span>
+      <button type="button" id="reset">Reset</button>
+    </div>
+  </section>
+
+  <section class="poster" aria-label="Features">
+    <div class="cell c-3">
+      <span class="num">01 / Snap</span>
+      <h2>Snaps to simple fractions.</h2>
+      <p>Dividers rest on fractions with a denominator up to six, so a layout saved on a laptop still makes sense on a monitor. The grid gets finer as the frame gets wider.</p>
+      <div class="art ruler"><i class="big" data-f="0" style="left:0"></i><i data-f="1/4" style="left:25%"></i><i data-f="1/3" style="left:33.33%"></i><i class="big" data-f="1/2" style="left:50%"></i><i data-f="2/3" style="left:66.67%"></i><i data-f="3/4" style="left:75%"></i><i class="big" data-f="1" style="left:100%"></i></div>
+    </div>
+    <div class="cell c-3 cobalt">
+      <span class="num">02 / Fling</span>
+      <h2>Throw it.</h2>
+      <p>A quick throw carries the divider one or two snaps past where you let go. Release speed is read from the last 90&nbsp;ms, so a slow drag still lands exactly where you put it.</p>
+      <div class="art fling"><div class="ghost"></div><span class="zip" style="top:28%;width:30%"></span><span class="zip" style="top:50%;width:38%"></span><span class="zip" style="top:72%;width:24%"></span><div class="bar"></div></div>
+    </div>
+    <div class="cell c-2">
+      <span class="num">03 / Drawers</span>
+      <h2>Drawers in the frame.</h2>
+      <p>Any edge can open a drawer: filters, settings, a table of contents. On a phone it becomes a sheet.</p>
+      <div class="art mini"><div class="md"><b>Filters</b><i class="on"></i>Open<br><i class="on"></i>Mine<br><i></i>Archived</div><div class="me"></div><div class="mp"><div class="line" style="width:70%"></div><div class="line" style="width:50%"></div><div class="line" style="width:60%"></div></div></div>
+    </div>
+    <div class="cell c-2 mint">
+      <span class="num">04 / Spine</span>
+      <h2>Deep stacks fold into a spine.</h2>
+      <p>Drill down as far as you like. Panes that no longer fit fold into one slim spine with a count. Drag cost stays flat at a thousand deep.</p>
+      <div class="art spine"><div class="sp">7<small>more</small></div><div class="sq"><div class="line" style="width:80%"></div><div class="line" style="width:55%"></div></div><div class="sq focus"><div class="line" style="width:60%"></div><div class="line" style="width:85%"></div><div class="line" style="width:40%"></div></div></div>
+    </div>
+    <div class="cell c-2 butter">
+      <span class="num">05 / Persist</span>
+      <h2>The layout is a word.</h2>
+      <p>One hex digit per divider plus the drawer bits. Short enough for a query string, stable across list changes.</p>
+      <div class="art bigcode">8<span>c</span>0</div>
+    </div>
+  </section>
+
+  <section class="specs" aria-label="At a glance">
+    <div><b>0</b><span>runtime dependencies</span></div>
+    <div><b>&lt;2<em>ms</em></b><span>drag frame at 1,000 panes</span></div>
+    <div><b>← →</b><span>keyboard on every edge, aria-valuenow</span></div>
+    <div><b>1.0</b><span>vanilla + React ≥19 · MIT</span></div>
+  </section>
+
+  <section id="docs" aria-label="Docs preview">
+    <div class="docs-head">
+      <h2>The docs wear the same <span class="wonk">frame</span>.</h2>
+      <p>Short pages, runnable examples, one sidebar painted like a sash stile. Starlight underneath; none of the Starlight look on top.</p>
+    </div>
+    <div class="docs" aria-hidden="true">
+      <aside class="side">
+        <div class="brand">sashay</div>
+        <h4>Start</h4><a>Install</a><a>Your first frame</a><a>Layout codes</a>
+        <h4>Guides</h4><a>Drawers</a><a>Navigation stacks</a><a>Compact mode</a><a>Styling</a>
+        <h4>Reference</h4><a aria-current="page">createSashay()</a><a>&lt;Sashay&gt; for React</a><a>Accessibility</a>
+      </aside>
+      <div class="main">
+        <div class="bc">Reference / createSashay</div>
+        <h1><code>createSashay(frame, options)</code></h1>
+        <p>Attaches to <code>frame</code>, finds one <code>[data-sashay-pane]</code> per pane, and creates every control itself: edges, the leaf × button, grips and the spine. Returns a handle.</p>
+        <table><thead><tr><th>Option</th><th>Type</th><th>What it does</th></tr></thead><tbody>
+          <tr><td><code>panes</code></td><td><code>PaneOptions[]</code></td><td>Left to right. May change at any time; diffed by <code>id</code>.</td></tr>
+          <tr><td><code>layout</code></td><td><code>string</code></td><td>A saved code. Bad input falls back to <code>defaultLayout</code>.</td></tr>
+          <tr><td><code>onChange</code></td><td><code>(code) ⇒ void</code></td><td>Fires on release, click or keypress. Never during a drag.</td></tr>
+        </tbody></table>
+<pre><span class="k">const</span> sash = createSashay(el, { panes, layout: params.get(<span class="s">"layout"</span>) });
+sash.reveal(<span class="s">"detail"</span>);</pre>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div><b>sashay</b> &nbsp;·&nbsp; a sash window is made of sliding panes. So is this page.</div>
+  <div>Built by Carl Vitullo · MIT · GitHub · npm · Changelog</div>
+</footer>
+
+<script>
+// Throwaway demo engine. Fractions, snaps, fling and slide-over only; the real library does the rest.
+(() => {
+  const frame = document.getElementById('frame');
+  const panes = [...frame.querySelectorAll('.pane')];
+  const edges = [...frame.querySelectorAll('.edge')];
+  const mark = document.getElementById('mark'), codeEl = document.getElementById('code'), say = document.getElementById('say');
+  const FOCUS = [0.5, 0.25, 0.25], MIN = 0.08, EDGE = 32, UNIT = 220, FLING = [0.45, 1.4];
+  const DEFAULT = [0.5, 0.75];
+  let divs = DEFAULT.slice(), snaps = [], C = 0, compact = false, active = 0;
+
+  const farey = (n) => { const s = new Set([0, 1]); for (let d = 2; d <= n; d++) for (let k = 1; k < d; k++) s.add(k / d); return [...s].sort((a, b) => a - b); };
+  const nearest = (x) => snaps.reduce((b, s) => Math.abs(s - x) < Math.abs(b - x) ? s : b);
+  const measure = () => {
+    compact = frame.clientWidth < 640;
+    frame.toggleAttribute('data-compact', compact);
+    C = frame.clientWidth - (compact ? 44 : EDGE * 3);
+    snaps = farey(Math.max(1, Math.min(6, Math.floor(C / UNIT))));
+  };
+  const widths = () => [divs[0], divs[1] - divs[0], 1 - divs[1]];
+  const render = () => {
+    const w = widths(), ew = compact ? 44 : EDGE;
+    panes.forEach((p, i) => {
+      const left = (i ? divs[i - 1] : 0) * C + ew * (compact ? 1 : i + 1);
+      const px = Math.max(w[i], compact ? 1 : FOCUS[i]) * C;
+      p.style.transform = `translateX(${left}px)`; p.style.width = px + 'px'; p.style.zIndex = i * 2 + 1;
+      p.style.setProperty('--w', px + 'px');
+      p.toggleAttribute('data-covered', i < 2 && w[i] < FOCUS[i] - .001);
+      p.toggleAttribute('data-closed', w[i] < .001);
+      if (!compact) { edges[i].style.transform = `translateX(${left - ew}px)`; edges[i].style.zIndex = i * 2; }
+      else { edges[0].style.transform = 'translateX(0)'; edges[0].style.zIndex = 9; }
+    });
+    edges.forEach((e, i) => i && e.setAttribute('aria-valuenow', Math.round(divs[i - 1] * 100)));
+    codeEl.textContent = divs.map(d => snaps.indexOf(nearest(d)).toString(16)).join('');
+  };
+  const setDiv = (i, v) => { // i = 1|2 edge index → divs[i-1]; push neighbours
+    v = Math.max(0, Math.min(1, v));
+    divs[i - 1] = v;
+    if (i === 1 && divs[1] < v) divs[1] = v;
+    if (i === 2 && divs[0] > v) divs[0] = v;
+  };
+  const settle = (i, v, dir) => { // snap, fling, close-below-min
+    let s = nearest(v);
+    if (dir) { const k = snaps.indexOf(s) + dir; if (snaps[k] !== undefined) s = snaps[k]; }
+    setDiv(i, s);
+    const w = widths();
+    if (w[i] < MIN) setDiv(i, i === 2 ? 1 : divs[1]);           // pane i closes
+    if (i === 2 && w[1] < MIN) divs[0] = divs[1];                 // pushed pane 1 closes
+  };
+  const toggle = (i) => {
+    const w = widths();
+    if (i === 0) { if (w[0] < FOCUS[0]) { divs[0] = FOCUS[0]; if (divs[1] < divs[0]) divs[1] = divs[0]; } return; }
+    if (w[i] < FOCUS[i] - .001) setDiv(i, nearest((i === 2 ? 1 : divs[1]) - FOCUS[i]));
+    else setDiv(i, i === 2 ? 1 : divs[1]);
+  };
+
+  // pointer
+  let drag = null;
+  edges.forEach((e, i) => {
+    e.addEventListener('pointerdown', (ev) => {
+      if (compact || ev.button) return;
+      e.setPointerCapture(ev.pointerId);
+      drag = { i, x0: ev.clientX, d0: i ? divs[i - 1] : 0, moved: false, trail: [] };
+    });
+    e.addEventListener('pointermove', (ev) => {
+      if (!drag || drag.i !== i) return;
+      const dx = ev.clientX - drag.x0;
+      if (!drag.moved && Math.abs(dx) < 4) return;
+      drag.moved = true; if (!i) return;
+      frame.setAttribute('data-dragging', ''); e.setAttribute('data-active', '');
+      drag.trail.push([performance.now(), ev.clientX]); drag.trail = drag.trail.filter(t => t[0] > performance.now() - 90);
+      setDiv(i, drag.d0 + dx / C); render();
+      const target = nearest(divs[i - 1]), ew = EDGE;
+      mark.style.transform = `translateX(${target * C + ew * (i + 1) - ew / 2}px)`; mark.toggleAttribute('data-on', true);
+    });
+    const up = (ev) => {
+      if (!drag || drag.i !== i) return;
+      const d = drag; drag = null;
+      frame.removeAttribute('data-dragging'); e.removeAttribute('data-active'); mark.removeAttribute('data-on');
+      if (!d.moved) { toggle(i); render(); return; }
+      if (!i) return;
+      let dir = 0;
+      if (d.trail.length > 1) {
+        const [t0, x0] = d.trail[0], [t1, x1] = d.trail[d.trail.length - 1];
+        const v = Math.abs(x1 - x0) / Math.max(1, t1 - t0);
+        dir = Math.sign(x1 - x0) * (v > FLING[1] ? 2 : v > FLING[0] ? 1 : 0);
+      }
+      settle(i, divs[i - 1], dir); render();
+      say.textContent = dir ? `Flung ${Math.abs(dir)} snap${Math.abs(dir) > 1 ? 's' : ''} past the drop. Layout code updated.` : 'Snapped to the nearest fraction. Layout code updated.';
+    };
+    e.addEventListener('pointerup', up); e.addEventListener('pointercancel', up);
+    e.addEventListener('keydown', (ev) => {
+      if (compact) return;
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(i); render(); }
+      if (i && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight')) {
+        ev.preventDefault(); const k = snaps.indexOf(nearest(divs[i - 1])) + (ev.key === 'ArrowRight' ? 1 : -1);
+        if (snaps[k] !== undefined) { setDiv(i, snaps[k]); render(); }
+      }
+    });
+  });
+  // compact tabs
+  frame.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    active = +b.dataset.k; frame.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
+    divs = [active >= 1 ? 0 : 1, active >= 2 ? 0 : 1]; render();
+  }));
+  document.getElementById('reset').addEventListener('click', () => { divs = compact ? [1, 1] : DEFAULT.slice(); render(); });
+
+  const relayout = () => { const was = compact; measure(); if (compact !== was) divs = compact ? [1, 1] : DEFAULT.slice(); render(); };
+  new ResizeObserver(relayout).observe(frame);
+  relayout();
+})();
+</script>
+</html>
