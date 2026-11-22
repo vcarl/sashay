@@ -12,12 +12,12 @@
   ],
   "exports": {
     ".": {
-      "source": "./src/index.ts",
+      "@vcarl/sashay/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./react": {
-      "source": "./src/react.tsx",
+      "@vcarl/sashay/source": "./src/react.tsx",
       "types": "./dist/react.d.ts",
       "default": "./dist/react.js"
     },
