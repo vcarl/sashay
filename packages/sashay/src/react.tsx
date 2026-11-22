@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { createSashay, type Length, type PaneOptions, type SashayHandle } from "./controller.ts";
+import { createSashay, EDGE, type Length, type PaneOptions, type SashayHandle, SPINE } from "./controller.ts";
 import { snapV, toWidths } from "./engine.ts";
 import { decodeLayout, defaultView, normalize, windowEnd } from "./window.ts";
 
@@ -48,7 +48,7 @@ const toOptions = ({ keepInView, onClose, children, edge, ...p }: PaneProps): Pa
   const d = edge?.drawer;
   return { ...p, edge: edge && { width: edge.width, drawer: d && { width: d.width, title: d.title } } };
 };
-const METHODS = ["reveal", "close", "toggleDrawer", "keepInView", "setLayout", "fit", "update", "destroy"] as const;
+const METHODS = ["reveal", "close", "toggleDrawer", "keepInView", "fit", "update", "destroy"] as const;
 
 export function Sashay(props: SashayProps): ReactElement {
   const { layout, defaultLayout, compactBelow, onLayoutChange, ref, children, ...rest } = props;
@@ -117,13 +117,18 @@ export function Sashay(props: SashayProps): ReactElement {
   }, [s, layout]);
   useImperativeHandle(
     ref,
-    () =>
-      Object.fromEntries(
+    () => ({
+      ...(Object.fromEntries(
         METHODS.map((k) => [
           k,
           (...a: unknown[]) => (s.h?.[k] as ((...x: unknown[]) => void) | undefined)?.apply(s.h, a),
         ]),
-      ) as unknown as SashayHandle,
+      ) as unknown as SashayHandle),
+      setLayout(c: string) {
+        s.code = c; // so a later `layout` prop equal to the old code still applies
+        s.h?.setLayout(c);
+      },
+    }),
     [s],
   );
 
@@ -155,9 +160,9 @@ function SsrStyle({ s, scope, layout, defaultLayout }: { s: Store; scope: string
   let j = 0;
   const edges = win.map((p) => {
     const dr = p.edge?.drawer;
-    return len(dr && d?.drawers[j++] ? dr.width : (p.edge?.width ?? "0.75rem"));
+    return len(dr && d?.drawers[j++] ? dr.width : (p.edge?.width ?? EDGE));
   });
-  const spine = v.offset ? "var(--sashay-spine-width, 1.5rem)" : "0px";
+  const spine = v.offset ? SPINE : "0px";
   const C = `(100% - ${spine} - (${edges.join(" + ")}))`;
   const div = v.div.map(snapV);
   const w = toWidths(div);

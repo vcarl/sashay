@@ -66,9 +66,9 @@ export interface SashayHandle {
   destroy(): void;
 }
 
-const EDGE = "0.75rem";
+export const EDGE = "0.75rem"; // internal: shared with react.tsx, not re-exported
 const TABS = "var(--sashay-tabs-width, 2.75rem)";
-const SPINE = "var(--sashay-spine-width, 1.5rem)";
+export const SPINE = "var(--sashay-spine-width, 1.5rem)"; // internal, as EDGE
 const CHEVRON =
   '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 

@@ -100,6 +100,26 @@ test("layout prop applies", async () => {
   expect(spy).not.toHaveBeenCalled();
 });
 
+test("a layout prop after ref.setLayout still applies", async () => {
+  const h = { current: null as SashayHandle | null };
+  await render(<App ref={h} layout="48" />);
+  await act(() => h.current?.close("c")); // reports "4c"; the app doesn't feed it back
+  await act(() => h.current?.setLayout("48"));
+  await render(<App ref={h} layout="4c" />);
+  expect(P("c").hasAttribute("data-closed")).toBe(true);
+});
+
+test("changing drawer content re-renders it", async () => {
+  const at = (content: ReactNode): PaneProps[] => [
+    P3[0],
+    { ...P3[1], edge: { drawer: { width: "10rem", title: "N", content } } },
+    P3[2],
+  ];
+  await render(<App layout="48" panes={at("one")} />);
+  await render(<App layout="48" panes={at("two")} />);
+  expect(host.querySelector('[data-sashay-drawer="b"]')?.textContent).toBe("two");
+});
+
 test("per-pane onClose", async () => {
   const onClose = vi.fn();
   await render(<App layout="48" panes={[P3[0], P3[1], { ...P3[2], onClose }]} />);
