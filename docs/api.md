@@ -25,7 +25,7 @@ fractions, because they live on the snap grid.
 | `layout` | `string` | none | A saved layout code. Invalid input falls back to `defaultLayout`. |
 | `defaultLayout` | `number[]` | equal split | Divider positions as fractions (0–1). |
 | `onChange` | `(layout: string) => void` | none | Fires on release, click, keypress or a pane-list change, never during a drag. |
-| `onClose` | `(id: string) => void` | none | Fires when the user closes a pane, by × or by dragging it below `minWidth`. |
+| `onClose` | `(id: string) => void` | none | Fires when the user closes a pane (×, edge click, Enter/Space, or dragging it below `minWidth`). Not fired by `close()`. |
 | `compactBelow` | `Length` | `"40rem"` | Below this frame width, compact mode applies. |
 
 ### `PaneOptions`
@@ -54,7 +54,7 @@ fractions, because they live on the snap grid.
 | `reveal(id)` | Opens the pane, or uncovers it, including bringing it back from the spine. Uses `opensTo` if set. |
 | `close(id)` | Closes the pane. |
 | `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |
-| `keepInView(id, x \| null)` | While covered, keeps `x` inside the visible slice. `x` is in px from the pane's left, matching pointer-event coordinates. |
+| `keepInView(id, x \| null)` | While covered, keeps point `x` (a `Length` from the pane's left; `"40%"` is 40% of the pane's width) inside the visible slice. |
 | `setLayout(code)` | Applies a code. Does not fire `onChange`. |
 | `fit(fractions)` | Moves the dividers to the nearest snaps. Fires `onChange`. |
 | `update(options)` | Replaces `panes` or the callbacks without rebuilding. |
@@ -72,9 +72,10 @@ stack (drill-down: picking an item adds a pane on the right; going back removes 
   - A removed pane closes, giving its width to its neighbour the way `close` does, then
     leaves the DOM.
   - There are no `push`/`pop` helpers: a stack is just an array the app edits.
-- **Spine.** When the panes no longer fit, the oldest panes fold into a single spine at the
+- **Spine.** When the open panes no longer fit, the oldest panes fold into a single spine at the
   left that shows a count. Clicking it, or pressing ← on it, reveals the newest hidden pane.
-  A fixed workspace that fits never shows a spine.
+  Closed panes keep their own edges and never
+  fold into the spine, so a fixed workspace that fits never shows one.
 - **Layout code.** It holds one hex digit (the snap index) per visible divider, plus the
   offset where the visible window starts and the drawer bitsets, so it can be any length.
   After a list change, dividers that didn't move keep their positions. The code stores
@@ -129,7 +130,7 @@ Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
 | Prop | Description |
 |---|---|
 | all `PaneOptions` fields | Same as above. `edge.drawer` also takes `content: ReactNode`. |
-| `keepInView` | `number \| null`. |
+| `keepInView` | `Length \| null`. |
 | `onClose` | Fires when this pane is closed. |
 | `children` | The pane's content, or `(state: { offscreen: boolean }) => ReactNode` so an app can unmount heavy content in very deep stacks. |
 
