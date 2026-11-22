@@ -1,0 +1,37 @@
+---
+import "../styles/fonts.css";
+import "../styles/tokens.css";
+import "../styles/landing.css";
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sashay: panes that sashay</title>
+    <meta name="description" content="A webOS-style sliding-panes layout for the web. Snaps, flings, drawers, deep stacks, and a layout that fits in a URL." />
+    <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="wrap mast">
+      <a class="brand" href={base}>sashay<small>@vcarl/sashay · 1.0 · MIT</small></a>
+      <nav>
+        <a href={`${base}install/`}>Docs</a>
+        <a href="https://github.com/vcarl/sashay">GitHub</a>
+        <a href="https://www.npmjs.com/package/@vcarl/sashay">npm</a>
+      </nav>
+    </header>
+    <slot />
+    <footer class="wrap">
+      <div><b>sashay</b> &nbsp;·&nbsp; a sash window is made of sliding panes. So is this page.</div>
+      <div>
+        Built by Carl Vitullo · MIT ·
+        <a href="https://github.com/vcarl/sashay">GitHub</a> ·
+        <a href="https://www.npmjs.com/package/@vcarl/sashay">npm</a> ·
+        <a href="https://github.com/vcarl/sashay/blob/main/packages/sashay/CHANGELOG.md">Changelog</a>
+      </div>
+    </footer>
+  </body>
+</html>
