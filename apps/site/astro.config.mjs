@@ -29,6 +29,7 @@ export default defineConfig({
       components: {
         PageTitle: "./src/components/PageTitle.astro",
         SocialIcons: "./src/components/SocialIcons.astro",
+        Sidebar: "./src/components/Sidebar.astro",
       },
       expressiveCode: {
         themes: [sash],

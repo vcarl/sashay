@@ -48,9 +48,39 @@ starlight-theme-select {
   display: none;
 }
 
-/* Masthead: the landing page's, over a 3px ink rule. */
+/* Header: on a phone, the landing masthead over a 3px ink rule. From 50rem the
+   brand moves to the head of the ink sidebar, which runs the full height, and
+   the header keeps only search and links over the content column. */
 .page > .header {
   border-bottom: var(--rule) solid var(--ink);
+}
+.sl-brand {
+  display: none;
+}
+@media (min-width: 50rem) {
+  .page > .header {
+    border-bottom: 0;
+    padding-inline-start: calc(var(--sl-sidebar-width) + var(--sl-nav-pad-x));
+  }
+  .page > .header .site-title {
+    display: none;
+  }
+  .sidebar-pane {
+    inset-block-start: 0;
+    z-index: calc(var(--sl-z-index-navbar) + 1);
+  }
+  .sidebar-content .sl-brand {
+    display: block;
+    padding: 6px 22px 0;
+    font: 600 26px / 1 var(--display);
+    letter-spacing: -0.03em;
+    color: var(--paper);
+    text-decoration: none;
+  }
+  .sidebar-content .sl-brand:focus-visible {
+    outline: 3px solid var(--butter);
+    outline-offset: 4px;
+  }
 }
 .site-title {
   font: 600 26px / 1 var(--display);

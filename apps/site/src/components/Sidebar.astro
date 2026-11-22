@@ -1,0 +1,8 @@
+---
+// The brand heads the ink sidebar, as in the docs sketch, instead of sitting in a masthead.
+import Default from "@astrojs/starlight/components/Sidebar.astro";
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+<a class="sl-brand" href={base}>sashay</a>
+<Default />
