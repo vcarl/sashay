@@ -4,7 +4,9 @@ labels: [enhancement]
 body:
   - type: textarea
     id: problem
-    attributes: {label: Problem, description: What are you trying to do that you can't?}
+    attributes:
+      label: Problem
+      description: What are you trying to do that you can't?
     validations: {required: true}
   - type: textarea
     id: proposal
