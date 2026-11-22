@@ -3,3 +3,11 @@
 ---
 <a href="https://github.com/vcarl/sashay">GitHub</a>
 <a href="https://www.npmjs.com/package/@vcarl/sashay">npm</a>
+<script>
+  // Starlight labels the search button "Search" but shows "Search Ctrl K"; the name must contain the visible text.
+  addEventListener("load", () => {
+    const b = document.querySelector<HTMLElement>("button[data-open-modal]");
+    const k = b?.querySelector("kbd")?.textContent?.trim();
+    if (b && k) b.setAttribute("aria-label", `Search ${k}`);
+  });
+</script>

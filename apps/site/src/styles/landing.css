@@ -317,7 +317,7 @@ button:focus-visible {
   content: counter(n, decimal-leading-zero);
   font: 600 14px var(--mono);
   padding-top: 3px;
-  color: var(--tomato);
+  color: var(--tomato-ink);
 }
 .p-why li b {
   font-family: var(--display);
@@ -428,7 +428,11 @@ pre .s {
 }
 .cell .num {
   font: 600 13px var(--mono);
-  color: var(--tomato);
+  color: var(--tomato-ink);
+}
+.cell.mint .num,
+.cell.butter .num {
+  color: var(--ink);
 }
 .cell h2 {
   font-size: clamp(30px, 2.9vw, 44px);
