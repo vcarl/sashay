@@ -1,0 +1,323 @@
+/* Sashay: panes and edges are absolutely placed; the controller writes their
+   transform/width. They animate only when not dragging. Theme with --sashay-*. */
+@layer sashay {
+  [data-sashay-frame] {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
+    color: var(--sashay-fg, CanvasText);
+    touch-action: pan-y;
+  }
+
+  [data-sashay-pane],
+  [data-sashay-edge] {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+  }
+  [data-sashay-pane] {
+    background: var(--sashay-pane-bg, Canvas);
+  }
+  [data-sashay-pane][data-offscreen] {
+    content-visibility: hidden;
+    visibility: hidden;
+  }
+
+  [data-sashay-frame]:not([data-dragging]) :is([data-sashay-pane], [data-sashay-edge], [data-sashay-drawer]) {
+    transition:
+      transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+      width 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-sashay-frame] :is([data-sashay-pane], [data-sashay-edge], [data-sashay-drawer]) {
+      transition: none !important;
+    }
+  }
+
+  /* Release preview: no transition, it tracks the pointer exactly. */
+  [data-sashay-mark] {
+    position: absolute;
+    top: 18%;
+    bottom: 18%;
+    left: 0;
+    width: 3px;
+    margin-left: -1.5px;
+    border-radius: 2px;
+    background: var(--sashay-accent, oklch(0.62 0.19 255));
+    box-shadow: 0 0 10px 2px color-mix(in srgb, var(--sashay-accent, oklch(0.62 0.19 255)) 55%, transparent);
+    opacity: 0;
+    z-index: 98;
+    pointer-events: none;
+  }
+  [data-sashay-frame][data-dragging] [data-sashay-mark] {
+    opacity: 0.35;
+  }
+  [data-sashay-frame][data-dragging] [data-sashay-mark][data-primary] {
+    opacity: 0.9;
+  }
+
+  /* Edges: a grip, optionally with a drawer toggle. */
+  [data-sashay-edge] {
+    background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
+    border-left: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+    border-right: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+    box-shadow: -10px 0 18px -12px var(--sashay-shadow, rgb(0 0 0 / 0.5));
+    cursor: ew-resize;
+    touch-action: none;
+    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
+  }
+  [data-sashay-edge][role="button"] {
+    box-shadow: none;
+    cursor: pointer;
+  }
+  [data-sashay-edge]:hover {
+    background: color-mix(
+      in srgb,
+      var(--sashay-accent, oklch(0.62 0.19 255)) 7%,
+      var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas))
+    );
+    color: var(--sashay-fg, CanvasText);
+  }
+  [data-sashay-edge]:focus-visible,
+  [data-sashay-toggle]:focus-visible {
+    outline: 2px solid var(--sashay-accent, oklch(0.62 0.19 255));
+    outline-offset: -2px;
+  }
+
+  [data-sashay-dots] {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 28px;
+    margin: -14px 0 0 -2px;
+    background: radial-gradient(circle, currentColor 1.2px, transparent 1.6px) 0 0 / 4px 7px;
+    opacity: 0.6;
+  }
+  [data-sashay-edge][role="button"] [data-sashay-dots],
+  [data-sashay-edge][data-open] [data-sashay-dots] {
+    display: none;
+  }
+
+  [data-sashay-title] {
+    position: absolute;
+    top: var(--sashay-header, 2.75rem);
+    left: 28px;
+    white-space: nowrap;
+    transform-origin: 0 0;
+    transform: rotate(90deg);
+    font-size: var(--sashay-font-size, 0.6875rem);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  [data-sashay-toggle] {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    margin-left: -14px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: var(--sashay-radius, 6px);
+    border: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+    background: var(--sashay-pane-bg, Canvas);
+    color: var(--sashay-fg, CanvasText);
+    cursor: pointer;
+  }
+  [data-sashay-toggle]:hover {
+    border-color: var(--sashay-accent, oklch(0.62 0.19 255));
+    color: var(--sashay-accent, oklch(0.62 0.19 255));
+  }
+  [data-sashay-toggle] svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s;
+  }
+  [data-sashay-edge][data-open] [data-sashay-toggle] {
+    left: auto;
+    right: 8px;
+    margin-left: 0;
+  }
+  [data-sashay-edge][data-open] [data-sashay-toggle] svg {
+    transform: rotate(180deg);
+  }
+  [data-sashay-edge][data-open] [data-sashay-title] {
+    transform: none;
+    top: 15px;
+    left: 14px;
+  }
+  [data-sashay-edge][data-open]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--sashay-header, 2.75rem) - 1px);
+    border-top: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+  }
+
+  [data-sashay-drawer] {
+    position: absolute;
+    top: var(--sashay-header, 2.75rem);
+    bottom: 0;
+    left: 0;
+    padding: 12px 14px;
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    font-size: var(--sashay-font-size, 0.6875rem);
+    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
+    min-width: 200px;
+    overflow-y: auto;
+    touch-action: pan-y;
+  }
+  [data-sashay-drawer]:not([data-open]) {
+    display: none;
+  }
+
+  /* Pushed-out stack panes fold into a spine at the left. */
+  [data-spine] {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: var(--sashay-spine-width, 1.5rem);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-right: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+    background: var(--sashay-raised-bg, color-mix(in srgb, CanvasText 10%, Canvas));
+    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
+    font: inherit;
+    font-size: var(--sashay-font-size, 0.6875rem);
+    cursor: pointer;
+    z-index: 99;
+  }
+  [data-spine][hidden] {
+    display: none;
+  }
+  [data-spine]:hover {
+    color: var(--sashay-fg, CanvasText);
+  }
+  [data-spine]:focus-visible {
+    outline: 2px solid var(--sashay-accent, oklch(0.62 0.19 255));
+    outline-offset: -2px;
+  }
+
+  /* The leaf pane's own close; Task 6 places it by transform. */
+  [data-sashay-close] {
+    position: absolute;
+    top: 6px;
+    left: 0;
+    margin-left: -36px;
+    z-index: 99;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--sashay-radius, 6px);
+    background: transparent;
+    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  [data-sashay-close]:hover {
+    background: var(--sashay-raised-bg, color-mix(in srgb, CanvasText 10%, Canvas));
+    color: var(--sashay-fg, CanvasText);
+  }
+  [data-sashay-close]:focus-visible {
+    outline: 2px solid var(--sashay-accent, oklch(0.62 0.19 255));
+    outline-offset: -2px;
+  }
+
+  /* Compact (phone): drawer titles stack as tabs in the first edge; an open
+     drawer is a sheet over the panes. */
+  [data-sashay-tabs] {
+    position: absolute;
+    inset: 0;
+    width: var(--sashay-tabs-width, 2.75rem);
+    display: flex;
+    flex-direction: column;
+  }
+  [data-sashay-tab] {
+    writing-mode: vertical-rl;
+    padding: 14px 0;
+    border: 0;
+    border-bottom: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+    background: transparent;
+    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
+    font-size: var(--sashay-font-size, 0.6875rem);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  [data-sashay-tab]:hover {
+    color: var(--sashay-fg, CanvasText);
+  }
+  [data-sashay-tab][aria-pressed="true"] {
+    color: var(--sashay-fg, CanvasText);
+    box-shadow: inset 3px 0 0 var(--sashay-accent, oklch(0.62 0.19 255));
+  }
+  [data-sashay-drawer][data-sheet] {
+    top: 0;
+    z-index: 100;
+    padding: 0;
+    min-width: 0;
+    display: block;
+    background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
+    border-right: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+    box-shadow: 10px 0 24px -12px var(--sashay-shadow, rgb(0 0 0 / 0.5));
+  }
+  [data-sashay-sheet-head] {
+    position: relative;
+    height: var(--sashay-header, 2.75rem);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+    font-size: var(--sashay-font-size, 0.6875rem);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
+  }
+  [data-sashay-drawer-tab] {
+    writing-mode: vertical-rl;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 0;
+    border: 0;
+    border-bottom: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
+    background: color-mix(in srgb, var(--sashay-pane-bg, Canvas) 50%, transparent);
+    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
+    font-size: var(--sashay-font-size, 0.6875rem);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  [data-sashay-drawer-tab] svg {
+    width: 12px;
+    height: 12px;
+    transform: rotate(90deg);
+    transition: transform 0.2s;
+  }
+  [data-sashay-drawer-tab][aria-expanded="true"] {
+    background: var(--sashay-pane-bg, Canvas);
+    color: var(--sashay-accent, oklch(0.62 0.19 255));
+  }
+  [data-sashay-drawer-tab][aria-expanded="true"] svg {
+    transform: rotate(-90deg);
+  }
+  [data-sashay-drawer-tab]:hover {
+    color: var(--sashay-fg, CanvasText);
+  }
+}
