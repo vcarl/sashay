@@ -26,7 +26,10 @@ export function mount(el: HTMLElement) {
       <h3>${n.name}</h3><p class="hs-meta">${list.length ? `${list.length} ${list.length === 1 ? "thing" : "things"}` : "Empty"}</p>
       ${list.length ? `<ul>${rows}</ul>` : `<p class="hs-empty">Nothing in here but a little dust.</p>`}</section>`;
   };
+  // #region stack
+  // `path` is the stack: the nodes from the house down to what's open.
   const panes = (): PaneOptions[] => path.map((n) => ({ id: n.id, title: n.name, focus: 1 / 3 }));
+  // #endregion
 
   el.classList.add("house");
   // Start with the first room open, so there's a stack to see.
@@ -41,6 +44,7 @@ export function mount(el: HTMLElement) {
   });
 
   // Show the path ending at `id`: an ancestor on the path (back), or a child of any pane on it.
+  // #region stack
   function go(id: string) {
     const n = byId.get(id) as Node;
     const next = [...path.slice(0, n.depth), n]; // path[i] is always at depth i
@@ -48,14 +52,17 @@ export function mount(el: HTMLElement) {
     for (const [i, p] of next.entries())
       if (!path.includes(p)) el.insertAdjacentHTML("beforeend", pane(p, next[i - 1]));
     path = next;
+    // #endregion
     for (const b of el.querySelectorAll<HTMLElement>("[data-open]"))
       b.toggleAttribute(
         "aria-current",
         path.some((p) => p.id === b.dataset.open),
       );
+    // #region stack
     sash.update({ panes: panes() });
     sash.reveal(n.id);
   }
+  // #endregion
 
   const onClick = (e: Event) => {
     const b = (e.target as Element).closest<HTMLElement>("[data-open], [data-go]");

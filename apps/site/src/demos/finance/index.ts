@@ -1,51 +1,76 @@
-import { createSashay } from "@vcarl/sashay";
+import { createSashay, type Length } from "@vcarl/sashay";
 import { type Bar, INTERVALS, type Interval, money, series, type Txn, transactions } from "./data";
 import "./finance.css";
 
 // A fixed workspace of three panes: Overview → Period → Details.
-// `drawer: false` leaves out the Interval drawer; `url: true` keeps the layout in ?layout=.
-export function mount(el: HTMLElement, { drawer = true, url = false } = {}) {
+// The Guide grows it one step at a time: `drawer` adds the Interval drawer,
+// `url` keeps the layout in ?layout=, and `compactBelow` is passed straight through.
+// The `#region` comments mark the excerpts the Guide shows.
+export function mount(
+  el: HTMLElement,
+  { drawer = true, url = false, compactBelow }: { drawer?: boolean; url?: boolean; compactBelow?: Length } = {},
+) {
   let interval: Interval = "1M";
   let bars: Bar[] = [];
   let txns: Txn[] = [];
 
   el.classList.add("finance");
+  // #region frame
   el.innerHTML = `
-    ${drawer ? `<aside data-sashay-drawer="overview"><p class="fi-label">Show the last</p>${INTERVALS.map((v) => `<button data-interval="${v}">${v}</button>`).join("")}</aside>` : ""}
-    <section data-sashay-pane="overview">
-      <header><p class="fi-label">Portfolio</p><p class="fi-value"></p><p class="fi-delta"></p></header>
-      <svg class="fi-chart" preserveAspectRatio="none" role="group" aria-label="Portfolio value"></svg>
-      <p class="fi-axis"></p>
-    </section>
+    <section data-sashay-pane="overview"></section>
     <section data-sashay-pane="period"></section>
     <section data-sashay-pane="details"></section>`;
+  // #endregion
   const $ = (s: string) => el.querySelector(s) as HTMLElement;
+  $('[data-sashay-pane="overview"]').innerHTML = `
+    <header><p class="fi-label">Portfolio</p><p class="fi-value"></p><p class="fi-delta"></p></header>
+    <svg class="fi-chart" preserveAspectRatio="none" role="group" aria-label="Portfolio value"></svg>
+    <p class="fi-axis"></p>`;
+  // #region drawer
+  // The drawer's content sits in the frame, named for the pane whose edge opens it.
+  const buttons = INTERVALS.map((v) => `<button data-interval="${v}">${v}</button>`).join("");
+  if (drawer)
+    el.insertAdjacentHTML(
+      "afterbegin",
+      `<aside data-sashay-drawer="overview"><p class="fi-label">Show the last</p>${buttons}</aside>`,
+    );
+  // #endregion
+  // #region url
   const params = new URLSearchParams(location.search);
+  const saveToUrl = (code: string) => {
+    params.set("layout", code);
+    history.replaceState(history.state, "", `?${params}`);
+  };
+  // #endregion
 
+  // #region frame
   const sash = createSashay(el, {
     panes: [
       {
         id: "overview",
         title: "Overview",
         focus: 1 / 2,
+        // #region drawer
         edge: drawer ? { drawer: { width: "9rem", title: "Interval" } } : undefined,
+        // #endregion
       },
       { id: "period", title: "Period", focus: 1 / 4 },
       { id: "details", title: "Details", focus: 1 / 4 },
     ],
     defaultLayout: [1, 1], // only Overview open
+    // #region url
     layout: (url && params.get("layout")) || undefined,
-    onChange: url
-      ? (code) => {
-          params.set("layout", code);
-          history.replaceState(history.state, "", `?${params}`);
-        }
-      : undefined,
+    onChange: url ? saveToUrl : undefined,
+    // #endregion
+    // #region compact
+    compactBelow, // a Length; "40rem" when left out
+    // #endregion
     onClose(id) {
       if (id === "period") pick(-1);
       if (id === "details") el.querySelector("[aria-current]")?.removeAttribute("aria-current");
     },
   });
+  // #endregion
 
   function chart() {
     bars = series(interval);
@@ -71,8 +96,11 @@ export function mount(el: HTMLElement, { drawer = true, url = false } = {}) {
   function pick(i: number) {
     for (const g of el.querySelectorAll("[data-bar]"))
       g.toggleAttribute("data-picked", g.getAttribute("data-bar") === String(i));
+    // #region frame
     // While Period covers part of Overview, keep the picked bar in the visible slice.
-    sash.keepInView("overview", i < 0 ? null : `calc(1.25rem + ${(i + 0.5) / bars.length} * (100% - 2.5rem))`);
+    const x = `calc(1.25rem + ${(i + 0.5) / bars.length} * (100% - 2.5rem))`;
+    sash.keepInView("overview", i < 0 ? null : x);
+    // #endregion
     if (i < 0) return;
     const bar = bars[i];
     txns = transactions(interval, i, bar);
@@ -81,8 +109,10 @@ export function mount(el: HTMLElement, { drawer = true, url = false } = {}) {
       <header><p class="fi-label">${interval === "1W" || interval === "1M" ? "Day" : "Period"}</p><h3>${bar.label}</h3>
       <p class="fi-sub">${txns.length} transactions · net ${money(net, true)}</p></header>
       <ul>${txns.map((t, j) => `<li><button data-txn="${j}"><span>${t.title}</span><span class="fi-amt">${money(t.amount, true)}</span></button></li>`).join("")}</ul>`;
+    // #region frame
     sash.close("details");
     sash.reveal("period");
+    // #endregion
   }
 
   function open(j: number) {

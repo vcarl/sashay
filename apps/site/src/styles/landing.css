@@ -631,6 +631,60 @@ pre .s {
   outline-offset: 4px;
 }
 
+/* ── see it work ─────────────────────────────────────────── */
+.cell .more {
+  width: fit-content;
+  font: 600 13px var(--mono);
+  color: inherit;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.cell .more:hover {
+  text-decoration-color: var(--tomato);
+}
+.seeit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px clamp(20px, 2.6vw, 36px);
+  padding: clamp(20px, 2.6vw, 36px);
+  border: var(--rule) solid var(--ink);
+  border-top: 0;
+}
+.seeit h2 {
+  grid-column: 1 / -1;
+  font-size: clamp(40px, 4.6vw, 72px);
+}
+.seeit figure {
+  margin: 0;
+  min-width: 0;
+}
+.seeit .demo-app {
+  height: 26rem;
+}
+.seeit figcaption {
+  margin-top: 12px;
+  font-size: 15px;
+  color: var(--mute);
+}
+.seeit figcaption b {
+  color: var(--ink);
+}
+.seeit .btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.seeit .btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+@media (max-width: 900px) {
+  .seeit {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── specs ───────────────────────────────────────────────── */
 .specs {
   display: grid;

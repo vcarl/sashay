@@ -69,6 +69,14 @@ starlight-theme-select {
     inset-block-start: 0;
     z-index: calc(var(--sl-z-index-navbar) + 1);
   }
+  /* The pane is fixed and one viewport tall; the page paints the stile behind it too,
+     so it runs the full length of the page wherever the pane is (full-page captures, print). */
+  body {
+    background: linear-gradient(to right, var(--ink) var(--sl-sidebar-width), var(--paper) 0);
+  }
+  .right-sidebar {
+    border-inline-start: 0;
+  }
   .sidebar-content .sl-brand {
     display: block;
     padding: 6px 22px 0;
@@ -297,4 +305,38 @@ h1#_top code {
 .demo button {
   font: 600 14px var(--sans);
   margin: 0 6px 6px 0;
+}
+
+/* On this page: the table of contents on the Guide and the Reference. */
+starlight-toc h2,
+mobile-starlight-toc .toggle {
+  font: 700 11px var(--sans);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+starlight-toc a {
+  color: var(--mute);
+}
+starlight-toc a[aria-current="true"] {
+  color: var(--cobalt);
+  font-weight: 700;
+}
+
+/* Reference tables on a phone: four columns fit by wrapping long identifiers. */
+@media (max-width: 50rem) {
+  .sl-markdown-content table {
+    font-size: 14px;
+  }
+  .sl-markdown-content :is(th, td),
+  .sl-markdown-content td code {
+    padding: 8px 6px;
+    overflow-wrap: anywhere;
+  }
+  .sl-markdown-content td code {
+    padding: 1px 3px;
+  }
+  .sl-markdown-content th {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
 }

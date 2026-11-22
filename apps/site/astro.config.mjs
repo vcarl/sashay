@@ -18,8 +18,24 @@ const sash = new ExpressiveCodeTheme({
   ],
 });
 
+const base = process.env.SITE_BASE ?? "/";
+const to = (path) => `${base.replace(/\/?$/, "/")}${path}`;
+
 export default defineConfig({
-  base: process.env.SITE_BASE ?? "/",
+  base,
+  // The pages folded into the Guide and the Reference, sent to their sections.
+  redirects: {
+    "/install": to("guide/#install"),
+    "/first-frame": to("guide/#your-first-frame"),
+    "/layout-codes": to("guide/#layout-in-the-url"),
+    "/drawers": to("guide/#drawers"),
+    "/stacks": to("guide/#navigation-stacks"),
+    "/compact": to("guide/#compact-mode"),
+    "/styling": to("guide/#styling"),
+    "/api": to("reference/"),
+    "/react": to("reference/#vcarlsashayreact"),
+    "/accessibility": to("reference/#accessibility"),
+  },
   integrations: [
     react(),
     starlight({
@@ -44,34 +60,13 @@ export default defineConfig({
           uiFontFamily: "var(--sans)",
           frames: { shadowColor: "transparent", frameBoxShadowCssValue: "none" },
         },
+        // Long lines wrap inside the box; shell snippets get the plain code frame, not a terminal.
+        defaultProps: { wrap: true, overridesByLang: { "bash,sh,shell": { frame: "code" } } },
       },
       sidebar: [
-        {
-          label: "Start",
-          items: [
-            { slug: "install", label: "Install" },
-            { slug: "first-frame", label: "Your first frame" },
-            { slug: "layout-codes", label: "Layout codes" },
-            { slug: "demos", label: "Demos" },
-          ],
-        },
-        {
-          label: "Guides",
-          items: [
-            { slug: "drawers", label: "Drawers" },
-            { slug: "stacks", label: "Navigation stacks" },
-            { slug: "compact", label: "Compact mode" },
-            { slug: "styling", label: "Styling" },
-          ],
-        },
-        {
-          label: "Reference",
-          items: [
-            { slug: "api", label: "createSashay()" },
-            { slug: "react", label: "<Sashay> for React" },
-            { slug: "accessibility", label: "Accessibility" },
-          ],
-        },
+        { slug: "guide", label: "Guide" },
+        { slug: "demos", label: "Demos" },
+        { slug: "reference", label: "Reference" },
       ],
     }),
   ],

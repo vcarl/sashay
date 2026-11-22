@@ -1,3 +1,5 @@
+/* #region styling */
+/* Edges, drawers and controls take their colours from --sashay-*. Panes are your own elements. */
 .finance {
   height: 30rem;
   border: var(--rule, 3px) solid var(--ink);
@@ -28,6 +30,7 @@
 .finance [data-sashay-close] {
   color: var(--ink);
 }
+/* #endregion */
 .finance :is(h3, p, ul, dl) {
   margin: 0;
 }

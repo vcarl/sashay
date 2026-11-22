@@ -1,0 +1,82 @@
+---
+title: Guide.
+description: Build a small portfolio app with sashay, one feature at a time.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import DemoApp from "../../components/DemoApp.astro";
+
+This page builds one small app: a portfolio with three panes, Overview, Period and Details. Each section adds one feature, shows the lines that changed, and runs the app as it stands. The full source is on the [Demos](../demos/) page.
+
+## Install
+
+sashay is one ESM package with no runtime dependencies. The core is a vanilla DOM controller; the React wrapper is a subpath export, so vanilla users never load React.
+
+```sh
+pnpm add @vcarl/sashay
+```
+
+Import the controller and the stylesheet once. The styles live in `@layer sashay`, so your own CSS wins without a fight.
+
+```ts
+import { createSashay } from "@vcarl/sashay";
+import "@vcarl/sashay/style.css";
+```
+
+For React, import `Sashay` and `Pane` from `@vcarl/sashay/react`. React is an optional peer dependency and needs version 19 or later. The [Reference](../reference/#vcarlsashayreact) has a React example.
+
+## Your first frame
+
+A frame is any element with a height. Put one `[data-sashay-pane]` element inside it per pane, in order. sashay creates the edges, grips and close buttons itself.
+
+Then describe the panes, left to right. `focus` is the fraction of the frame a pane opens to; `title` labels its edge, its compact tab and its close button. `defaultLayout` places the dividers: `[1, 1]` pushes both to the right edge, so only Overview is open.
+
+Your app opens panes with `reveal(id)` and closes them with `close(id)`. Click a bar and Period slides in over Overview without squishing it. `keepInView` keeps the bar you picked inside the slice that's still showing, however far you squeeze it. Click a transaction for its details; the leaf × closes them again.
+
+<DemoApp name="finance" region="frame" options={{ drawer: false }} />
+
+## Layout in the URL
+
+`onChange` hands you a code: one hex digit per visible divider, plus the spine offset and the drawer bits. It fires on release, click, keypress or a pane-list change, never during a drag. Pass a saved code back as `layout`; invalid input falls back to `defaultLayout`.
+
+Drag an edge below and watch `?layout=` in the address bar. Reload, and the layout comes back. (The `url` flag is the demo's: the other frames on this page leave your address bar alone.)
+
+<DemoApp name="finance" region="url" options={{ drawer: false, url: true }} />
+
+`sash.layout` reads the current code at any time. `setLayout(code)` applies a code without firing `onChange`; `fit(fractions)` sorts and clamps the fractions, moves to the nearest snaps and fires it. The code stores geometry only. Which panes exist is app state, such as the route, so store it separately.
+
+## Drawers
+
+Give a pane's edge a `drawer` and that edge opens a panel `width` wide. `width` is a `Length`: a CSS length string or a number of pixels. The drawer's content goes in a `[data-sashay-drawer]` element with the pane's id. sashay adds a toggle beside the edge, with `aria-expanded`; `toggleDrawer(id)` opens it from code.
+
+Here the Overview edge holds an **Interval** drawer. Open it and pick a range.
+
+<DemoApp name="finance" region="drawer" />
+
+## Compact mode
+
+Below `compactBelow` (a `Length`, `"40rem"` by default) a frame switches to compact mode. The first edge becomes a tab strip, every other edge a 12px grip whatever its `width`, and drawers open as overlay sheets, one at a time. The tab strip lists up to six panes; past six, the oldest fold into the spine, so every pane stays a tap away. The frame gets `data-compact`, so your CSS can follow.
+
+The width is the frame's, not the window's, so a narrow sidebar frame goes compact on a wide screen too. This frame passes `compactBelow: "100vw"`, so it is always compact.
+
+<DemoApp name="finance" region="compact" options={{ compactBelow: "100vw" }} />
+
+## Styling
+
+The stylesheet sits in `@layer sashay`, so any unlayered rule of yours beats it. Theme the frame with `--sashay-*` custom properties for colour, radius, font size and shadow; every one has a fallback. Panes are your own elements, so style them however you like.
+
+State shows up as attributes: `data-covered`, `data-closed` and `data-offscreen` on panes, `data-dragging` and `data-compact` on the frame. The [styling hooks](../reference/#styling-hooks) table lists them all.
+
+<DemoApp name="finance" region="styling" />
+
+## Navigation stacks
+
+A stack is just an array. Picking an item adds a pane on the right; going back removes it. There are no push or pop helpers: add or remove the pane elements, then call `update({ panes })`. sashay diffs by `id`: a new pane slides in and opens to its `focus`; a removed pane closes, gives its width to its neighbour, then leaves.
+
+When the open panes no longer fit, the oldest fold into one spine at the left with a count. Clicking it, or pressing ← on it, reveals the newest hidden pane. Closed panes never fold, so a fixed workspace that fits never shows a spine.
+
+This house opens room by room, down to the contents of a drawer.
+
+<DemoApp name="house" region="stack" />
