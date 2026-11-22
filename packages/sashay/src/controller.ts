@@ -206,6 +206,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   sheetClose.setAttribute("data-sashay-sheet-close", "");
   sheetClose.textContent = "×";
   sheetHead.append(sheetTitle, sheetClose);
+  // Compact: the one drawer shown, as a sheet: the rightmost open one. Others keep their bits.
+  let sheet: string | undefined;
 
   const offscreen = (el: HTMLElement | undefined) => {
     if (!el) return;
@@ -249,6 +251,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       drawers.delete(id);
       drawerEls.get(id)?.removeAttribute("data-open");
     }
+    sheet = c ? w.findLast((p) => p.edge?.drawer && drawers.get(p.id) && drawerEls.has(p.id))?.id : undefined;
     const idx = effIdx();
     const widths = toWidths(idx.map(snapV));
     w.forEach((p, k) => {
@@ -287,15 +290,15 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       t?.setAttribute("aria-expanded", String(open));
       t?.setAttribute("aria-label", `${open ? "Close" : "Open"} ${dr?.title}`);
       const de = drawerEls.get(p.id);
-      de?.toggleAttribute("data-open", open);
-      de?.toggleAttribute("data-sheet", open && c);
-      if (de && open && c) {
+      de?.toggleAttribute("data-open", c ? p.id === sheet : open);
+      de?.toggleAttribute("data-sheet", p.id === sheet);
+      if (p.id === sheet) {
         sheetTitle.textContent = dr?.title ?? "";
         sheetClose.setAttribute("aria-label", `Close ${dr?.title}`);
-        if (sheetHead.parentElement !== de) de.prepend(sheetHead);
       }
     });
-    if (!w.some((p) => c && drawers.get(p.id) && drawerEls.has(p.id))) sheetHead.remove();
+    if (!sheet) sheetHead.remove();
+    else if (!sheetHead.isConnected) frame.append(sheetHead);
     // Compact: a tab per window pane, and a drawer tab per drawer, in the first edge.
     const e0 = c && w.length ? edges.get(w[0].id) : undefined;
     if (!e0) tabs.remove();
@@ -326,7 +329,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
           .querySelector(`[data-sashay-tab="${CSS.escape(p.id)}"]`)
           ?.setAttribute("aria-pressed", String(isOpen(widths[k])));
         const t = tabs.querySelector(`[data-sashay-drawer-tab="${CSS.escape(p.id)}"]`);
-        const open = Boolean(drawers.get(p.id));
+        const open = p.id === sheet;
         t?.setAttribute("aria-expanded", String(open));
         t?.setAttribute("aria-label", `${open ? "Close" : "Open"} ${p.edge?.drawer?.title}`);
       });
@@ -386,13 +389,15 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       es.width = `${eb.w}px`;
       es.zIndex = String(2 * k + 1);
       const d = drawerEls.get(p.id);
-      if (d && drawers.get(p.id)) {
+      if (d && (c ? p.id === sheet : drawers.get(p.id))) {
         const ds = touch(d);
         if (c) {
           const tw = px(TABS);
           ds.transform = `translateX(${sw + tw}px)`;
           ds.width = `${Math.min(px(p.edge?.drawer?.width ?? 0), W - sw - tw - px(EDGE))}px`;
           ds.zIndex = "";
+          sheetHead.style.transform = ds.transform;
+          sheetHead.style.width = ds.width;
         } else {
           ds.transform = es.transform;
           ds.width = es.width;
@@ -451,8 +456,14 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     const p = panes.find((q) => q.id === id);
     if (!p?.edge?.drawer || !edges.has(id)) return;
     const on = open ?? !drawers.get(id);
-    // Compact: one sheet at a time.
-    commit(view, (on && compact() ? new Map<string, boolean>() : new Map(drawers)).set(id, on));
+    const next = new Map(drawers).set(id, on);
+    // Compact: close the visible sheet, and any open drawer right of this one, which would outrank it.
+    if (on && compact()) {
+      const w = win();
+      for (const q of [...w.slice(w.findIndex((q) => q.id === id) + 1), { id: sheet }])
+        if (q.id && q.id !== id) next.delete(q.id);
+    }
+    commit(view, next);
   };
   const winIndex = (id: string | undefined) => (id === undefined ? -1 : win().findIndex((p) => p.id === id));
 
@@ -469,7 +480,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     } else if (t.closest("[data-sashay-toggle]")) setDrawer(at("data-sashay-edge") ?? "");
     else if (tab != null) revealAt(indexOf(tab), true);
     else if (drawerTab != null) setDrawer(drawerTab);
-    else if (t.closest("[data-sashay-sheet-close]")) setDrawer(at("data-sashay-drawer") ?? "", false);
+    else if (t.closest("[data-sashay-sheet-close]")) setDrawer(sheet ?? "", false);
   };
 
   // Click → toggle its pane; drag → move divider k-1 (window edge 0 drives none).

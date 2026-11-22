@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { mountFrame, pane, pointer, tx } from "../test/dom.ts";
+import { frames, mountFrame, pane, pointer, tx } from "../test/dom.ts";
 import { createSashay, type PaneOptions, type SashayHandle, type SashayOptions } from "./index.ts";
 
 const P3: PaneOptions[] = [
@@ -212,15 +212,52 @@ test("compact", () => {
   expect(db.hasAttribute("data-sheet")).toBe(true);
   expect(tx(db)).toBeCloseTo(44, 1);
   expect(db.style.width).toBe("224px");
-  expect(db.querySelector("[data-sashay-sheet-head]")?.textContent).toContain("Filters");
+  const head = $("[data-sashay-sheet-head]");
+  expect(head.textContent).toContain("Filters");
+  expect(head.closest("[data-sashay-drawer]")).toBeNull();
+  expect(tx(head)).toBeCloseTo(44, 1);
+  expect(head.style.width).toBe("224px");
   expect($('[data-sashay-drawer-tab="b"]').getAttribute("aria-expanded")).toBe("true");
   $('[data-sashay-drawer-tab="a"]').click();
   expect($('[data-sashay-drawer="a"]').hasAttribute("data-open")).toBe(true);
   expect(db.hasAttribute("data-open")).toBe(false);
-  expect(db.querySelector("[data-sashay-sheet-head]")).toBeNull();
+  expect(frame.querySelectorAll("[data-sashay-sheet-head]").length).toBe(1);
+  expect($("[data-sashay-sheet-head]").textContent).toContain("Data");
   expect(E("b").style.width).toBe("12px");
-  ($('[data-sashay-drawer="a"] [data-sashay-sheet-close]') as HTMLElement).click();
+  $("[data-sashay-sheet-close]").click();
   expect($('[data-sashay-drawer="a"]').hasAttribute("data-open")).toBe(false);
+  expect($("[data-sashay-sheet-head]")).toBeNull();
+});
+
+test("entering compact shows only the rightmost open drawer, and keeps the others' bits", async () => {
+  const da = drawer("a");
+  const db = drawer("b");
+  mount({ panes: withDrawers("10rem"), layout: "48.3" });
+  expect(da.hasAttribute("data-open") && db.hasAttribute("data-open")).toBe(true);
+  frame.style.width = "600px";
+  await frames();
+  expect(frame.hasAttribute("data-compact")).toBe(true);
+  expect(db.hasAttribute("data-sheet")).toBe(true);
+  expect(da.hasAttribute("data-open")).toBe(false);
+  expect(frame.querySelectorAll("[data-sheet]").length).toBe(1);
+  expect($('[data-sashay-drawer-tab="a"]').getAttribute("aria-expanded")).toBe("false");
+  expect(onChange).not.toHaveBeenCalled();
+  frame.style.width = "960px";
+  await frames();
+  expect(da.hasAttribute("data-open") && db.hasAttribute("data-open")).toBe(true);
+  expect(frame.querySelector("[data-sheet], [data-sashay-sheet-head]")).toBeNull();
+});
+
+test("opening a sheet in compact closes the visible one", () => {
+  frame.style.width = "600px";
+  const da = drawer("a");
+  const db = drawer("b");
+  mount({ panes: withDrawers("10rem"), layout: "48.2" });
+  expect(db.hasAttribute("data-sheet")).toBe(true);
+  h?.toggleDrawer("a", true);
+  expect(da.hasAttribute("data-sheet")).toBe(true);
+  expect(db.hasAttribute("data-open")).toBe(false);
+  expect(onChange).toHaveBeenLastCalledWith("48.1");
 });
 
 test("update mid-drag settles first", async () => {
