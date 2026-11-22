@@ -53,13 +53,15 @@ system beyond CSS custom properties, and backwards compatibility with `raw/`.
 ```
 packages/sashay/   the library
   src/engine.ts    pure layout math (from raw/panes.ts), no DOM
-  src/controller.ts  vanilla DOM controller: createSashay(el, opts) → { update, reveal, close, fit, setLayout, destroy }
-  src/react.tsx    thin wrapper, exported as `@vcarl/sashay/react`
+  src/controller.ts  vanilla DOM controller, the escape hatch: createSashay(el, opts) → { update, reveal, close, fit, setLayout, destroy }
+  src/react.tsx    the primary API, <Sashay>/<Pane>: a thin wrapper, exported as `@vcarl/sashay/react`
   src/sashay.css   plain CSS in @layer sashay, --sashay-* custom properties with fallbacks
 apps/site/         Astro Starlight: custom landing page with live demo, plus docs
 scripts/bugbot     local maintainer session (below)
 ```
 
+- **React first.** Docs, demos and the site lead with `<Sashay>`/`<Pane>`. `createSashay` is
+  presented as the escape hatch, for other frameworks or your own wrapper.
 - **One package, subpath exports** (`@vcarl/sashay`, `@vcarl/sashay/react`,
   `@vcarl/sashay/style.css`) rather than separate core and react packages. One version,
   one changelog, and React stays tree-shaken away for vanilla users. Split it only if a
