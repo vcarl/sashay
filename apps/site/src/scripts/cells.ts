@@ -21,9 +21,7 @@ export function mountCells(root: HTMLElement): () => void {
   // 03: a pane whose edge opens a drawer.
   const drawer = createSashay($("#cell-drawer"), {
     compactBelow,
-    panes: [
-      { id: "list", title: "List", focus: 1, edge: { width: "22px", drawer: { width: "46%", title: "Filters" } } },
-    ],
+    panes: [{ id: "list", title: "List", focus: 1, edge: { drawer: { width: "50%", title: "Filters" } } }],
   });
   drawer.toggleDrawer("list", true);
   off.push(drawer.destroy);

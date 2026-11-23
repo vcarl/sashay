@@ -519,11 +519,18 @@ pre .s {
 .mf [data-sashay-close] {
   display: none;
 }
+/* The drawer's title sits on its edge; light it to match the edge's state. */
+.mf [data-sashay-controls] {
+  color: var(--ink);
+}
+.mf [data-sashay-controls][data-open] {
+  color: var(--butter);
+}
 .md {
   min-width: 0;
   background: var(--ink);
   color: var(--paper);
-  font: 600 12px var(--mono);
+  font: 600 13px var(--sans);
 }
 .md label {
   display: flex;
