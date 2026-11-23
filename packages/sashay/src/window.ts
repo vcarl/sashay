@@ -104,13 +104,45 @@ export function reveal(
   return normalize(squeezed || cap ? fold(next, cap) : next, n);
 }
 
-/** Close pane p, giving its width to the nearest open pane. */
-export function close(v: View, p: number, n: number, sizes: SizesFor, order: number): View {
+const openAt = (v: View, order: number) =>
+  toWidths(eff(v.div, order)).flatMap((x, k) => (isOpen(x) ? [v.offset + k] : []));
+
+/**
+ * Expand collapsed panes until `target` are open: a closed window pane, the newest in the
+ * spine, or the pane after the window, nearest `at` first (left at ties, so the most
+ * recently folded wins). A pane that can't open without closing another is skipped.
+ */
+export function refill(v: View, target: number, at: number, n: number, sizes: SizesFor, order: number, cap?: number) {
+  for (let have = openAt(v, order).length; have < target; ) {
+    const shut = toWidths(eff(v.div, order)).flatMap((x, k) => (isOpen(x) ? [] : [v.offset + k]));
+    const near = [v.offset - 1, windowEnd(v), ...shut]
+      .filter((p) => p >= 0 && p < n && p !== at)
+      .sort((a, b) => Math.abs(a - at) - Math.abs(b - at) || a - b);
+    const next = near
+      .map((p) => reveal(v, p, n, sizes, order, undefined, cap))
+      .find((r) => openAt(r, order).length > have);
+    if (!next) break;
+    v = next;
+    have = openAt(v, order).length;
+  }
+  return v;
+}
+
+/** After `next` replaces `prev` (same list), keep the open count: see refill. */
+export function keepOpen(prev: View, next: View, n: number, sizes: SizesFor, order: number, cap?: number): View {
+  const now = new Set(openAt(next, order));
+  const shut = openAt(prev, order).filter((p) => !now.has(p));
+  return shut.length ? refill(next, openAt(prev, order).length, shut[0], n, sizes, order, cap) : next;
+}
+
+/** Close pane p, giving its width to the nearest open pane, then keep the open count (refill). */
+export function close(v: View, p: number, n: number, sizes: SizesFor, order: number, cap?: number): View {
   const k = p - v.offset;
   if (k < 0 || k > v.div.length) return v;
   const e = eff(v.div, order);
   if (!isOpen(toWidths(e)[k])) return v;
-  return normalize({ offset: v.offset, div: closePane(e, k, sizes(v.offset, windowEnd(v)), order) }, n);
+  const shut = normalize({ offset: v.offset, div: closePane(e, k, sizes(v.offset, windowEnd(v)), order) }, n);
+  return keepOpen(v, shut, n, sizes, order, cap);
 }
 
 /** A closed pane is inserted at index `at`; later indices shift. */
@@ -165,8 +197,11 @@ export function diff<P extends { id: string; opensTo?: number[] }>(
   for (let i = prev.length - 1; i >= 0; i--) {
     if (nextIds.has(prev[i].id)) continue;
     const old = list;
-    list = list.toSpliced(i, 1);
-    view = remove(view, i, list.length, (a, b) => sizes(old, a, b), order);
+    const cur = list.toSpliced(i, 1);
+    list = cur;
+    const had = openAt(view, order).length;
+    view = remove(view, i, cur.length, (a, b) => sizes(old, a, b), order);
+    view = refill(view, had, i - 0.5, cur.length, (a, b) => sizes(cur, a, b), order, cap);
   }
   for (let i = 0; i < next.length; i++) {
     if (prevIds.has(next[i].id)) continue;

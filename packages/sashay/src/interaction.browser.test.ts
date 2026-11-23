@@ -161,7 +161,7 @@ test("click toggles; cancel without movement does nothing", () => {
   expect(onClose.mock.calls).toEqual([["c"]]);
   pointer(C, "pointerdown", 700);
   pointer(C, "pointerup", 700);
-  expect(onChange).toHaveBeenLastCalledWith("38"); // reopening takes from a (outermost) first
+  expect(onChange).toHaveBeenLastCalledWith("48"); // below capacity: a is at its focus, so b gives
 });
 
 test("keyboard", () => {

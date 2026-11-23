@@ -92,23 +92,20 @@ const byDistance = (p: number, P: number) => {
 // Take `need` from donor panes (listed nearest-the-grower first), outermost
 // first, so a pane growing next to a neighbour takes from the far side first.
 // Drags and focusPane share it.
+//   Pass 0 (focusPane below capacity): trim to `keep`, outermost first.
 //   Pass 1: trim to the minimum, outermost first.
 //   Pass 2: below the minimum, outermost first, down to zero. Smooth: no
 //           jump. A pane left under its minimum closes on release.
-function take(w0: number[], S: Sizes, donors: number[], need0: number) {
+function take(w0: number[], S: Sizes, donors: number[], need0: number, keep?: number[]) {
   const w = w0.slice();
   let need = need0;
   const outer = [...donors].reverse();
-  for (const k of outer) {
-    const t = Math.min(need, Math.max(0, w[k] - S.min[k]));
-    w[k] -= t;
-    need -= t;
-  }
-  for (const k of outer) {
-    const t = Math.min(need, w[k]);
-    w[k] -= t;
-    need -= t;
-  }
+  for (const lo of keep ? [keep, S.min, null] : [S.min, null])
+    for (const k of outer) {
+      const t = Math.min(need, Math.max(0, w[k] - (lo?.[k] ?? 0)));
+      w[k] -= t;
+      need -= t;
+    }
   return { w, short: need };
 }
 
@@ -183,12 +180,16 @@ export const fit = (vals: number[], S: Sizes, order: number): number[] =>
 // outward so it gets at least the focus size; at grid order 1 that means
 // the whole frame. Returns snap indices.
 // Target is the focus size, raised to the minimum, capped at the maximum.
+// Capacity: when every open pane and p fit at their size rounded up to the grid
+// (`up`), no pane closes: donors give only down to that size first.
 export function focusPane(dividers: number[], p: number, S: Sizes, order: number): number[] {
   const w = toWidths(dividers);
   let d = dividers.slice();
   const need = Math.min(S.max[p], Math.max(S.focus[p], S.min[p])) - w[p];
+  const up = w.map((_, k) => SNAPS[snapToward(Math.max(S.focus[k], S.min[k]), 1, order)].v);
+  const room = w.reduce((s, x, k) => s + (k === p || isOpen(x) ? up[k] : 0), 0) <= 1 + 1e-9;
   if (need > 1e-9) {
-    const r = take(w, S, byDistance(p, w.length), need);
+    const r = take(w, S, byDistance(p, w.length), need, room ? up : undefined);
     r.w[p] += need - r.short;
     d = toDividers(r.w);
   }

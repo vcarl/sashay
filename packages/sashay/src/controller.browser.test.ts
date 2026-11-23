@@ -74,7 +74,7 @@ test("reveal, close and fit fire onChange; setLayout doesn't", () => {
   h.close("c");
   expect(onChange).toHaveBeenLastCalledWith("4c");
   h.reveal("c");
-  expect(onChange).toHaveBeenLastCalledWith("38"); // reopening takes from a (outermost) first
+  expect(onChange).toHaveBeenLastCalledWith("48"); // below capacity: a is at its focus, so b gives
   h.fit([0.5, 0.75]);
   expect(onChange).toHaveBeenLastCalledWith("69");
   expect(() => h?.fit([0.5])).toThrow(RangeError);
@@ -146,7 +146,7 @@ test("pop", () => {
   const onChange = grow(6);
   P("p5").remove();
   h?.update({ panes: stack(5) });
-  expect(onChange).toHaveBeenLastCalledWith("3-4");
+  expect(onChange).toHaveBeenLastCalledWith("2-48"); // the newest spine pane unfolds: still three open
 });
 
 test("remove everything, then add", () => {
@@ -220,7 +220,9 @@ test("the leaf × is hidden when closing it is impossible", () => {
   h = createSashay(frame, { panes: P3, layout: "48" });
   expect($("[data-sashay-close]").hidden).toBe(false);
   h.close("b");
-  h.close("c");
+  h.close("c"); // reopens b: the open count stays two
+  expect($("[data-sashay-close]").hidden).toBe(false);
+  h.setLayout("cc");
   expect($("[data-sashay-close]").hidden).toBe(true);
   h.destroy();
   frame.style.width = "400px";

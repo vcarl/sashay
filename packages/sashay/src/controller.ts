@@ -28,6 +28,7 @@ import {
   defaultView,
   diff,
   encodeLayout,
+  keepOpen,
   normalize,
   reveal as revealIn,
   type View,
@@ -505,7 +506,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const cap = () => (compact() ? COMPACT_CAP : undefined);
   const revealAt = (p: number) => commit(revealIn(view, p, panes.length, sizesFor, order(), panes[p]?.opensTo, cap()));
   const closeAt = (p: number, user = false) =>
-    commit(closeIn(view, p, panes.length, sizesFor, order()), undefined, user ? panes[p]?.id : undefined);
+    commit(closeIn(view, p, panes.length, sizesFor, order(), cap()), undefined, user ? panes[p]?.id : undefined);
   // An edge is its pane's open/close toggle.
   const toggle = (k: number) =>
     isOpen(toWidths(effective())[k]) ? closeAt(view.offset + k, true) : revealAt(view.offset + k);
@@ -602,7 +603,11 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         return;
       }
       const v = ev?.type === "pointerup" ? velocity(samples, ev.timeStamp) : 0;
-      commit({ offset: view.offset, div: settle(start, d, raw, v, o, S) }, undefined, true);
+      commit(
+        keepOpen(view, { offset: view.offset, div: settle(start, d, raw, v, o, S) }, panes.length, sizesFor, o, cap()),
+        undefined,
+        true,
+      );
     }
     src.addEventListener("pointermove", move);
     src.addEventListener("pointerup", end);
@@ -633,11 +638,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     e.preventDefault();
     const o = order();
     const cur = effIdx();
-    commit(
-      { offset: view.offset, div: settle(cur.map(snapV), d, snapV(step(cur[d], dir, o)), 0, o, sizes()) },
-      undefined,
-      true,
-    );
+    const div = settle(cur.map(snapV), d, snapV(step(cur[d], dir, o)), 0, o, sizes());
+    commit(keepOpen(view, { offset: view.offset, div }, panes.length, sizesFor, o, cap()), undefined, true);
   };
   const onResize = () => {
     dirty = true;

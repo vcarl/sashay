@@ -106,6 +106,12 @@ stack (drill-down: picking an item adds a pane on the right; going back removes 
   - A removed pane closes, giving its width to its neighbour the way `close` does, then
     leaves the DOM.
   - There are no `push`/`pop` helpers: a stack is just an array the app edits.
+- **Open count.** Opening and closing keep the number of open panes steady. Closing a pane
+  (any way, including removal) expands the nearest collapsed one (closed, in the spine or
+  just past the window), the most recently folded first. Opening one below capacity adds
+  it; at capacity, the outermost open pane collapses.
+  - **Capacity:** the frame is at capacity when the open panes plus the one opening can't
+    all fit at their `focus`, each rounded up to the snap grid in play.
 - **Spine.** When the open panes no longer fit, the oldest panes fold into a single spine at the
   left that shows a count. Clicking it, or pressing ← on it, reveals the newest hidden pane.
   Closed panes keep their own edges and never
