@@ -106,8 +106,9 @@ export function reveal(
   const k = p - offset;
   const e = eff(div, order);
   const before = toWidths(e);
-  if (isOpen(before[k])) return v;
   const S = sizes(offset, offset + div.length + 1);
+  // Open and drawn at its full size: nothing to do. Open but narrower (covered): uncover it.
+  if (isOpen(before[k]) && before[k] >= Math.min(S.max[k], Math.max(S.focus[k], S.min[k])) - 1e-9) return v;
   const opened = opensTo?.length === div.length ? fitIdx(opensTo, S, order) : null;
   const d = opened && isOpen(widths(opened)[k]) ? opened : focusPane(e, k, S, order);
   const after = widths(d);

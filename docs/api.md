@@ -35,7 +35,7 @@ The React `ref`, and the return value of `createSashay`.
 | Method | Description |
 |---|---|
 | `layout` (getter) | The current layout code. |
-| `reveal(id)` | Opens the pane, or uncovers it, including bringing it back from the spine. Uses `opensTo` if set. |
+| `reveal(id)` | Opens the pane, or uncovers it (open but partly covered), including bringing it back from the spine. Uses `opensTo` if set. |
 | `close(id)` | Closes the pane. |
 | `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |
 | `keepInView(id, x \| null)` | Whenever the pane's visible slice is too narrow for point `x` (a `Length` from the pane's left; `"40%"` is 40% of the pane's width), whether covered, squeezed or narrower than its content, shifts the pane's children left just enough to show it, never past the content's right edge. The content must be wrapped in an element to shift; bare text nodes don't. |
@@ -142,7 +142,7 @@ Enforced by browser-mode benchmarks in CI.
 
 | Hook | Where | Meaning |
 |---|---|---|
-| `data-covered` | pane | Partly covered by the next pane, and marked `inert`. |
+| `data-covered` | pane | Partly covered by the next pane. Its visible slice stays interactive. |
 | `data-closed` | pane | Closed. |
 | `data-offscreen` | pane | In the spine or otherwise not visible. |
 | `data-spine="start"`, `"end"` | spine element | The panes folded before (left) or after (right) the window. |
@@ -161,7 +161,8 @@ Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
   Drawer toggles and compact tabs sit beside the edge, not inside it, so they are announced.
 - On a focused edge, ← and → move between snaps, and Enter or Space opens or closes the pane.
 - Drawer toggles carry `aria-expanded`.
-- Covered and off-screen panes are `inert`.
+- Closed and off-screen panes are `inert`. A partly covered pane is not: its visible slice
+  takes input, and keyboard focus landing under the next pane uncovers it, so focus is never hidden.
 - Each spine is a `<nav>` labelled "Earlier panes" or "Later panes". Its tabs are buttons named
   "<title>, collapsed", with one tab stop: ↑/↓, Home and End move between tabs. When a focused
   tab's pane is revealed, focus moves to the spine's tab nearest the window, or to the window's

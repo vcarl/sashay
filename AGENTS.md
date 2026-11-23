@@ -29,7 +29,7 @@ docs live in this repo.
   framework re-render. Reports go out only on release, click or keypress.
 - **Zero runtime dependencies** in the core. React is an optional peer dependency (`>=19`).
 - **Accessible by default:** separators with arrow keys and `aria-valuenow`/`valuetext`,
-  `inert` on covered panes, and `aria-expanded` on drawer toggles.
+  `inert` on closed and off-screen panes, and `aria-expanded` on drawer toggles.
 - **Fixed workspaces and navigation stacks**, through one API (panes diffed by `id`), with
   deep stacks folding into a spine. The performance budget in `docs/api.md` is a
   requirement.

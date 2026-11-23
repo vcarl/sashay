@@ -557,8 +557,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const covered = !closed && b.width - b.visible > 0.5;
       el.toggleAttribute("data-closed", closed);
       el.toggleAttribute("data-covered", covered);
-      if ((closed || covered) && !el.inert && el.contains(active)) edges.get(p.id)?.focus({ preventScroll: true });
-      el.inert = closed || covered;
+      if (closed && !el.inert && el.contains(active)) edges.get(p.id)?.focus({ preventScroll: true });
+      el.inert = closed; // a covered pane's visible slice stays live; the next pane (z 2k+2) takes clicks over the rest
       if (!closed) {
         right = x + b.visible;
         last = p.title;
@@ -828,6 +828,15 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     const div = settle(cur.map(snapV), d, snapV(step(cur[d], dir, o)), 0, o, sizes());
     commit(keepOpen(view, { offset: view.offset, div }, panes.length, sizesFor, o, cap()), undefined, true);
   };
+  // Keyboard focus landing under the next pane reveals the covered pane, so the focus ring is never hidden.
+  const onFocusIn = (e: FocusEvent) => {
+    const t = e.target as HTMLElement;
+    const w = win();
+    const k = w.findIndex((p) => els.get(p.id)?.contains(t));
+    const next = k < 0 ? null : els.get(w[k + 1]?.id as string);
+    if (next && t.matches(":focus-visible") && t.getBoundingClientRect().right > next.getBoundingClientRect().left)
+      revealAt(view.offset + k);
+  };
   const onResize = () => {
     dirty = true;
     if (!live) refresh();
@@ -836,6 +845,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   frame.addEventListener("click", onClick);
   frame.addEventListener("pointerdown", onPointerDown);
   frame.addEventListener("keydown", onKeyDown);
+  frame.addEventListener("focusin", onFocusIn);
   document.fonts?.addEventListener("loadingdone", onResize);
 
   // Mount.
@@ -919,6 +929,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       frame.removeEventListener("click", onClick);
       frame.removeEventListener("pointerdown", onPointerDown);
       frame.removeEventListener("keydown", onKeyDown);
+      frame.removeEventListener("focusin", onFocusIn);
       document.fonts?.removeEventListener("loadingdone", onResize);
       for (const e of [...edges.values(), ...ctls.values()]) e.remove();
       edges.clear();

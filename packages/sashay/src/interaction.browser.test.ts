@@ -233,6 +233,43 @@ test("a click 10px into a pane neither toggles nor steals a button's click", () 
   });
 });
 
+const coveredA = () => {
+  mount({ panes: [{ ...P3[0], focus: 0.4 }, P3[1], P3[2]] });
+  const a = $('[data-sashay-pane="a"]');
+  const b = $('[data-sashay-pane="b"]');
+  expect(a.hasAttribute("data-covered")).toBe(true);
+  const btn = (side: string) => {
+    const el = document.createElement("button");
+    el.style.cssText = `position:absolute;${side}:${side === "left" ? 30 : 6}px;top:100px;width:30px;height:20px`;
+    a.append(el);
+    return el;
+  };
+  return { a, b, shown: btn("left"), under: btn("right") };
+};
+
+test("a covered pane's visible slice takes clicks; the neighbour takes them over the covered part", async () => {
+  const { b, shown, under } = coveredA();
+  expect(under.getBoundingClientRect().left).toBeGreaterThan(b.getBoundingClientRect().left); // really under b
+  const hit = vi.fn();
+  shown.addEventListener("click", hit);
+  await userEvent.click(shown);
+  expect(hit).toHaveBeenCalledTimes(1);
+  const r = under.getBoundingClientRect();
+  const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  expect(at === under || under.contains(at)).toBe(false);
+  expect(b.contains(at)).toBe(true);
+});
+
+test("keyboard focus landing under the neighbour reveals the covered pane", async () => {
+  const { a, shown, under } = coveredA();
+  await userEvent.click(shown); // pointer focus in the visible slice: no reveal
+  expect(a.hasAttribute("data-covered")).toBe(true);
+  await userEvent.keyboard("{Tab}");
+  expect(document.activeElement).toBe(under);
+  expect(a.hasAttribute("data-covered")).toBe(false);
+  expect(onChange).toHaveBeenCalled();
+});
+
 // Past either end the layout follows the pointer at a quarter of its speed, then settles back.
 test("dragging past an end moves at ¼ friction", () => {
   mount();

@@ -53,10 +53,10 @@ test("invalid layout falls back to the default", async () => {
   expect(onChange).not.toHaveBeenCalled();
 });
 
-test("slide-over marks covered panes inert", () => {
+test("slide-over marks covered panes, which stay interactive", () => {
   h = createSashay(frame, { panes: [{ ...P3[0], focus: 0.4 }, P3[1], P3[2]], layout: "48" });
   expect(P("a").hasAttribute("data-covered")).toBe(true);
-  expect(P("a").inert).toBe(true);
+  expect(P("a").inert).toBe(false);
 });
 
 test("layout reads the current code", () => {
@@ -382,7 +382,7 @@ test("focus survives reveals: the next spine tab, then the first window edge", (
   expect(document.activeElement).toBe(frame.querySelector("[data-sashay-edge]"));
 });
 
-test("focus inside a pane that closes or becomes covered moves to its edge", () => {
+test("focus inside a pane that closes moves to its edge; becoming covered keeps it", () => {
   const ba = document.createElement("button");
   const bc = document.createElement("button");
   P("a").append(ba);
@@ -391,10 +391,11 @@ test("focus inside a pane that closes or becomes covered moves to its edge", () 
   bc.focus();
   h.close("c");
   expect(document.activeElement).toBe(E("c"));
+  expect(P("c").inert).toBe(true); // fully hidden panes stay inert
   ba.focus();
   h.fit([0.25, 0.5]);
   expect(P("a").hasAttribute("data-covered")).toBe(true);
-  expect(document.activeElement).toBe(E("a"));
+  expect(document.activeElement).toBe(ba);
 });
 
 test("drawer toggles and compact tabs are not inside a role element", () => {
