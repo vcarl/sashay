@@ -10,9 +10,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       <div class="frame" id="hero">
         <div class="pane p-hello" data-sashay-pane="hello"><div class="in">
           <div>
-            <div class="eyebrow">@vcarl/sashay — sliding panes for the web</div>
-            <h1>Panes that <em>sashay.</em></h1>
-            <p>A webOS-style layout. Drag an edge and it snaps to a fraction. Throw it and it flings. Panes slide over each other instead of squishing, and the whole arrangement fits in a URL.</p>
+            <h1>Panes that sashay.</h1>
+            <p>Drag an edge and it snaps to a fraction. Throw it and it flings. Panes slide over each other instead of squishing, and the whole arrangement fits in a URL.</p>
             <div class="cta"><a class="btn fill" href={`${base}guide/`}>Read the docs</a><a class="btn" href="#install">npm i @vcarl/sashay</a></div>
           </div>
           <div class="hint"><svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 9h24M7 3 1 9l6 6M19 3l6 6-6 6"/></svg> <span class="wide">This headline is a pane. Grab the red edge to its right.</span><span class="narrow">This headline is a pane. On a phone the edges become tabs: tap one.</span></div>
@@ -21,12 +20,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         <div class="pane p-why" data-sashay-pane="why"><div class="in">
           <div>
             <h2>Why panes?</h2>
-            <ol>
-              <li><div><b>Fractions, not pixels.</b> Dividers rest at ½, ⅓, ¼ … so layouts survive a window resize.</div></li>
-              <li><div><b>Nothing ever squishes.</b> A squeezed pane keeps its width; the next one slides over it.</div></li>
-              <li><div><b>Stacks go deep.</b> Drill a thousand levels; old panes fold into a spine.</div></li>
-              <li><div><b>Zero dependencies.</b> React components, with a zero-dependency core underneath.</div></li>
-            </ol>
+            <p>Power users want to arrange their screen the way they work. Panes give them that without making the interface complicated: each pane is an ordinary view, and the only new control is the edge between them.</p>
+            <p>That makes them a good middle ground between a fully customisable UI, where any panel can go anywhere, and a simple responsive layout that decides everything for you.</p>
           </div>
         </div></div>
 
@@ -57,14 +52,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 
     <section class="poster" aria-label="Features">
       <div class="cell c-3">
-        <span class="num">01 / Snap</span>
         <h2>Snaps to simple fractions.</h2>
         <p>Dividers rest on fractions with a denominator up to six, so a layout saved on a laptop still makes sense on a monitor. The grid gets finer as the frame gets wider.</p>
         <a class="more" href={`${base}guide/#your-first-frame`}>Guide: Your first frame →</a>
         <div class="art ruler" aria-hidden="true"><i class="big" data-f="0" style="left:0"></i><i data-f="1/4" style="left:25%"></i><i data-f="1/3" style="left:33.33%"></i><i class="big" data-f="1/2" style="left:50%"></i><i data-f="2/3" style="left:66.67%"></i><i data-f="3/4" style="left:75%"></i><i class="big" data-f="1" style="left:100%"></i></div>
       </div>
       <div class="cell c-3 cobalt">
-        <span class="num">02 / Fling</span>
         <h2>Throw it.</h2>
         <p>A quick throw carries the divider one or two snaps past where you let go. Release speed is read from the last 90&nbsp;ms, so a slow drag still lands exactly where you put it.</p>
         <a class="more" href={`${base}guide/#your-first-frame`}>Guide: Your first frame →</a>
@@ -74,7 +67,6 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         </div>
       </div>
       <div class="cell c-2">
-        <span class="num">03 / Drawers</span>
         <h2>Drawers in the frame.</h2>
         <p>Any edge can open a drawer: filters, settings, a table of contents. On a phone it becomes a sheet.</p>
         <a class="more" href={`${base}guide/#drawers`}>Guide: Drawers →</a>
@@ -84,7 +76,6 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         </div>
       </div>
       <div class="cell c-2 mint">
-        <span class="num">04 / Spine</span>
         <h2>Deep stacks fold into a spine.</h2>
         <p>Drill down as far as you like. Panes that no longer fit fold into one slim spine with a count. Drag cost stays flat at a thousand deep.</p>
         <a class="more" href={`${base}guide/#navigation-stacks`}>Guide: Navigation stacks →</a>
@@ -97,7 +88,6 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         </div>
       </div>
       <div class="cell c-2 butter">
-        <span class="num">05 / Persist</span>
         <h2>The layout is a word.</h2>
         <p>One hex digit per divider plus the drawer bits. Short enough for a query string, stable across list changes.</p>
         <a class="more" href={`${base}guide/#layout-in-the-url`}>Guide: Layout in the URL →</a>
@@ -127,34 +117,9 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 
     <section class="specs" aria-label="At a glance">
       <div><b>0</b><span>runtime dependencies</span></div>
-      <div><b>&lt;2<em>ms</em></b><span>drag frame at 1,000 panes</span></div>
+      <div><b>&lt;2ms</b><span>drag frame at 1,000 panes</span></div>
       <div><b>← →</b><span>keyboard on every edge, aria-valuenow</span></div>
       <div><b>1.0</b><span>React ≥19, or the vanilla core · MIT</span></div>
-    </section>
-
-    <section id="docs" aria-label="Docs preview">
-      <div class="docs-head">
-        <h2>The docs wear the same <span class="wonk">frame</span>.</h2>
-        <p>Short pages, runnable examples, one sidebar painted like a sash stile. Starlight underneath; none of the Starlight look on top.</p>
-      </div>
-      <div class="docs" aria-hidden="true" inert>
-        <aside class="side">
-          <div class="brand">sashay</div>
-          <a>Guide</a><a>Demos</a><a aria-current="page">Reference</a>
-        </aside>
-        <div class="main">
-          <div class="bc">Reference</div>
-          <h1><code>&lt;Sashay&gt;</code></h1>
-          <p>The frame. Each <code>&lt;Pane&gt;</code> inside registers itself, and sashay creates every control: edges, the leaf × button, grips and the spine. Its <code>ref</code> is the handle.</p>
-          <table><thead><tr><th>Prop</th><th>Type</th><th>What it does</th></tr></thead><tbody>
-            <tr><td><code>layout</code></td><td><code>string</code></td><td>A saved code. Bad input falls back to <code>defaultLayout</code>.</td></tr>
-            <tr><td><code>defaultLayout</code></td><td><code>number[]</code></td><td>Divider positions as fractions.</td></tr>
-            <tr><td><code>onLayoutChange</code></td><td><code>(code) ⇒ void</code></td><td>Fires on release, click or keypress. Never during a drag.</td></tr>
-          </tbody></table>
-<pre>&lt;Sashay ref={"{"}sash{"}"} layout={"{"}params.get(<span class="s">"layout"</span>){"}"}&gt;…&lt;/Sashay&gt;
-sash.current.reveal(<span class="s">"detail"</span>);</pre>
-        </div>
-      </div>
     </section>
   </main>
 </Landing>
