@@ -1,0 +1,14 @@
+[build]
+  command = "pnpm site:build"
+  publish = "apps/site/dist"
+
+[build.environment]
+  NODE_VERSION = "24"
+  # vcarl.com proxies /sashay/* to this site's root, so pages and assets link under /sashay/.
+  SITE_BASE = "/sashay/"
+
+# Serve those /sashay/ links on this site's own URL too, so it works when visited directly.
+[[redirects]]
+  from = "/sashay/*"
+  to = "/:splat"
+  status = 200

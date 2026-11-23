@@ -29,4 +29,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
-      # DEPLOY: intentionally absent. Site deploy to a vcarl.com subdirectory is undecided (AGENTS.md); add it here once Carl says how.

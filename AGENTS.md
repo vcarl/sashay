@@ -80,8 +80,9 @@ GitHub Actions:
 - **Release:** Changesets. Merging to `main` opens or updates a "Version packages" PR. When
   Carl merges that PR, CI publishes to npm using trusted publishing (OIDC, with provenance
   and no stored token).
-- **Site:** built in CI. It will be served from a subdirectory of vcarl.com (Astro `base`),
-  but that's **not wired yet**. Don't add deploy steps until Carl says how.
+- **Site:** hosted on Netlify (no custom domain), configured by `netlify.toml`. vcarl.com proxies
+  `/sashay/*` to the Netlify site's root, so the site builds with `SITE_BASE=/sashay/` and
+  publishes at its root. Netlify deploys from `main`; CI has no deploy step.
 - There's no remote yet, so the workflows can't run. Verify each of their steps by running it
   locally.
 
