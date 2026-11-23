@@ -12,14 +12,15 @@ await page.goto(url, { waitUntil: "networkidle" });
 
 for (const id of ["fling", "drawer", "spine", "code"]) await page.locator(`#cell-${id}[data-sashay-ready]`).waitFor();
 
-const spine = page.locator("#cell-spine [data-spine]");
+const spine = page.locator('#cell-spine [data-spine="start"]');
+const tabs = spine.locator("[data-sashay-spine-tab]");
 for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Add pane" }).click();
 await spine.waitFor();
-const before = Number(await spine.textContent());
-assert.ok(before > 0, "spine shows a count");
-await spine.click();
+const before = await tabs.count();
+assert.ok(before > 0, "spine shows a tab per folded pane");
+await tabs.last().click();
 await page.waitForTimeout(300);
-assert.ok(Number((await spine.isVisible()) ? await spine.textContent() : 0) < before, "spine click reveals one");
+assert.ok(await tabs.count() < before, "a spine tab reveals its pane");
 await page.getByRole("button", { name: "Back", exact: true }).click();
 
 const toggle = page.locator("#cell-drawer [data-sashay-toggle]");
