@@ -165,6 +165,20 @@ test("click toggles; cancel without movement does nothing", () => {
   expect(onChange).toHaveBeenLastCalledWith("48"); // below capacity: a is at its focus, so b gives
 });
 
+// The threshold is euclidean: a vertical swipe on an edge is neither a click nor a drag.
+test("vertical swipe neither toggles nor drags", () => {
+  mount();
+  const C = E("c");
+  const x0 = tx(C);
+  pointer(C, "pointerdown", 700, { clientY: 100 });
+  pointer(C, "pointermove", 702, { clientY: 140 });
+  pointer(C, "pointermove", 712, { clientY: 180 }); // axis latched vertical: later x moves don't drag
+  expect(frame.hasAttribute("data-dragging")).toBe(false);
+  expect(tx(C)).toBe(x0);
+  pointer(C, "pointerup", 712, { clientY: 180 });
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 test("keyboard", () => {
   mount();
   E("b").focus();

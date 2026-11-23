@@ -711,16 +711,22 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     const S = sizes();
     const o = order();
     const samples: Sample[] = [{ t: e.timeStamp, x: x0 }];
-    let moved = false;
+    // Latched once the pointer is 4px away: true drags (horizontal); false is a swipe that
+    // neither drags nor toggles; undefined is still a click.
+    let moved: boolean | undefined;
     let raw = start[d];
     const move = (ev: PointerEvent) => {
       const x = ev.clientX / scale;
       samples.push({ t: ev.timeStamp, x });
       if (samples.length > 32) samples.shift();
       const dx = x - x0;
-      if (d < 0 || (!moved && Math.abs(dx * scale) < 4)) return; // below 4 pointer px it's a click
-      if (!moved) frame.setAttribute("data-dragging", "");
-      moved = true;
+      if (moved === undefined) {
+        const [mx, my] = [ev.clientX - e.clientX, ev.clientY - e.clientY]; // pointer px
+        if (mx * mx + my * my < 16) return;
+        moved = d >= 0 && Math.abs(mx) >= Math.abs(my);
+        if (moved) frame.setAttribute("data-dragging", "");
+      }
+      if (!moved) return;
       raw = start[d] + dx / C;
       live = drag(start, d, raw, S);
       const v = velocity(samples, ev.timeStamp);
@@ -746,7 +752,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     function end(ev: PointerEvent | null) {
       stop();
       if (!moved) {
-        if (ev?.type === "pointerup" && !dr) toggle(k);
+        if (moved === undefined && ev?.type === "pointerup" && !dr) toggle(k);
         return;
       }
       const v = ev?.type === "pointerup" ? velocity(samples, ev.timeStamp) : 0;
