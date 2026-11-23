@@ -11,7 +11,7 @@ Node 24 and pnpm: `pnpm i`. Scripts (run from the root): `pnpm typecheck`, `pnpm
 - Add tests.
 - Every user-visible change needs a changeset: `pnpm changeset`, pick patch/minor/major,
   write one user-facing line.
-- The public API is specified in [docs/api.md](docs/api.md). Changing it needs maintainer
+- The public API is specified in [docs/api.md](https://github.com/vcarl/sashay/blob/main/docs/api.md). Changing it needs maintainer
   sign-off; open an issue first.
 - Bugs need a reproduction link.
 

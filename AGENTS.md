@@ -18,11 +18,8 @@ or publish. Carl reviews twice: the site's look, and the finished 1.0 before rel
 
 ## Status
 
-Pre-extraction. `raw/` holds the working code copied unedited from the app it was built in
-(testbench). It is **reference material only**: mine it for behaviour, don't preserve its
-API. `HANDOFF.md` explains the engine model, the tuned constants and the coupling to remove.
-Read it before touching layout math. Once that knowledge lives in the code, tests and docs,
-both `raw/` and `HANDOFF.md` get deleted.
+The extraction from the original app is complete. The engine, controller, React wrapper, tests and
+docs live in this repo.
 
 ## Goals
 
@@ -46,13 +43,13 @@ stock gradient hero, no default Starlight look, no emoji bullets). Commit to a d
 direction. Carl will refine it.
 
 **Non-goals:** React Native, other framework wrappers (until someone asks), a theming
-system beyond CSS custom properties, and backwards compatibility with `raw/`.
+system beyond CSS custom properties, and compatibility with the app it was extracted from.
 
 ## Shape
 
 ```
 packages/sashay/   the library
-  src/engine.ts    pure layout math (from raw/panes.ts), no DOM
+  src/engine.ts    pure layout math, no DOM
   src/controller.ts  vanilla DOM controller, the escape hatch: createSashay(el, opts) → { update, reveal, close, fit, setLayout, destroy }
   src/react.tsx    the primary API, <Sashay>/<Pane>: a thin wrapper, exported as `@vcarl/sashay/react`
   src/sashay.css   plain CSS in @layer sashay, --sashay-* custom properties with fallbacks
@@ -70,8 +67,7 @@ scripts/bugbot     local maintainer session (below)
   `exports` map and `sideEffects: ["*.css"]`. Biome lints and formats. Vitest runs the
   engine tests; Vitest browser mode (Playwright) covers drag, fling and keyboard.
   size-limit sets the bundle budget.
-- The engine tests from `raw/panes.test.ts` are the behaviour spec. Port them first,
-  unchanged, and keep them passing.
+- The engine tests are the behaviour spec. Keep them passing.
 - The tuned constants (`UNIT_PX` 220, `FLING`, `VELOCITY_WINDOW_MS` 90, `FOCUS_MARGIN` 28,
   click threshold 4px, compact below 640px, grip 12px) are defaults. They may become
   options, but don't change their values.

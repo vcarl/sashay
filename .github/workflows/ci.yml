@@ -24,7 +24,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm test:browser
+      - run: pnpm bench
       - run: pnpm build
       - run: pnpm size
       - run: pnpm site:build
-      # bench is not run in CI: shared runners are too noisy for timing.

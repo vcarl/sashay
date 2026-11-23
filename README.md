@@ -23,6 +23,6 @@ import "@vcarl/sashay/style.css";
 Not using React? `createSashay(frame, options)` from `@vcarl/sashay` is the same layout as a
 vanilla DOM controller, for other frameworks or your own wrapper.
 
-[Docs](docs/api.md) <!-- site URL: add when deploy path decided -->
+[Docs](https://vcarl.com/sashay/) · [GitHub](https://github.com/vcarl/sashay) · [npm](https://www.npmjs.com/package/@vcarl/sashay)
 
 MIT

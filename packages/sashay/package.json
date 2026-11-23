@@ -4,6 +4,13 @@
   "license": "MIT",
   "author": "Carl Vitullo",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vcarl/sashay.git",
+    "directory": "packages/sashay"
+  },
+  "homepage": "https://vcarl.com/sashay/",
+  "bugs": "https://github.com/vcarl/sashay/issues",
   "files": [
     "dist"
   ],

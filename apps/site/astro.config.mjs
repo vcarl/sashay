@@ -22,6 +22,7 @@ const base = process.env.SITE_BASE ?? "/";
 const to = (path) => `${base.replace(/\/?$/, "/")}${path}`;
 
 export default defineConfig({
+  site: "https://vcarl.com",
   base,
   // The pages folded into the Guide and the Reference, sent to their sections.
   redirects: {
