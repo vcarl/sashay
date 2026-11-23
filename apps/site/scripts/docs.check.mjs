@@ -29,24 +29,45 @@ for (const width of [1440, 390]) {
 
 let page = await open("guide/");
 const steps = page.locator(".demo-app");
-for (let i = 0; i < 6; i++) await steps.nth(i).locator("[data-sashay-ready]").waitFor();
+for (let i = 0; i < 7; i++) await steps.nth(i).locator("[data-sashay-ready]").waitFor();
 const urls = await page.$$eval(".demo-app .mb-url", (els) => els.map((e) => e.value));
 const pane = (i, id) => steps.nth(i).locator(`[data-sashay-pane="${id}"]`);
-assert.equal(await steps.count(), 6, "five finance steps and the house");
+// The visible slices: each pane runs from its edge's right side to the next edge's left side.
+const slices = (i) =>
+  steps
+    .nth(i)
+    .locator("[data-sashay-frame]")
+    .evaluate((f) => {
+      const es = [...f.querySelectorAll("[data-sashay-edge]")].map((e) => e.getBoundingClientRect());
+      return es.map((e, k) => [e.right, es[k + 1]?.left ?? f.getBoundingClientRect().right]);
+    });
+assert.equal(await steps.count(), 7, "six plants steps and the house");
 assert.equal(await steps.nth(0).locator("[data-sashay-drawer]").count(), 0, "first frame has no drawer");
-assert.equal(await pane(0, "period").getAttribute("data-closed"), null, "first frame opens on Period");
-assert.match(urls[1], /^portfolio\.example\/\?layout=6a&period=[\w-]+&txn=TX-/, "URL step shows its layout code");
-assert.equal(await steps.nth(2).locator("[data-sashay-drawer]").count(), 1, "drawers step has one");
-assert.equal(await steps.nth(2).locator("[data-sashay-toggle]").getAttribute("aria-expanded"), "true", "drawer opens");
-assert.notEqual(await steps.nth(3).locator(".finance").getAttribute("data-compact"), null, "compact step is compact");
-assert.equal(await pane(4, "details").getAttribute("data-closed"), null, "styling step shows all three panes");
-assert.match(urls[5], /^house\.example\/[\w-]+\/[\w-]+\/[\w-]+\/[\w-]+$/, "house opens four levels down");
-assert.equal(await page.locator(".mb-chrome[aria-hidden='true']").count(), 6, "chrome is decorative");
+assert.equal(await pane(0, "nearby").getAttribute("data-closed"), null, "first frame opens on Nearby");
+// Keep a point in view: it opens squeezed, and the picked dot shows in the chart's slice.
+assert.notEqual(await pane(1, "chart").getAttribute("data-covered"), null, "keepInView step opens squeezed");
+const [[a, b]] = await slices(1);
+const dot = await steps.nth(1).locator('[data-dot="lemon-tree"] circle:last-child').boundingBox();
+assert.ok(dot.x >= a && dot.x + dot.width <= b, `the picked dot is in view (${a}–${b}, ${dot.x})`);
+assert.match(urls[2], /^plants\.example\/\?layout=69&plant=pothos$/, "URL step shows its layout code");
+assert.equal(await pane(2, "plant").getAttribute("data-closed"), null, "URL step opens the card");
+assert.equal(await steps.nth(3).locator("[data-sashay-drawer]").count(), 1, "drawers step has one");
+assert.equal(await steps.nth(3).locator("[data-sashay-toggle]").getAttribute("aria-expanded"), "true", "drawer opens");
+assert.notEqual(await steps.nth(4).locator(".plants").getAttribute("data-compact"), null, "compact step is compact");
+const thirds = (await slices(5)).map(([l, r]) => r - l);
+assert.ok(Math.max(...thirds) - Math.min(...thirds) <= 2, `styling step opens at 1:1:1 (${thirds})`);
+assert.match(urls[6], /^house\.example\/[\w-]+\/[\w-]+\/[\w-]+\/[\w-]+$/, "house opens four levels down");
+assert.equal(await page.locator(".mb-chrome[aria-hidden='true']").count(), 7, "chrome is decorative");
 assert.equal(await page.locator(".expressive-code .frame.is-terminal").count(), 0, "no terminal frames");
 
 // Under the 80% zoom, a dragged edge stays under the pointer, and a release snaps near it.
 const first = steps.nth(0);
 await first.scrollIntoViewIfNeeded();
+// A click under zoom lands on the dot under the pointer.
+await first.locator('[data-dot="pothos"]').click();
+await page.waitForTimeout(400);
+assert.match(await first.locator(".mb-url").textContent(), /plant=pothos/);
+assert.notEqual(await first.locator('[data-dot="pothos"]').getAttribute("data-picked"), null, "click picks the dot");
 const sep = first.locator('[role="separator"]').first();
 const mid = async () => {
   const b = await sep.boundingBox();
@@ -72,21 +93,16 @@ await page.mouse.up();
 await page.waitForTimeout(400);
 assert.ok((await mid()).x < x - 60, "a fling carries the edge on");
 assert.notEqual(await first.locator(".mb-url").textContent(), before, "the URL bar follows a fling");
-// A click under zoom lands on the bar under the pointer.
-await first.locator('[data-bar="3"]').click();
-await page.waitForTimeout(400);
-assert.match(await first.locator(".mb-url").textContent(), /period=/);
-assert.notEqual(await first.locator('[data-bar="3"]').getAttribute("data-picked"), null, "click picks the bar");
 
 // Layout in the URL: a keypress rewrites the mini URL bar, never the page's.
-const url = steps.nth(1);
+const url = steps.nth(2);
 await url.scrollIntoViewIfNeeded();
 await url.locator('[role="separator"]').first().press("ArrowLeft");
-assert.doesNotMatch(await url.locator(".mb-url").textContent(), /layout=6a&/, "the mini URL bar follows a keypress");
+assert.doesNotMatch(await url.locator(".mb-url").textContent(), /layout=69&/, "the mini URL bar follows a keypress");
 assert.equal(new URL(page.url()).search, "", "the page's own URL stays put");
 
 // The excerpts are the React demo's own source, and "Without React" runs the core on its own.
-assert.ok((await page.locator(".expressive-code", { hasText: "finance/index.tsx" }).count()) >= 3, "TSX excerpts");
+assert.ok((await page.locator(".expressive-code", { hasText: "plants/index.tsx" }).count()) >= 3, "TSX excerpts");
 const vanilla = page.locator("#vanilla-mail");
 await vanilla.scrollIntoViewIfNeeded();
 await page.locator("#vanilla-mail[data-sashay-ready]").waitFor();

@@ -10,39 +10,91 @@ const open = async (width) => {
   page.on("pageerror", (e) => errors.push(`${width}: ${e.message}`));
   page.on("console", (m) => (m.type() === "error" || /hydrat/i.test(m.text())) && errors.push(`${width}: ${m.text()}`));
   await page.goto(new URL("demos/", base).href, { waitUntil: "networkidle" });
-  await page.locator(".finance[data-sashay-ready]").waitFor();
+  await page.locator(".plants[data-sashay-ready]").waitFor();
   await page.locator(".house[data-sashay-ready]").waitFor();
   return page;
 };
 const settle = (page) => page.waitForTimeout(400);
+// The visible slices: each pane runs from its edge's right side to the next edge's left side.
+const slices = (frame) =>
+  frame.evaluate((f) => {
+    const es = [...f.querySelectorAll("[data-sashay-edge]")].map((e) => e.getBoundingClientRect());
+    return es.map((e, i) => [e.right, es[i + 1]?.left ?? f.getBoundingClientRect().right]);
+  });
+const thirds = async (frame) => {
+  const w = (await slices(frame)).map(([a, b]) => b - a);
+  return Math.max(...w) - Math.min(...w) <= 2 || console.error("widths", w);
+};
+// Drag edge k (1 or 2) so its divider lands at fraction f of the content.
+const dragTo = async (page, frame, k, f) => {
+  const es = await frame.locator("[data-sashay-edge]").evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
+  const total = (await slices(frame)).reduce((s, [a, b]) => s + b - a, 0);
+  const to = es[0].right + f * total + (k === 2 ? es[1].width : 0) + es[k].width / 2;
+  const from = es[k].left + es[k].width / 2;
+  const y = es[k].top + es[k].height / 2;
+  await page.mouse.move(from, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) await page.mouse.move(from + ((to - from) * i) / 10, y);
+  await page.waitForTimeout(150); // past the velocity window: a drop, not a throw
+  await page.mouse.up();
+  await settle(page);
+};
+const inSlice = async (frame, id) => {
+  const [[a, b]] = await slices(frame);
+  const d = await frame.locator(`[data-dot="${id}"] circle:last-child`).boundingBox();
+  return (d.x >= a && d.x + d.width <= b) || console.error("slice", a, b, "dot", d.x, d.width);
+};
 
 for (const width of [1440, 390]) {
   const page = await open(width);
 
-  // Finance: pick an interval, click a bar, click a transaction, close it.
-  const fi = page.locator(".finance");
-  await fi.locator(width < 640 ? "[data-sashay-drawer-tab]" : "[data-sashay-toggle]").click();
-  await fi.locator('[data-interval="1Y"]').click();
-  assert.equal(await fi.locator('[data-interval="1Y"]').getAttribute("aria-pressed"), "true");
-  assert.equal(await fi.locator("[data-bar]").count(), 12, "1Y shows 12 bars");
-  if (width < 640) await fi.locator("[data-sashay-sheet-close]").click();
+  // Plants: pick a window, pick a dot, pick from the list, open the card.
+  const pl = page.locator(".plants");
+  await pl.locator(width < 640 ? "[data-sashay-drawer-tab]" : "[data-sashay-toggle]").click();
+  await pl.locator('[data-facing="North"]').click();
+  assert.equal(await pl.locator('[data-facing="North"]').getAttribute("aria-pressed"), "true");
+  assert.ok((await pl.locator("[data-dot][data-hollow]").count()) > 20, "a north window leaves most plants hollow");
+  if (width < 640) await pl.locator("[data-sashay-sheet-close]").click();
+  else await pl.locator("[data-sashay-toggle]").click();
   await settle(page);
-  await fi.locator('[data-bar="9"]').click();
+  await pl.locator('[data-dot="monstera"]').press("Enter"); // dots take the keyboard
   await settle(page);
-  assert.equal(await fi.locator('[data-sashay-pane="period"]').getAttribute("data-closed"), null, "period opens");
-  await fi.locator('[data-sashay-pane="period"] [data-txn]').first().click();
+  const nearby = pl.locator('[data-sashay-pane="nearby"]');
+  assert.equal(await nearby.getAttribute("data-closed"), null, "nearby opens");
+  assert.equal(await nearby.locator("[data-row]").first().getAttribute("data-row"), "monstera", "picked plant first");
+  await nearby.locator('[data-row="lemon-tree"]').click();
   await settle(page);
-  const details = fi.locator('[data-sashay-pane="details"]');
-  assert.equal(await details.getAttribute("data-closed"), null, "details opens");
-  assert.match(await details.textContent(), /Reference/);
-  const finUrl = page.locator(".mb:has(.finance) .mb-url");
-  assert.match(await finUrl.textContent(), /txn=TX-/, "URL bar shows the transaction");
-  // Compact shows one pane at a time, and the library keeps the last open pane: its × is a no-op there.
+  assert.notEqual(await pl.locator('[data-dot="lemon-tree"]').getAttribute("data-picked"), null, "row picks the dot");
+  const plUrl = page.locator(".mb:has(.plants) .mb-url");
+  assert.match(
+    await plUrl.textContent(),
+    /^plants\.example\/\?layout=[\w.]+&plant=lemon-tree$/,
+    "URL bar shows the plant",
+  );
+  await nearby.locator('[data-row="lemon-tree"]').click();
+  await settle(page);
+  const card = pl.locator('[data-sashay-pane="plant"]');
+  assert.equal(await card.getAttribute("data-closed"), null, "a second click opens the card");
+  assert.match(await card.textContent(), /Lemon tree.*all the sun/);
+  assert.equal(await card.locator("svg").count(), 1);
   if (width >= 640) {
-    await fi.locator("[data-sashay-close]").click();
+    // The card opens at equal thirds.
+    assert.ok(await thirds(pl), "card opens at 1:1:1");
+    // Squeeze the chart: the picked dot stays inside the visible slice.
+    const sep = pl.locator('[role="separator"]').first();
+    await sep.press("ArrowLeft");
     await settle(page);
-    assert.notEqual(await details.getAttribute("data-closed"), null, "leaf × closes details");
-    assert.doesNotMatch(await finUrl.textContent(), /txn=/, "closing details drops the transaction");
+    assert.notEqual(await pl.locator('[data-sashay-pane="chart"]').getAttribute("data-covered"), null, "chart covered");
+    assert.ok(await inSlice(pl, "lemon-tree"), "squeezed, the dot stays in view");
+    await pl.locator("[data-sashay-close]").click();
+    await settle(page);
+    assert.notEqual(await card.getAttribute("data-closed"), null, "leaf × closes the card");
+    // Drag back to 1:1:1. A growing pane takes from the far side first, so widen the chart to
+    // 2/3, then drag the card's edge to 2/3: the chart pays for it.
+    await dragTo(page, pl, 1, 2 / 3);
+    await dragTo(page, pl, 2, 2 / 3);
+    assert.ok(await thirds(pl), "dragged to 1:1:1");
+    assert.ok(await inSlice(pl, "lemon-tree"), "at 1:1:1, the dot is in view");
   }
 
   // House: drill 6 levels (it opens with the first room), see the spine (narrow), go back, open an item.

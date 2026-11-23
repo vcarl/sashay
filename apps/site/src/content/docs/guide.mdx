@@ -1,6 +1,6 @@
 ---
 title: Guide.
-description: Build a small portfolio app with sashay and React, one feature at a time.
+description: Build a small houseplant app with sashay and React, one feature at a time.
 tableOfContents:
   minHeadingLevel: 2
   maxHeadingLevel: 2
@@ -11,7 +11,7 @@ import DemoApp from "../../components/DemoApp.astro";
 import Vanilla from "../../examples/Vanilla.astro";
 import vanillaSource from "../../examples/vanilla.ts?raw";
 
-This page builds one small React app: a portfolio with three panes, Overview, Period and Details. Each section adds one feature, shows the lines that changed, and runs the app as it stands. The full source is on the [Demos](../demos/) page.
+This page builds one small React app: a chart of houseplants with three panes, Chart, Nearby and Plant. Each section adds one feature, shows the lines that changed, and runs the app as it stands. The full source is on the [Demos](../demos/) page.
 
 ## Install
 
@@ -32,11 +32,21 @@ import "@vcarl/sashay/style.css";
 
 A frame is a `<Sashay>` with a height. Put one `<Pane>` inside it per pane, in order. sashay creates the edges, grips and close buttons itself.
 
-Each pane says how it opens. `focus` is the fraction of the frame a pane opens to; `title` labels its edge, its compact tab and its close button. `defaultLayout` places the dividers: `[1, 1]` pushes both to the right edge, so only Overview is open.
+Each pane says how it opens. `focus` is the fraction of the frame a pane opens to; `title` labels its edge, its compact tab and its close button. `defaultLayout` places the dividers: `[1, 1]` pushes both to the right edge, so only Chart is open.
 
-Your app opens panes with `reveal(id)` and closes them with `close(id)`, on the handle that `ref` gives you. Click a bar and Period slides in over Overview without squishing it. `keepInView` keeps the bar you picked inside the slice that's still showing, however far you squeeze it. Click a transaction for its details; the leaf × closes them again, and calls that pane's `onClose`.
+Your app opens panes with `reveal(id)` and closes them with `close(id)`, on the handle that `ref` gives you. Click a plant and Nearby slides in, listing the plants closest to it. Click the plant again in the list and its card opens in the third pane, at equal thirds because Plant sets `opensTo`. The leaf × closes the rightmost open pane; closing Nearby calls its `onClose`, which clears the pick.
 
-<DemoApp name="finance" region="frame" options={{ drawer: false, initial: { period: 24 } }} />
+<DemoApp name="plants" region="frame" options={{ drawer: false, initial: { plant: "monstera" } }} />
+
+## Keep a point in view
+
+A pane that another pane slides over isn't squished. It keeps its `focus` width and the next pane covers part of it. Give the pane `keepInView` and sashay slides its content left, as little as it can, so that point stays inside the slice that's still showing. Pass `null` to let go.
+
+`keepInView` is a `Length` measured from the pane's left edge: a number is pixels, and `"40%"` is 40% of the pane's width. The chart here is a fixed 720 pixels wide, so the app passes the picked plant's x in pixels. The chart's `focus` of 3/4 keeps it drawn at least that wide while it's covered.
+
+This frame opens squeezed, with the Lemon tree picked far over on the right. Drag Nearby's edge back and forth, or pick other plants in the list, and the dot stays in view. A covered pane is inert, so while the chart is squeezed you pick from the list.
+
+<DemoApp name="plants" region="keep" options={{ drawer: false, initial: { plant: "lemon-tree", layout: "4c" } }} />
 
 ## Layout in the URL
 
@@ -44,7 +54,7 @@ Your app opens panes with `reveal(id)` and closes them with `close(id)`, on the 
 
 In your app, `onUrl` would be `history.replaceState`, as below; this little browser keeps its own address bar instead, so the frames on this page leave yours alone. Drag an edge and watch `?layout=` change. Pass the saved code back as `layout` and the panes come back where you left them.
 
-<DemoApp name="finance" region="url" options={{ drawer: false, initial: { layout: "6a", period: 24, txn: 1 } }} />
+<DemoApp name="plants" region="url" options={{ drawer: false, initial: { layout: "69", plant: "pothos", card: true } }} />
 
 `ref.current.layout` reads the current code at any time. `setLayout(code)` applies a code without firing `onLayoutChange`; `fit(fractions)` sorts and clamps the fractions, moves to the nearest snaps and fires it. The code stores geometry only. Which panes exist is app state, such as the route, so store it separately.
 
@@ -52,9 +62,9 @@ In your app, `onUrl` would be `history.replaceState`, as below; this little brow
 
 Give a pane's edge a `drawer` and that edge opens a panel `width` wide. `width` is a `Length`: a CSS length string or a number of pixels. The drawer's `content` is any React node. sashay adds a toggle beside the edge, with `aria-expanded`; `toggleDrawer(id)` opens it from code.
 
-Here the Overview edge holds an **Interval** drawer. Open it and pick a range.
+Here the Chart edge holds a **Window** drawer. Pick the way your window faces, and the plants it can't give enough sun turn hollow.
 
-<DemoApp name="finance" region="drawer" options={{ initial: { drawerOpen: true } }} />
+<DemoApp name="plants" region="drawer" options={{ initial: { drawerOpen: true } }} />
 
 ## Compact mode
 
@@ -62,7 +72,7 @@ Below `compactBelow` (a `Length`, `"40rem"` by default) a frame switches to comp
 
 The width is the frame's, not the window's, so a narrow sidebar frame goes compact on a wide screen too. This frame passes `compactBelow="100vw"`, so it is always compact.
 
-<DemoApp name="finance" region="compact" options={{ compactBelow: "100vw", initial: { period: 24 } }} />
+<DemoApp name="plants" region="compact" options={{ compactBelow: "100vw", initial: { plant: "monstera" } }} />
 
 ## Styling
 
@@ -70,7 +80,9 @@ The stylesheet sits in `@layer sashay`, so any unlayered rule of yours beats it.
 
 State shows up as attributes: `data-covered`, `data-closed` and `data-offscreen` on panes, `data-dragging` and `data-compact` on the frame. The [styling hooks](../reference/#styling-hooks) table lists them all.
 
-<DemoApp name="finance" region="styling" options={{ initial: { period: 24, txn: 0 } }} />
+This one opens at equal thirds. The chart is covered, so it holds the picked plant in view too.
+
+<DemoApp name="plants" region="styling" options={{ initial: { layout: "48.0", plant: "spider-plant", card: true } }} />
 
 ## Navigation stacks
 

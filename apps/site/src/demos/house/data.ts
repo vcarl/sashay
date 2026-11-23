@@ -1,6 +1,11 @@
 // A seeded house: each directory's contents come from a PRNG keyed by its id,
 // so the tree is the same on every load and only built as far as it's opened.
-import { rng } from "../finance/data";
+const rng = (seed: number) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
 
 export type Item = { name: string; desc: string; colour: string; shape: Shape };
 export type Node = { id: string; name: string; depth: number; item?: Item };

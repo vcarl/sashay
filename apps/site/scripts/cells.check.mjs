@@ -42,7 +42,7 @@ assert.deepEqual(hrefs, [
   "#layout-in-the-url",
 ]);
 assert.match(await page.getByRole("link", { name: "Read the docs" }).getAttribute("href"), /\/guide\/$/);
-for (const name of ["finance", "house"]) {
+for (const name of ["plants", "house"]) {
   const app = page.locator(`.seeit .mb:has(.${name})`);
   await app.locator(`.${name}[data-sashay-ready]`).waitFor();
   assert.match(await app.locator(".mb-url").textContent(), /^\w+\.example\//);

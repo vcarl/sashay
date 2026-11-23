@@ -597,7 +597,7 @@ pre .s {
 }
 .seeit {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 3fr 2fr; /* the plants frame needs 660px of content for thirds */
   gap: 24px clamp(20px, 2.6vw, 36px);
   padding: clamp(20px, 2.6vw, 36px);
   border: var(--rule) solid var(--ink);

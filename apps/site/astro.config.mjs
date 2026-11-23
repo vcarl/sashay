@@ -41,6 +41,9 @@ export default defineConfig({
     starlight({
       title: "sashay",
       tableOfContents: false,
+      // sashay's layer must rank above Starlight's reset (`* { margin: 0 }`), and the first
+      // @layer statement fixes the order, so declare it before any stylesheet loads.
+      head: [{ tag: "style", content: "@layer starlight, sashay;" }],
       customCss: ["./src/styles/fonts.css", "./src/styles/tokens.css", "./src/styles/starlight.css"],
       components: {
         PageTitle: "./src/components/PageTitle.astro",

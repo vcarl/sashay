@@ -1,5 +1,5 @@
 ---
-import { FinanceDemo, HouseDemo } from "../demos/browser";
+import { HouseDemo, PlantsDemo } from "../demos/browser";
 import Landing from "../layouts/Landing.astro";
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
@@ -105,8 +105,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
     <section class="seeit" aria-labelledby="seeit-h">
       <h2 id="seeit-h">See it work.</h2>
       <figure>
-        <div class="demo-app"><FinanceDemo client:load compactBelow="30rem" /></div>
-        <figcaption><b>A portfolio in three panes.</b> Pick a bar, then a transaction. Squeeze the chart and your bar stays put.</figcaption>
+        <div class="demo-app"><PlantsDemo client:load compactBelow="30rem" /></div>
+        <figcaption><b>Houseplants in three panes.</b> Pick a plant, then open its card. Squeeze the chart and your plant stays in view.</figcaption>
       </figure>
       <figure>
         <div class="demo-app"><HouseDemo client:load /></div>

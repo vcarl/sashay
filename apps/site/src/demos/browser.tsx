@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from "react";
-import { Finance, type FinanceProps } from "./finance";
 import { House, type HouseProps } from "./house";
+import { Plants, type PlantsProps } from "./plants";
 import "./browser.css";
 
 // A pretend browser around a demo app: window chrome, an address bar the app writes to through
@@ -27,8 +27,8 @@ function Browser({ host, children }: { host: string; children: (onUrl: (url: str
 }
 
 // The islands the site mounts: each app in its browser.
-export const FinanceDemo = (props: Omit<FinanceProps, "onUrl">) => (
-  <Browser host="portfolio.example">{(onUrl) => <Finance {...props} onUrl={onUrl} />}</Browser>
+export const PlantsDemo = (props: Omit<PlantsProps, "onUrl">) => (
+  <Browser host="plants.example">{(onUrl) => <Plants {...props} onUrl={onUrl} />}</Browser>
 );
 export const HouseDemo = (props: Omit<HouseProps, "onUrl">) => (
   <Browser host="house.example">{(onUrl) => <House {...props} onUrl={onUrl} />}</Browser>

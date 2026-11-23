@@ -4,7 +4,7 @@
 // `#region <region>` (the Guide's excerpts); without, the whole index.tsx in a collapsible panel.
 import { Code } from "@astrojs/starlight/components";
 import "@vcarl/sashay/style.css";
-import { FinanceDemo, HouseDemo } from "../demos/browser";
+import { HouseDemo, PlantsDemo } from "../demos/browser";
 
 const sources = import.meta.glob<string>("../demos/*/*.{tsx,css}", { query: "?raw", import: "default", eager: true });
 const { name, region, options } = Astro.props as { name: string; region?: string; options?: object };
@@ -41,7 +41,7 @@ const files = region
 ---
 {files.map((f) => <Code code={f.code} lang={f.lang} title={f.file} />)}
 <div class="demo-app not-content">
-  {name === "finance" ? <FinanceDemo client:load {...options} /> : <HouseDemo client:load {...options} />}
+  {name === "plants" ? <PlantsDemo client:load {...options} /> : <HouseDemo client:load {...options} />}
 </div>
 {!region && (
   <details class="demo-source">
