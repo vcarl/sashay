@@ -92,10 +92,10 @@ const byDistance = (p: number, P: number) => {
 // Take `need` from donor panes (listed nearest-the-grower first).
 //   Pass 1 (only when `spareFirst`): trim each down to its focus size,
 //           nearest first, so a middle pane gives up only what it doesn't
-//           need. Used when a later pane grows leftward (details takes the
-//           list's spare width before the scatter's).
-//   Pass 2: trim to the minimum, outermost first. Growing the scatter
-//           (rightward) starts here: details shrinks before the list.
+//           need. Only focusPane uses it; drags skip it.
+//   Pass 2: trim to the minimum, outermost first. A drag starts here in
+//           either direction: growing the last pane takes from the first
+//           before the middle one, as growing the first takes from the last.
 //   Pass 3: below the minimum, outermost first, down to zero. Smooth: no
 //           jump. A pane left under its minimum closes on release.
 function take(w0: number[], S: Sizes, donors: number[], need0: number, spareFirst = true) {
@@ -144,7 +144,7 @@ export function drag(dividers: number[], i: number, v: number, S: Sizes): number
   if (Math.abs(delta) < 1e-12) return dividers.slice();
   const left = delta < 0;
   const donors = left ? [...Array(i + 1).keys()].reverse() : [...Array(P - i - 1).keys()].map((k) => i + 1 + k);
-  const r = take(w, S, donors, Math.abs(delta), left);
+  const r = take(w, S, donors, Math.abs(delta), false);
   r.w[left ? i + 1 : i] += Math.abs(delta) - r.short;
   return toDividers(r.w);
 }

@@ -64,7 +64,11 @@ describe("snaps and persistence", () => {
 });
 
 describe("drag", () => {
-  it("grow details: list trims to focus first", () => near(drag([0.3, 0.6], 1, 0.4, S0), [0.2, 0.4]));
+  it("grow details: chart gives first, outermost", () => near(drag([0.3, 0.6], 1, 0.4, S0), [0.1, 0.4]));
+  it("grow details leftward: chart goes past focus to min before the list moves", () =>
+    near(drag([0.3, 0.6], 1, 0.45, SM), [0.15, 0.45]));
+  it("grow chart rightward: details goes to min before the list moves", () =>
+    near(drag([0.3, 0.6], 0, 0.45, SM), [0.45, 0.75]));
   it("…then chart goes, outermost", () => near(drag([0.3, 0.6], 1, 0.2, S0), [0, 0.2]));
   it("grow chart: details gives way before the list", () => near(drag([0.2, 0.6], 0, 0.4, S0), [0.4, 0.8]));
   it("grow chart from 1:3:2: details shrinks to its min, list untouched", () => {
@@ -92,7 +96,7 @@ describe("drag", () => {
 
 describe("settle", () => {
   it("min: snapped too small → closes on release", () => {
-    expect(settle([1 / 3, 2 / 3], 1, 0.62, 0, 6, { ...S0, min: [0, 0, 0.45] })).toEqual([4, 12]);
+    expect(settle([1 / 3, 2 / 3], 1, 0.62, 0, 6, { ...S0, min: [0, 0, 0.45] })).toEqual([3, 12]);
   });
   it("min: pane held at min doesn't round shut", () => {
     expect(widthsOf(settle([1 / 3, 2 / 3], 0, 0.66, 0, 6, APP)).filter(isOpen)).toHaveLength(2);
@@ -104,10 +108,10 @@ describe("settle", () => {
     expect(settle([1 / 3, 2 / 3], 1, 0.8, 0, 6, APP)).toEqual([4, 9]); // details keeps 200px at 3/4
   });
   it("max: snap won't round past it", () => {
-    expect(settle([1 / 3, 2 / 3], 1, 0.62, 0, 6, { ...S0, max: [1, 1, 0.4] })).toEqual([4, 7]);
+    expect(settle([1 / 3, 2 / 3], 1, 0.62, 0, 6, { ...S0, max: [1, 1, 0.4] })).toEqual([3, 7]);
   });
   it("max: a lone grower's max doesn't stop the release", () => {
-    expect(settle([1 / 3, 2 / 3], 1, 0.5, 0, 6, { ...S0, max: [1, 1, 0.45] })).toEqual([4, 6]);
+    expect(settle([1 / 3, 2 / 3], 1, 0.5, 0, 6, { ...S0, max: [1, 1, 0.45] })).toEqual([1, 6]);
   });
 
   // Slow releases of both dividers from 1:1:1, swept across the frame.
