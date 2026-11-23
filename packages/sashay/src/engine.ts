@@ -191,13 +191,24 @@ export function focusPane(dividers: number[], p: number, S: Sizes, order: number
   if (need > 1e-9) {
     const r = take(w, S, byDistance(p, w.length), need, room ? up : undefined);
     r.w[p] += need - r.short;
-    d = toDividers(r.w);
+    d = enforceMin(toDividers(r.w), S, p); // a donor taken under its minimum closes before snapping
   }
+  const open = toWidths(d).map(isOpen);
   const s = d.map(
     (x, k) => SNAPS[k === p - 1 ? snapToward(x, -1, order) : k === p ? snapToward(x, 1, order) : nearest(x, order)].v,
   );
-  for (let k = p - 2; k >= 0; k--) s[k] = Math.min(s[k], s[k + 1]);
-  for (let k = p + 1; k < s.length; k++) s[k] = Math.max(s[k], s[k - 1]);
+  // Snapping must not round a donor under its minimum: walking outward from p, each open
+  // pane's outer edge moves away from it, so the outermost pane pays (and closes) instead.
+  for (let k = p - 1; k >= 0; k--) {
+    s[k] = Math.min(s[k], s[k + 1] ?? 1);
+    if (k < p - 1 && open[k + 1] && s[k + 1] - s[k] < S.min[k + 1] - 1e-9)
+      s[k] = SNAPS[snapToward(Math.max(0, s[k + 1] - S.min[k + 1]), -1, order)].v;
+  }
+  for (let k = p; k < s.length; k++) {
+    s[k] = Math.max(s[k], s[k - 1] ?? 0);
+    if (k > p && open[k] && s[k] - s[k - 1] < S.min[k] - 1e-9)
+      s[k] = SNAPS[snapToward(Math.min(1, s[k - 1] + S.min[k]), 1, order)].v;
+  }
   return toIdx(enforceMin(s, S, p), order);
 }
 

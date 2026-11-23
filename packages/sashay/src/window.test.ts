@@ -102,6 +102,35 @@ describe("open count", () => {
   });
 });
 
+// minWidth 12rem in a ~710px frame (0.27 of the content) with focus 1/4 (capacity 3 at
+// order 3) or 1/3 (capacity 2 at order 2): pushes fold the oldest pane, never a middle one.
+describe("stack with minWidth", () => {
+  const sized: (focus: number) => SizesFor = (focus) => (a, b) => ({
+    focus: Array(b - a).fill(focus),
+    min: Array(b - a).fill(0.27),
+    max: Array(b - a).fill(1),
+  });
+  const open = (v: View) => {
+    const d = [0, ...v.div, 12];
+    return d.slice(1).flatMap((x, k) => (x > d[k] ? [v.offset + k] : []));
+  };
+  for (const [focus, order, cap] of [
+    [0.25, 3, 3],
+    [1 / 3, 2, 2],
+  ])
+    it(`capacity ${cap}: each push folds the oldest visible pane`, () => {
+      let v: View = { offset: 0, div: [] };
+      for (let n = 1; n < 8; n++) {
+        const before = open(v);
+        v = reveal(insert(v, n), n, n + 1, sized(focus), order);
+        const after = open(v);
+        if (before.length < cap) continue;
+        expect(after).toEqual([...before.slice(1), n]); // the oldest folds, no middle pane closes
+        if (before[0] > 0) expect(v.offset).toBeGreaterThan(before[0]); // into the spine (a lone first pane keeps its edge)
+      }
+    });
+});
+
 describe("workspace", () => {
   const W = S0([0.2, 0.2, 0.2, 0.25]);
   it("below capacity: append takes from the first pane first, closing none", () =>
