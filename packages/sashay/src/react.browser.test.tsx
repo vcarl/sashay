@@ -1,4 +1,5 @@
 import { act, type ReactNode, StrictMode, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -230,12 +231,33 @@ test("an effect after an event handler's setState can reveal the added pane", as
   expect(P("n2").hasAttribute("data-closed")).toBe(true);
 });
 
+function FlushAdder() {
+  const [panes, setPanes] = useState(deep);
+  const add = () => {
+    flushSync(() => setPanes([...deep, ...wide]));
+    ref.current?.reveal("n1");
+  };
+  return (
+    <>
+      <button type="button" id="add" onClick={add} />
+      <App ref={ref} layout="3-48" panes={panes} />
+    </>
+  );
+}
+
+test("an event handler can reveal a pane right after flushSync adds it", async () => {
+  await render(<FlushAdder />);
+  await act(() => (host.querySelector("#add") as HTMLElement).click());
+  expect(P("n1").hasAttribute("data-offscreen")).toBe(false);
+  expect(P("n2").hasAttribute("data-closed")).toBe(true);
+});
+
 test("<Pane> passes div props through; sashay's own attributes win", async () => {
   const onClick = vi.fn();
   const a = {
     ...P3[0],
     className: "mine",
-    style: { color: "red" },
+    style: { color: "red", width: "1px", transform: "none" },
     "data-kind": "x",
     "aria-describedby": "d",
     onClick,
@@ -246,6 +268,7 @@ test("<Pane> passes div props through; sashay's own attributes win", async () =>
   expect(el.dataset.kind).toBe("x");
   expect(el.getAttribute("aria-describedby")).toBe("d");
   expect(el.style.color).toBe("red");
+  expect(el.style.width).not.toBe("1px");
   expect(Number.isFinite(tx(el))).toBe(true);
   await act(() => el.click());
   expect(onClick).toHaveBeenCalledOnce();

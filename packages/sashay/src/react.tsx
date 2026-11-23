@@ -210,7 +210,9 @@ function SsrStyle({ s, scope, layout, defaultLayout }: { s: Store; scope: string
 export function Pane(props: PaneProps): ReactElement {
   const s = useContext(Ctx);
   if (!s) throw new Error("sashay: <Pane> must be inside <Sashay>");
-  const { id, title, focus, minWidth, maxWidth, opensTo, edge, keepInView, onClose, children, ...rest } = props;
+  const { id, title, focus, minWidth, maxWidth, opensTo, edge, keepInView, onClose, children, style, ...rest } = props;
+  // The controller writes these inline; dropping them keeps a later re-render from clobbering its geometry.
+  const { transform: _t, width: _w, zIndex: _z, clipPath: _c, ...ownStyle } = style ?? {};
   s.reg.set(id, props); // during render too, so server rendering knows the panes
   const el = useRef<HTMLElement>(null);
   const [offscreen, setOffscreen] = useState(false);
@@ -235,7 +237,7 @@ export function Pane(props: PaneProps): ReactElement {
 
   return (
     <>
-      <section {...rest} ref={el} data-sashay-pane={id} aria-label={title}>
+      <section {...rest} style={ownStyle} ref={el} data-sashay-pane={id} aria-label={title}>
         {fn ? children({ offscreen }) : children}
       </section>
       {edge?.drawer && <div data-sashay-drawer={id}>{edge.drawer.content}</div>}
