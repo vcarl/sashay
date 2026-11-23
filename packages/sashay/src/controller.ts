@@ -130,6 +130,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   // The live dividers during a drag, and where they would settle (the marks): `rest` without
   // a fling, `idx` with the current velocity, `t` its flingReach. A resize while dragging waits for release.
   let live: number[] | null = null;
+  // A drag past either end: px the whole window shifts, at ¼ of the overshoot (Enyo's friction).
+  let rubber = 0;
   let preview: { d: number; rest: number[]; idx: number[]; t: number } | null = null;
   let gesture: { end(ev: PointerEvent | null): void; stop(): void } | null = null;
   let dirty = false;
@@ -538,7 +540,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     w.forEach((p, k) => {
       const b = paneBoxes[k];
       const el = els.get(p.id) as HTMLElement;
-      const x = b.x + sw;
+      const x = b.x + sw + rubber;
       const s = touch(el);
       const kv = keep.get(p.id);
       if (kv) {
@@ -563,7 +565,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       }
       const eb = edgeBoxes[k];
       const es = (edges.get(p.id) as HTMLElement).style;
-      es.transform = `translateX(${eb.x + sw}px)`;
+      es.transform = `translateX(${eb.x + sw + rubber}px)`;
       es.width = `${eb.w}px`;
       es.zIndex = String(2 * k + 1);
       const cs = (ctls.get(p.id) as HTMLElement).style;
@@ -737,6 +739,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       if (!moved) return;
       raw = start[d] + dx / C;
       live = drag(start, d, raw, S);
+      rubber = ((raw < 0 ? raw : raw > 1 ? raw - 1 : 0) * C) / 4;
       const v = velocity(samples, ev.timeStamp);
       preview = { d, rest: settle(start, d, raw, 0, o, S), idx: settle(start, d, raw, v, o, S), t: flingReach(v) };
       paint();
@@ -749,6 +752,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       frame.removeAttribute("data-dragging");
       gesture = null;
       live = null;
+      rubber = 0;
       preview = null;
       for (const m of marks) {
         m.style.setProperty("--sashay-fling", "0");

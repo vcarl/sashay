@@ -214,6 +214,24 @@ test("an edge grabs from 10px outside its visual width", () => {
   pointer(t, "pointercancel", r.right + 20);
 });
 
+// Past either end the layout follows the pointer at a quarter of its speed, then settles back.
+test("dragging past an end moves at ¼ friction", () => {
+  mount();
+  for (const [el, dir] of [
+    [E("b"), -1],
+    [E("c"), 1],
+  ] as const) {
+    const x0 = centre(el);
+    pointer(el, "pointerdown", x0);
+    pointer(el, "pointermove", x0 + dir * 400); // past the end
+    const t1 = tx(el);
+    pointer(el, "pointermove", x0 + dir * 440);
+    expect(tx(el) - t1).toBeCloseTo(dir * 10, 6);
+    pointer(el, "pointercancel", x0 + dir * 440);
+    expect(tx(E("a"))).toBe(0); // settled: no offset left behind
+  }
+});
+
 test("keyboard", () => {
   mount();
   E("b").focus();
