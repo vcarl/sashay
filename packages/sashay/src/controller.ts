@@ -691,22 +691,32 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
 
   // Click → toggle its pane; drag → move divider k-1 (window edge 0 drives none).
-  // The whole edge drags, an open drawer included; only its controls don't.
+  // The whole edge drags, an open drawer included; only its controls don't. A pane's first
+  // 20px (`body`) drag its edge too, but never toggle: clicks and selection there stay the content's.
   const onPointerDown = (e: PointerEvent) => {
     const t = e.target as Element;
     if (e.button !== 0 || gesture || t.closest("[data-sashay-frame]") !== frame) return;
     if (t.closest("button, input, label, select, textarea, a")) return;
     const dr = t.closest<HTMLElement>("[data-sashay-drawer]");
     if (dr && (!dr.hasAttribute("data-open") || dr.hasAttribute("data-sheet"))) return;
-    const src = dr ?? t.closest<HTMLElement>("[data-sashay-edge]");
+    const pid =
+      dr || t.closest("[data-sashay-edge]")
+        ? undefined
+        : t.closest<HTMLElement>("[data-sashay-pane]")?.dataset.sashayPane;
+    const body = pid !== undefined;
+    const src = dr ?? (body ? edges.get(pid) : t.closest<HTMLElement>("[data-sashay-edge]"));
     const id = dr ? dr.dataset.sashayDrawer : src?.dataset.sashayEdge;
     const k = winIndex(id);
-    if (!src || k < 0) return;
+    if (!src || k < 0 || (body && k < 1)) return;
     const d = k - 1;
-    src.setPointerCapture(e.pointerId);
     // Pointer x in the frame's own px: a zoomed or scaled ancestor makes viewport px differ.
     // Measured once per gesture, never per move.
-    const scale = frame.getBoundingClientRect().width / frame.offsetWidth || 1;
+    const fr = frame.getBoundingClientRect();
+    const scale = fr.width / frame.offsetWidth || 1;
+    if (body && e.clientX - fr.left - (frame.clientLeft + (lastX.get(pid) ?? 0)) * scale >= 20) return;
+    // Captured at once on an edge; from a pane only once it drags, so its clicks stay its own.
+    const on = (body ? document : src) as HTMLElement; // same pointer events either way
+    if (!body) src.setPointerCapture(e.pointerId);
     const x0 = e.clientX / scale;
     const C = Math.max(content(), 1);
     // Mid-slide, start from what's on screen, not the target: each edge's transitioning
@@ -726,6 +736,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     let moved: boolean | undefined;
     let raw = start[d];
     const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== e.pointerId) return;
       const x = ev.clientX / scale;
       samples.push({ t: ev.timeStamp, x });
       if (samples.length > 32) samples.shift();
@@ -735,6 +746,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         if (mx * mx + my * my < 16) return;
         moved = d >= 0 && Math.abs(mx) >= Math.abs(my);
         if (moved) frame.setAttribute("data-dragging", "");
+        if (moved && body) src.setPointerCapture(e.pointerId);
       }
       if (!moved) return;
       raw = start[d] + dx / C;
@@ -745,10 +757,10 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       paint();
     };
     const stop = () => {
-      src.removeEventListener("pointermove", move);
-      src.removeEventListener("pointerup", end);
-      src.removeEventListener("pointercancel", end);
-      src.removeEventListener("lostpointercapture", lost);
+      on.removeEventListener("pointermove", move);
+      on.removeEventListener("pointerup", end);
+      on.removeEventListener("pointercancel", end);
+      on.removeEventListener("lostpointercapture", lost);
       frame.removeAttribute("data-dragging");
       gesture = null;
       live = null;
@@ -759,12 +771,13 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         m.removeAttribute("data-fling");
       }
     };
-    const lost = () => end(null);
+    const lost = (ev: PointerEvent) => ev.pointerId === e.pointerId && end(null);
     // ev null: ended by update()/setLayout()/commit or a lost capture; settles where it is.
     function end(ev: PointerEvent | null) {
+      if (ev && ev.pointerId !== e.pointerId) return;
       stop();
       if (!moved) {
-        if (moved === undefined && ev?.type === "pointerup" && !dr) toggle(k);
+        if (moved === undefined && ev?.type === "pointerup" && !dr && !body) toggle(k);
         return;
       }
       const v = ev?.type === "pointerup" ? velocity(samples, ev.timeStamp) : 0;
@@ -774,10 +787,10 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         true,
       );
     }
-    src.addEventListener("pointermove", move);
-    src.addEventListener("pointerup", end);
-    src.addEventListener("pointercancel", end);
-    src.addEventListener("lostpointercapture", lost);
+    on.addEventListener("pointermove", move);
+    on.addEventListener("pointerup", end);
+    on.addEventListener("pointercancel", end);
+    on.addEventListener("lostpointercapture", lost);
     gesture = { end, stop };
   };
 

@@ -198,20 +198,39 @@ test("grabbing mid-slide drags from the visible position", async () => {
   pointer(B, "pointercancel", x0 + 6);
 });
 
-// The grab target reaches past the 12px visual edge into its own pane only: on the left sit
-// the neighbour's scrollbar and any stacked edges.
-test("an edge grabs from 10px outside its visual width", () => {
+// A pane's first 20px also grab its edge, but only to drag: clicks there stay the content's.
+test("an edge grabs from 10px into its pane", () => {
   mount();
   const B = E("b");
-  const r = B.getBoundingClientRect();
-  const y = r.top + 300;
-  expect(document.elementFromPoint(r.left - 1, y)).not.toBe(B);
-  const t = document.elementFromPoint(r.right + 10, y) as Element;
-  expect(t).toBe(B);
-  pointer(t, "pointerdown", r.right + 10);
-  pointer(t, "pointermove", r.right + 20);
+  const x = B.getBoundingClientRect().right + 10;
+  const p = $('[data-sashay-pane="b"]');
+  const before = tx(B);
+  pointer(p, "pointerdown", x);
+  pointer(p, "pointermove", x + 10);
   expect(frame.hasAttribute("data-dragging")).toBe(true);
-  pointer(t, "pointercancel", r.right + 20);
+  expect(tx(B)).toBeCloseTo(before + 10, 6);
+  pointer(B, "pointerup", x + 10); // captured once it latched: the edge receives the rest
+  expect(frame.hasAttribute("data-dragging")).toBe(false);
+});
+test("a click 10px into a pane neither toggles nor steals a button's click", () => {
+  mount();
+  const B = E("b");
+  const x = B.getBoundingClientRect().right + 10;
+  const p = $('[data-sashay-pane="b"]');
+  pointer(p, "pointerdown", x);
+  pointer(p, "pointerup", x);
+  expect(onChange).not.toHaveBeenCalled();
+  const btn = document.createElement("button");
+  btn.style.cssText = "position:absolute;left:4px;top:100px;width:40px;height:20px";
+  p.append(btn);
+  const clicked = vi.fn();
+  btn.addEventListener("click", clicked);
+  const r = btn.getBoundingClientRect();
+  expect(r.left + 6).toBeLessThan(B.getBoundingClientRect().right + 20);
+  return userEvent.click(btn, { position: { x: 6, y: 10 } }).then(() => {
+    expect(clicked).toHaveBeenCalledTimes(1);
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });
 
 // Past either end the layout follows the pointer at a quarter of its speed, then settles back.
