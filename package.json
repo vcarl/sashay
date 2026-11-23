@@ -10,7 +10,8 @@
     "bench": "pnpm -r --if-present bench",
     "build": "pnpm -r --if-present build",
     "size": "pnpm -F @vcarl/sashay build && pnpm -F @vcarl/sashay size",
-    "site:build": "pnpm -F @vcarl/sashay build && pnpm -F site build"
+    "site:build": "pnpm -F @vcarl/sashay build && pnpm -F site build",
+    "test:e2e": "pnpm -F site test:e2e"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.8",
