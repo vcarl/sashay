@@ -40,9 +40,9 @@ Your app opens panes with `reveal(id)` and closes them with `close(id)`, on the 
 
 ## Keep a point in view
 
-A pane that another pane slides over isn't squished. It keeps its `focus` width and the next pane covers part of it. Give the pane `keepInView` and sashay slides its content left, as little as it can, so that point stays inside the slice that's still showing. Pass `null` to let go.
+A pane that another pane slides over isn't squished. It keeps its `focus` width and the next pane covers part of it. Give the pane `keepInView` and sashay slides its content left, as little as it can, so that point stays inside the slice that's still showing. The same goes for content wider than the pane, on a phone too. Pass `null` to let go.
 
-`keepInView` is a `Length` measured from the pane's left edge: a number is pixels, and `"40%"` is 40% of the pane's width. The chart here is a fixed 720 pixels wide, so the app passes the picked plant's x in pixels. The chart's `focus` of 3/4 keeps it drawn at least that wide while it's covered.
+`keepInView` is a `Length` measured from the pane's left edge: a number is pixels, and `"40%"` is 40% of the pane's width. The chart here is a fixed 720 pixels wide, so the app passes the picked plant's x in pixels. sashay measures the content's width on resize, so it never slides past the chart's right edge.
 
 This frame opens squeezed, with the Lemon tree picked far over on the right. Drag Nearby's edge back and forth, or pick other plants in the list, and the dot stays in view. A covered pane is inert, so while the chart is squeezed you pick from the list.
 

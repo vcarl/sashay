@@ -87,16 +87,52 @@ test("reveal, close and fit fire onChange; setLayout doesn't", () => {
   expect(onClose).not.toHaveBeenCalled();
 });
 
+// Where point x of the pane's first child shows, from the pane's left.
+const shownAt = (id: string, x: number) =>
+  (P(id).firstElementChild as HTMLElement).getBoundingClientRect().left + x - P(id).getBoundingClientRect().left;
+const addChild = (id: string, width: string) => {
+  const c = document.createElement("div");
+  c.style.cssText = `width:${width};height:10px`;
+  P(id).append(c);
+};
+
 test("keepInView shifts covered content", () => {
+  addChild("a", "100%");
   h = createSashay(frame, { panes: [{ ...P3[0], focus: 0.4 }, P3[1], P3[2]], layout: "48" });
+  expect(P("a").hasAttribute("data-covered")).toBe(true);
+  expect(shownAt("a", 360)).toBeGreaterThan(308);
   h.keepInView("a", 360);
-  expect(P("a").style.clipPath.startsWith("inset(0px 0px 0px")).toBe(true);
-  expect(tx(P("a"))).toBeLessThan(12);
+  expect(shownAt("a", 360)).toBeLessThanOrEqual(308); // the visible slice
+  expect(tx(P("a"))).toBeCloseTo(12, 1); // the pane stays put; its content moves
   h.keepInView("a", null);
-  expect(P("a").style.clipPath).toBe("");
+  expect(shownAt("a", 360)).toBeCloseTo(360, 1);
   h.keepInView("a", "97.4%"); // ≈ 360 of 369.6
-  expect(tx(P("a"))).toBeLessThan(12);
+  expect(shownAt("a", 360)).toBeLessThanOrEqual(308);
+  expect(shownAt("a", 369.6)).toBeCloseTo(308, 1); // clamped to the content: no gutter
   expect(() => h?.keepInView("a", "far")).toThrow(TypeError);
+});
+
+test("keepInView brings content wider than an uncovered pane into view", () => {
+  frame.style.width = "312px"; // one 12px edge, a 300px pane
+  for (const id of "bc") P(id).remove();
+  addChild("a", "720px");
+  h = createSashay(frame, { panes: [P3[0]], compactBelow: "10rem" });
+  expect(P("a").hasAttribute("data-covered")).toBe(false);
+  h.keepInView("a", "650px");
+  expect(shownAt("a", 650)).toBeGreaterThanOrEqual(0);
+  expect(shownAt("a", 650)).toBeLessThanOrEqual(300);
+  expect(shownAt("a", 720)).toBeGreaterThanOrEqual(300 - 0.5); // clamped to the content: no gutter
+});
+
+test("compact: keepInView brings content wider than the frame into view", () => {
+  frame.style.width = "360px";
+  addChild("a", "720px");
+  h = createSashay(frame, { panes: P3, layout: "0c" });
+  expect(frame.hasAttribute("data-compact")).toBe(true);
+  h.keepInView("a", "650px");
+  const w = P("a").getBoundingClientRect().width;
+  expect(shownAt("a", 650)).toBeGreaterThanOrEqual(0);
+  expect(shownAt("a", 650)).toBeLessThanOrEqual(w);
 });
 
 test("a workspace with its first two panes closed shows no spine", () => {

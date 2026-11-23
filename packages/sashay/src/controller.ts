@@ -117,7 +117,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   let { els, drawerEls } = found;
   let view: View;
   let drawers = new Map<string, boolean>();
-  const keep = new Map<string, Length>();
+  // keepInView points. w: the content's extent, measured on resize or a keepInView change
+  // (never per frame); s: the shift applied to the pane's children.
+  const keep = new Map<string, { x: Length; w?: number; s: number }>();
   const edges = new Map<string, HTMLElement>(); // window panes only
   // Each edge's controls (drawer toggle, title, compact tabs): a sibling laid over the edge,
   // so they aren't children of its role element.
@@ -206,6 +208,14 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const keepPx = (v: Length, w: number) => {
     const a = px(v, 0);
     return a + ((px(v, 1000) - a) * w) / 1000;
+  };
+  // The content's right edge from the pane's left, as laid out: the applied shift undone.
+  // ponytail: element children only; a pane whose content is bare text never shifts.
+  const extent = (el: HTMLElement, s: number) => {
+    const left = el.getBoundingClientRect().left;
+    let r = 0;
+    for (const c of el.children) r = Math.max(r, c.getBoundingClientRect().right - left + s);
+    return r;
   };
 
   const code = () =>
@@ -529,14 +539,18 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const b = paneBoxes[k];
       const el = els.get(p.id) as HTMLElement;
       const x = b.x + sw;
-      const kv = keep.get(p.id);
-      const shift = focusShift(b.width, b.visible, kv == null || !b.width ? null : keepPx(kv, b.width) / b.width);
       const s = touch(el);
-      s.transform = `translateX(${x - shift}px)`;
+      const kv = keep.get(p.id);
+      if (kv) {
+        kv.w ??= extent(el, kv.s);
+        const shift = b.width ? focusShift(Math.max(b.width, kv.w), b.visible, keepPx(kv.x, b.width)) : 0;
+        if (shift !== kv.s) s.setProperty("--sashay-shift", shift ? `${-shift}px` : "");
+        kv.s = shift;
+      }
+      s.transform = `translateX(${x}px)`;
       size(el, b.width + Math.max(0, hold ? x - (lastX.get(p.id) ?? x) : 0)); // moving right: cover the trail
       lastX.set(p.id, x);
       s.zIndex = String(2 * k);
-      s.clipPath = shift > 0 ? `inset(0px 0px 0px ${shift}px)` : "";
       const closed = b.visible < 1;
       const covered = !closed && b.width - b.visible > 0.5;
       el.toggleAttribute("data-closed", closed);
@@ -607,6 +621,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       dirty = false;
       W = frame.clientWidth;
       measure.clear();
+      for (const k of keep.values()) k.w = undefined;
     }
     sync();
     paint();
@@ -821,11 +836,10 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     },
     keepInView(id, x) {
       if (destroyed) return;
-      if (x === null) keep.delete(id);
-      else {
-        checkLength(x);
-        keep.set(id, x);
-      }
+      if (x !== null) checkLength(x);
+      const s = keep.get(id)?.s ?? 0;
+      if (x !== null) keep.set(id, { x, s });
+      else if (keep.delete(id) && s) els.get(id)?.style.removeProperty("--sashay-shift");
       paint();
     },
     setLayout(c) {

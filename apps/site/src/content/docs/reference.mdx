@@ -26,7 +26,7 @@ import "@vcarl/sashay/style.css";
 | Prop | Description |
 |---|---|
 | all `PaneOptions` fields | Same as the core's, below. `edge.drawer` also takes `content: ReactNode`. |
-| `keepInView` | `Length \| null`. |
+| `keepInView` | `Length \| null`: keeps that point of the pane's content in view, as the handle's `keepInView` does. |
 | `onClose` | Fires when this pane is closed. |
 | `children` | The pane's content, or `(state: { offscreen: boolean }) => ReactNode` so an app can unmount heavy content in very deep stacks. |
 | other div props | Passed to the pane element: `className`, `style`, `data-*`, `aria-*`, event handlers. Sashay's own attributes win: `data-sashay-pane`, `aria-label` (from `title`), `inert`, `data-covered`, `data-closed`, `data-offscreen`, and the inline position and width (`transform`, `width`, `zIndex`, `clipPath` are dropped from `style`; other `style` keys merge). |
@@ -54,7 +54,7 @@ The React `ref`, and the return value of `createSashay`.
 | `reveal(id)` | Opens the pane, or uncovers it, including bringing it back from the spine. Uses `opensTo` if set. |
 | `close(id)` | Closes the pane. |
 | `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |
-| `keepInView(id, x \| null)` | While covered, keeps point `x` (a `Length` from the pane's left; `"40%"` is 40% of the pane's width) inside the visible slice. |
+| `keepInView(id, x \| null)` | Whenever the pane's visible slice is too narrow for point `x` (a `Length` from the pane's left; `"40%"` is 40% of the pane's width), whether covered, squeezed or narrower than its content, shifts the pane's children left just enough to show it, never past the content's right edge. |
 | `setLayout(code)` | Applies a code. Does not fire `onChange`. |
 | `fit(fractions)` | Moves the dividers to the nearest snaps. Fires `onChange`. |
 | `update(options)` | Replaces `panes` or the callbacks without rebuilding. |

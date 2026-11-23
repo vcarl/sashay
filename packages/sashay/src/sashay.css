@@ -28,6 +28,10 @@
   }
   [data-sashay-pane] {
     background: var(--sashay-pane-bg, Canvas);
+    --sashay-shift: none; /* keepInView: the controller sets it; nested panes reset it */
+  }
+  [data-sashay-pane] > * {
+    translate: var(--sashay-shift);
   }
 
   /* Transforms only: the controller holds widths until the slide ends. */

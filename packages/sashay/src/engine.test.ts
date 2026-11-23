@@ -200,7 +200,7 @@ describe("fling", () => {
 });
 
 it("focus point stays visible", () => {
-  const s = focusShift(600, 200, 0.9);
+  const s = focusShift(600, 200, 540);
   expect(540 - s).toBeGreaterThanOrEqual(0);
   expect(540 - s).toBeLessThanOrEqual(200);
 });

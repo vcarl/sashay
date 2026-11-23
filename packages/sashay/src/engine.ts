@@ -337,15 +337,16 @@ export function layout(W: number, dividers: number[], edges: EdgeSpec[], panes: 
   return { C, edgeBoxes, paneBoxes };
 }
 
-// Horizontal focus: `f` is a 0–1 fraction of the pane's content width
-// (a chart passes its selected point's x). When the pane is partly
-// covered, shift its content left — as little as possible — so the focus
-// stays FOCUS_MARGIN px inside the visible slice. Never reveals a gap.
+// Horizontal focus: `x` is a point in the pane's content, in px (a chart passes
+// its selected point's x). When the visible slice is narrower than the point
+// needs (covered, squeezed, or content wider than the pane), shift the content
+// left — as little as possible — so the point stays FOCUS_MARGIN px inside the
+// slice. `width` is the content's extent, so the shift never reveals a gap.
 const FOCUS_MARGIN = 28;
-export function focusShift(width: number, visible: number, f: number | null | undefined): number {
-  if (f == null || width <= visible) return 0;
+export function focusShift(width: number, visible: number, x: number): number {
+  if (width <= visible) return 0;
   const m = Math.min(FOCUS_MARGIN, visible / 2);
-  return clamp(f * width + m - visible, 0, width - visible);
+  return clamp(x + m - visible, 0, width - visible);
 }
 
 // ── Persistence ──────────────────────────────────────────────────────────
