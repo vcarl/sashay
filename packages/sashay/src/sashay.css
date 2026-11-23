@@ -112,6 +112,13 @@
     cursor: ew-resize;
     touch-action: none;
     color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
+    overflow: visible;
+  }
+  /* Hit area: 32px, into its own pane only (on the left: a scrollbar, or stacked edges). */
+  [data-sashay-edge]::before {
+    content: "";
+    position: absolute;
+    inset: 0 -20px 0 0;
   }
   [data-sashay-edge][role="button"] {
     box-shadow: none;

@@ -198,6 +198,22 @@ test("grabbing mid-slide drags from the visible position", async () => {
   pointer(B, "pointercancel", x0 + 6);
 });
 
+// The grab target reaches past the 12px visual edge into its own pane only: on the left sit
+// the neighbour's scrollbar and any stacked edges.
+test("an edge grabs from 10px outside its visual width", () => {
+  mount();
+  const B = E("b");
+  const r = B.getBoundingClientRect();
+  const y = r.top + 300;
+  expect(document.elementFromPoint(r.left - 1, y)).not.toBe(B);
+  const t = document.elementFromPoint(r.right + 10, y) as Element;
+  expect(t).toBe(B);
+  pointer(t, "pointerdown", r.right + 10);
+  pointer(t, "pointermove", r.right + 20);
+  expect(frame.hasAttribute("data-dragging")).toBe(true);
+  pointer(t, "pointercancel", r.right + 20);
+});
+
 test("keyboard", () => {
   mount();
   E("b").focus();
