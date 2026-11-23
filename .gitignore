@@ -3,3 +3,7 @@ dist
 .vitest-attachments
 __screenshots__
 .vitest
+
+# local Claude worktrees and scratch
+.claude/
+*.tgz
