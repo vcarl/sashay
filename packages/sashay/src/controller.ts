@@ -6,6 +6,7 @@ import {
   drag,
   type EdgeSpec,
   fit as fitIdx,
+  flingReach,
   focusShift,
   gridOrder,
   isOpen,
@@ -124,9 +125,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const px = measure.px;
   let W = frame.clientWidth;
   // The live dividers during a drag, and where they would settle (the marks): `rest` without
-  // a fling, `idx` with the current velocity. A resize while dragging waits for release.
+  // a fling, `idx` with the current velocity, `t` its flingReach. A resize while dragging waits for release.
   let live: number[] | null = null;
-  let preview: { d: number; rest: number[]; idx: number[] } | null = null;
+  let preview: { d: number; rest: number[]; idx: number[]; t: number } | null = null;
   let gesture: { end(ev: PointerEvent | null): void; stop(): void } | null = null;
   let dirty = false;
   let destroyed = false;
@@ -371,6 +372,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const m = document.createElement("div");
       m.setAttribute("data-sashay-mark", "");
       m.setAttribute("aria-hidden", "true");
+      m.innerHTML = '<svg viewBox="0 0 1 100" preserveAspectRatio="none"><path d="M0 0Q0 25 1 50Q0 75 0 100"/></svg>';
       frame.append(m);
       marks.push(m);
     }
@@ -448,13 +450,17 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       }
     });
     if (preview) {
-      // Each mark sits where a no-fling release lands and stretches to where the fling lands.
+      // Each mark sits where a no-fling release lands; a throw bows its middle toward where the
+      // fling lands, by up to half that distance as the throw speeds up (preview.t).
       const rest = layout(W - sw, preview.rest.map(snapV), specs, []).edgeBoxes;
       const fly = layout(W - sw, preview.idx.map(snapV), specs, []).edgeBoxes;
+      const t = preview.t;
       marks.forEach((m, k) => {
         const x = rest[k + 1]?.x ?? 0;
+        const b = (t * ((fly[k + 1]?.x ?? 0) - x)) / 2;
         m.style.transform = `translateX(${x + sw}px)`;
-        m.style.setProperty("--sashay-fling", String((fly[k + 1]?.x ?? 0) - x));
+        m.style.setProperty("--sashay-fling", String(b));
+        m.toggleAttribute("data-fling", b !== 0);
         m.toggleAttribute("data-primary", k === preview?.d);
       });
     }
@@ -568,11 +574,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       moved = true;
       raw = start[d] + dx / C;
       live = drag(start, d, raw, S);
-      preview = {
-        d,
-        rest: settle(start, d, raw, 0, o, S),
-        idx: settle(start, d, raw, velocity(samples, ev.timeStamp), o, S),
-      };
+      const v = velocity(samples, ev.timeStamp);
+      preview = { d, rest: settle(start, d, raw, 0, o, S), idx: settle(start, d, raw, v, o, S), t: flingReach(v) };
       paint();
     };
     const stop = () => {
@@ -584,7 +587,10 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       gesture = null;
       live = null;
       preview = null;
-      for (const m of marks) m.style.setProperty("--sashay-fling", "0");
+      for (const m of marks) {
+        m.style.setProperty("--sashay-fling", "0");
+        m.removeAttribute("data-fling");
+      }
     };
     const lost = () => end(null);
     // ev null: ended by update()/setLayout()/commit or a lost capture; settles where it is.

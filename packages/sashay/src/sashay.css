@@ -42,12 +42,12 @@
   }
   @media (prefers-reduced-motion: reduce) {
     [data-sashay-frame] :is([data-sashay-pane], [data-sashay-edge], [data-sashay-controls], [data-sashay-drawer]),
-    [data-sashay-mark]::after {
+    [data-sashay-mark] path {
       transition: none !important;
     }
   }
 
-  /* Release preview */
+  /* Release preview. Under a throw the bar hides and the SVG bows its middle by --sashay-fling px. */
   [data-sashay-mark] {
     position: absolute;
     top: 18%;
@@ -56,19 +56,35 @@
     width: 3px;
     margin-left: -1.5px;
     border-radius: 2px;
-    background: var(--sashay-accent, oklch(0.62 0.19 255));
-    box-shadow: 0 0 10px 2px color-mix(in srgb, var(--sashay-accent, oklch(0.62 0.19 255)) 55%, transparent);
+    color: var(--sashay-accent, oklch(0.62 0.19 255));
+    background: currentColor;
+    box-shadow: 0 0 10px 2px color-mix(in srgb, currentColor 55%, transparent);
     opacity: 0;
     z-index: 98;
     pointer-events: none;
   }
-  [data-sashay-mark]::after {
-    content: "";
+  [data-sashay-mark][data-fling] {
+    background: none;
+    box-shadow: none;
+  }
+  [data-sashay-mark] svg {
     position: absolute;
-    inset: 0 auto 0 50%;
+    left: 50%;
     width: 1px;
-    background: inherit;
-    transform-origin: left;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3px;
+    stroke-linecap: round;
+    stroke-miterlimit: 20;
+    filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 55%, transparent));
+  }
+  [data-sashay-mark]:not([data-fling]) svg {
+    display: none;
+  }
+  [data-sashay-mark] path {
+    vector-effect: non-scaling-stroke;
     scale: var(--sashay-fling, 0) 1;
     transition: scale 0.16s;
   }

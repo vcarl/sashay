@@ -54,7 +54,7 @@
     },
     {
       "path": "dist/style.css",
-      "limit": "1.95 kB",
+      "limit": "2.08 kB",
       "rolldown": false
     }
   ],
