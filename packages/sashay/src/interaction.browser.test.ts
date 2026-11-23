@@ -90,27 +90,34 @@ test("fast fling carries two snaps", async () => {
   expect(onClose.mock.calls).toEqual([["c"]]);
 });
 
-// The preview mark sits where a no-fling release lands; a throw stretches it to the fling's landing.
-const fling = (m: HTMLElement) => Number(m.style.getPropertyValue("--sashay-fling"));
-test("slow drag: preview doesn't stretch", async () => {
+// The preview mark sits where a no-fling release lands; a throw bows its middle toward the
+// landing by --sashay-fling px: 0 when slow, up to half the fling length at FLING[1] (1.4 px/ms).
+const bulge = (m: HTMLElement) => Number(m.style.getPropertyValue("--sashay-fling"));
+const flick = async (gap: number, code: string) => {
   mount();
   const B = E("b");
-  const x = await drag7(B, centre(B), 60); // ~0.37 px/ms, under the fling threshold
-  expect(fling($("[data-sashay-mark][data-primary]"))).toBe(0);
-  pointer(B, "pointerup", x);
-});
-
-test("fast flick: preview stretches toward the target, release lands at its far end", async () => {
-  mount();
-  const B = E("b");
-  const x = await drag7(B, centre(B), 10);
+  const x = await drag7(B, centre(B), gap);
   const m = $("[data-sashay-mark][data-primary]");
-  const far = tx(m) + fling(m);
-  expect(fling(m)).toBeGreaterThan(0);
-  expect(tx(m)).toBeLessThan(far);
+  const rest = tx(m);
+  const b = bulge(m);
+  expect(m.hasAttribute("data-fling")).toBe(b !== 0);
   pointer(B, "pointerup", x);
-  expect(onChange.mock.calls).toEqual([["9c"]]);
-  expect(tx(E("b"))).toBeCloseTo(far, 6);
+  expect(onChange.mock.calls).toEqual([[code]]);
+  return { b, half: (tx(E("b")) - rest) / 2 };
+};
+test("slow drag: straight preview", async () => {
+  const { b, half } = await flick(60, "69"); // ~0.37 px/ms, under the fling threshold
+  expect(b).toBe(0);
+  expect(half).toBeCloseTo(0, 6);
+});
+test("moderate flick: partial bulge", async () => {
+  const { b, half } = await flick(30, "8c"); // ~0.73 px/ms
+  expect(b).toBeGreaterThan(0);
+  expect(b).toBeLessThanOrEqual(half + 1e-9);
+});
+test("fast flick: bulge is half the fling", async () => {
+  const { b, half } = await flick(10, "9c"); // ~2 px/ms
+  expect(b).toBeCloseTo(half, 6);
 });
 
 test("release below minWidth closes", async () => {
@@ -140,7 +147,7 @@ test("click toggles; cancel without movement does nothing", () => {
   expect(onClose.mock.calls).toEqual([["c"]]);
   pointer(C, "pointerdown", 700);
   pointer(C, "pointerup", 700);
-  expect(onChange).toHaveBeenLastCalledWith("48");
+  expect(onChange).toHaveBeenLastCalledWith("38"); // reopening takes from a (outermost) first
 });
 
 test("keyboard", () => {

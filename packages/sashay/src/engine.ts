@@ -89,24 +89,16 @@ const byDistance = (p: number, P: number) => {
   return out;
 };
 
-// Take `need` from donor panes (listed nearest-the-grower first).
-//   Pass 1 (only when `spareFirst`): trim each down to its focus size,
-//           nearest first, so a middle pane gives up only what it doesn't
-//           need. Only focusPane uses it; drags skip it.
-//   Pass 2: trim to the minimum, outermost first. A drag starts here in
-//           either direction: growing the last pane takes from the first
-//           before the middle one, as growing the first takes from the last.
-//   Pass 3: below the minimum, outermost first, down to zero. Smooth: no
+// Take `need` from donor panes (listed nearest-the-grower first), outermost
+// first, so a pane growing next to a neighbour takes from the far side first.
+// Drags and focusPane share it.
+//   Pass 1: trim to the minimum, outermost first.
+//   Pass 2: below the minimum, outermost first, down to zero. Smooth: no
 //           jump. A pane left under its minimum closes on release.
-function take(w0: number[], S: Sizes, donors: number[], need0: number, spareFirst = true) {
+function take(w0: number[], S: Sizes, donors: number[], need0: number) {
   const w = w0.slice();
   let need = need0;
   const outer = [...donors].reverse();
-  for (const k of spareFirst ? donors : []) {
-    const t = Math.min(need, Math.max(0, w[k] - Math.max(S.focus[k], S.min[k])));
-    w[k] -= t;
-    need -= t;
-  }
   for (const k of outer) {
     const t = Math.min(need, Math.max(0, w[k] - S.min[k]));
     w[k] -= t;
@@ -144,7 +136,7 @@ export function drag(dividers: number[], i: number, v: number, S: Sizes): number
   if (Math.abs(delta) < 1e-12) return dividers.slice();
   const left = delta < 0;
   const donors = left ? [...Array(i + 1).keys()].reverse() : [...Array(P - i - 1).keys()].map((k) => i + 1 + k);
-  const r = take(w, S, donors, Math.abs(delta), false);
+  const r = take(w, S, donors, Math.abs(delta));
   r.w[left ? i + 1 : i] += Math.abs(delta) - r.short;
   return toDividers(r.w);
 }
@@ -186,8 +178,8 @@ export function closePane(dividers: number[], p: number, S: Sizes, order: number
 export const fit = (vals: number[], S: Sizes, order: number): number[] =>
   toIdx(enforceMin(snapAll(vals, order), S, -1), order);
 
-// Bring pane p up to its focus size, taking space from both sides (nearest
-// panes first in pass 1, outermost first in pass 2). Its own edges snap
+// Bring pane p up to its focus size, taking space from both sides the way a
+// drag does: outermost first, to the minimum, then to zero. Its own edges snap
 // outward so it gets at least the focus size; at grid order 1 that means
 // the whole frame. Returns snap indices.
 // Target is the focus size, raised to the minimum, capped at the maximum.
@@ -238,6 +230,10 @@ export function releaseTarget(v: number, vel: number, order: number): number {
   const j = beyond(v, dir, order);
   return speed >= FLING[1] ? step(j, dir, order) : j;
 }
+
+// How far a throw has wound up: 0 below FLING[0], rising linearly to 1 at FLING[1].
+export const flingReach = (vel: number): number =>
+  Math.min(1, Math.max(0, (Math.abs(vel) - FLING[0]) / (FLING[1] - FLING[0])));
 
 // Where every divider ends up if released now: the dragged one goes to its
 // fling target, the rest follow via the same allocation from the gesture's

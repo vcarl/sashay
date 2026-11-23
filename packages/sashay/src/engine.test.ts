@@ -158,12 +158,17 @@ describe("focus and close", () => {
     expect(shown(focusPane([2 / 3, 1], 2, S, o))).toBe(true);
   });
   it("max: focus is capped", () => {
-    expect(focusPane([1 / 3, 1], 2, { focus: [0.4, 0.25, 0.5], min: Z, max: [1, 1, 1 / 3] }, 6)).toEqual([4, 8]);
+    expect(focusPane([1 / 3, 1], 2, { focus: [0.4, 0.25, 0.5], min: Z, max: [1, 1, 1 / 3] }, 6)).toEqual([0, 8]);
   });
   it("close details → list takes it", () => expect(closePane([1 / 3, 2 / 3], 2, S0, 6)).toEqual([4, 12]));
-  it("focus details from hidden", () => {
-    expect(focusPane([1 / 3, 1], 2, { ...S0, focus: [0.4, 0.25, 1 / 3] }, 6)).toEqual([4, 8]);
+  it("focus details from hidden: the outermost pane gives first", () => {
+    expect(focusPane([1 / 3, 1], 2, { ...S0, focus: [0.4, 0.25, 1 / 3] }, 6)).toEqual([0, 8]);
   });
+  // Opening takes like a drag: outermost to min, then the next, then to zero.
+  const OPEN: Sizes = { focus: [0.2, 0.2, 0.5], min: [0.15, 0.15, 0.15], max: ONE };
+  it("opening #3 takes from #1 before #2", () => expect(focusPane([0.5, 1], 2, OPEN, 6)).toEqual([1, 6]));
+  it("opening #1 takes from #3 before #2", () =>
+    expect(focusPane([0, 0.5], 0, { ...OPEN, focus: [0.5, 0.2, 0.2] }, 6)).toEqual([6, 11]));
   it("focus at order 1 = whole frame", () => {
     expect(focusPane([1 / 3, 1], 2, { ...S0, focus: [0.4, 0.25, 1 / 3] }, 1)).toEqual([0, 0]);
   });

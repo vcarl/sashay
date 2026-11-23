@@ -68,12 +68,12 @@ describe("stack", () => {
 
 describe("workspace", () => {
   const W = S0([0.2, 0.2, 0.2, 0.25]);
-  it("append keeps unmoved dividers", () =>
-    expect(reveal(insert({ offset: 0, div: [4, 8] }, 3), 3, 4, W, 6)).toEqual({ offset: 0, div: [4, 7, 9] }));
+  it("append takes from the first pane first", () =>
+    expect(reveal(insert({ offset: 0, div: [4, 8] }, 3), 3, 4, W, 6)).toEqual({ offset: 0, div: [0, 5, 9] }));
   it("insert in the middle", () =>
     expect(reveal(insert({ offset: 0, div: [4, 8] }, 1), 1, 4, S0([0.2, 0.25, 0.2, 0.2]), 6)).toEqual({
       offset: 0,
-      div: [2, 6, 8],
+      div: [4, 7, 11],
     }));
   it("remove middle", () =>
     expect(remove({ offset: 0, div: [4, 8] }, 1, 2, S0([0.2, 0.2, 0.2]), 6)).toEqual({ offset: 0, div: [8] }));
@@ -86,6 +86,14 @@ describe("workspace", () => {
     expect(a).toEqual({ offset: 0, div: [0, 8] });
     expect(close(a, 1, 3, S0([0.2, 0.2, 0.2]), 6)).toEqual({ offset: 0, div: [0, 0] });
   });
+  // Same donor order as a drag: outermost first, to min, then the next.
+  const M: SizesFor = (a, b) => ({
+    focus: [0.5, 0.2, 0.2].slice(a, b),
+    min: Array(b - a).fill(0.15),
+    max: Array(b - a).fill(1),
+  });
+  it("revealing a covered first pane takes from #3 before #2", () =>
+    expect(reveal({ offset: 0, div: [0, 6] }, 0, 3, M, 6)).toEqual({ offset: 0, div: [6, 11] }));
   it("reopening a closed pane keeps the others' edges", () =>
     expect(reveal({ offset: 0, div: [0, 0] }, 0, 3, S0([0.2, 0.2, 0.2]), 6).offset).toBe(0));
 });
@@ -95,6 +103,14 @@ describe("diff", () => {
   const sz = (panes: { id: string }[], a: number, b: number) => S0(Array(panes.length).fill(1 / 3))(a, b);
   it("append = push", () =>
     expect(diff(ids("abcde"), ids("abcdef"), { offset: 2, div: [4, 8] }, 6, sz)).toEqual({ offset: 3, div: [4, 8] }));
+  it("an added pane takes from #1 before #2", () => {
+    const sz = (_: unknown, a: number, b: number) => ({
+      focus: [0.2, 0.2, 0.5].slice(a, b),
+      min: Array(b - a).fill(0.15),
+      max: Array(b - a).fill(1),
+    });
+    expect(diff(ids("ab"), ids("abc"), { offset: 0, div: [6] }, 6, sz)).toEqual({ offset: 0, div: [1, 6] });
+  });
   it("pop", () =>
     expect(diff(ids("abcdef"), ids("abcde"), { offset: 3, div: [4, 8] }, 6, sz)).toEqual({ offset: 3, div: [4] }));
   it("unchanged ids → same view", () =>

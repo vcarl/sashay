@@ -74,7 +74,7 @@ test("reveal, close and fit fire onChange; setLayout doesn't", () => {
   h.close("c");
   expect(onChange).toHaveBeenLastCalledWith("4c");
   h.reveal("c");
-  expect(onChange).toHaveBeenLastCalledWith("48");
+  expect(onChange).toHaveBeenLastCalledWith("38"); // reopening takes from a (outermost) first
   h.fit([0.5, 0.75]);
   expect(onChange).toHaveBeenLastCalledWith("69");
   expect(() => h?.fit([0.5])).toThrow(RangeError);
