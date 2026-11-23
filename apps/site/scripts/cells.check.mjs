@@ -20,7 +20,7 @@ const before = await tabs.count();
 assert.ok(before > 0, "spine shows a tab per folded pane");
 await tabs.last().click();
 await page.waitForTimeout(300);
-assert.ok(await tabs.count() < before, "a spine tab reveals its pane");
+assert.ok((await tabs.count()) < before, "a spine tab reveals its pane");
 await page.getByRole("button", { name: "Back", exact: true }).click();
 
 const toggle = page.locator("#cell-drawer [data-sashay-toggle]");
