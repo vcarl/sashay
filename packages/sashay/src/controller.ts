@@ -133,6 +133,21 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   let dirty = false;
   let destroyed = false;
   let lastCode = "";
+  // Animation: panes entering the window start, and leaving ones end, offset by how far the
+  // window slid (lastX: each window pane's last painted x). While a change settles (`hold`),
+  // widths only grow, so a shrinking pane never opens a gap before its neighbour slides over,
+  // and a pane sliding right also covers the distance it travels.
+  const lastX = new Map<string, number>();
+  const entering = new Set<string>();
+  const leaving = new Map<string, number>();
+  const lastW = new WeakMap<HTMLElement, number>();
+  let hold = false;
+  let holdT: ReturnType<typeof setTimeout> | undefined;
+  const size = (el: HTMLElement, w: number) => {
+    const v = hold && !live ? Math.max(w, lastW.get(el) ?? 0) : w;
+    lastW.set(el, v);
+    el.style.width = `${v}px`;
+  };
 
   const orig = new Map<HTMLElement, string | null>(); // style attributes as the app left them
   const touch = (el: HTMLElement) => {
@@ -164,7 +179,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     };
   };
   const content = () => contentWidth(W - spineW(view.offset), edgeSpecs(win()));
-  const order = () => gridOrder(content());
+  // The grid ignores the spine, so a pane folding into it doesn't coarsen the grid and
+  // re-round every divider (thirds becoming halves would shut a middle pane).
+  const order = () => gridOrder(content() + spineW(view.offset));
   const sizes = () => sizesOf(panes, view.offset, windowEnd(view));
   const sizesFor = (a: number, b: number) => sizesOf(panes, a, b);
   // The default view: an equal split over as many trailing panes as fit their minimums.
@@ -172,7 +189,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const fits = (v: View) => {
     if (W <= 0 || compact()) return true;
     const to = windowEnd(v);
-    const o = gridOrder(contentWidth(W - spineW(v.offset), edgeSpecs(panes.slice(v.offset, to))));
+    const o = gridOrder(contentWidth(W, edgeSpecs(panes.slice(v.offset, to))));
     return toWidths(fitIdx(v.div.map(snapV), sizesFor(v.offset, to), o).map(snapV)).every(isOpen);
   };
   const effIdx = () => view.div.map((i) => nearest(snapV(i), order()));
@@ -275,6 +292,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       ctls.get(id)?.remove();
       ctls.delete(id);
       offscreen(els.get(id));
+      const x = lastX.get(id);
+      if (x !== undefined) leaving.set(id, x);
+      lastX.delete(id);
       drawers.delete(id);
       drawerEls.get(id)?.removeAttribute("data-open");
     }
@@ -297,6 +317,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         ctls.set(p.id, ctl);
         el.removeAttribute("data-offscreen");
         el.inert = false;
+        entering.add(p.id);
+        lastW.delete(el);
       }
       const ctl = ctls.get(p.id) as HTMLElement;
       makeEdge(ctl, c ? undefined : p.edge?.drawer);
@@ -400,6 +422,41 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       specs,
       w.map((p) => ({ focus: p.focus })),
     );
+    // How far each staying pane slid; an entering or leaving pane moves with the nearest one.
+    const moved = w.flatMap((p, k) => {
+      const x0 = entering.has(p.id) ? undefined : lastX.get(p.id);
+      return x0 === undefined ? [] : [[k, paneBoxes[k].x + sw - x0]];
+    });
+    const delta = (k: number) => {
+      let best: number[] | undefined;
+      for (const m of moved) if (!best || Math.abs(m[0] - k) < Math.abs(best[0] - k)) best = m;
+      return best?.[1] ?? 0;
+    };
+    for (const [id, x] of leaving) {
+      const el = els.get(id);
+      if (el) touch(el).transform = `translateX(${x + delta(indexOf(id) < view.offset ? -1 : w.length)}px)`;
+    }
+    leaving.clear();
+    if (entering.size) {
+      const start = w.flatMap((p, k) => {
+        if (!entering.has(p.id)) return [];
+        const d = delta(k);
+        const e = edgeBoxes[k].x + sw - d;
+        return [
+          [els.get(p.id), paneBoxes[k].x + sw - d],
+          [edges.get(p.id), e],
+          [ctls.get(p.id), e],
+        ] as [HTMLElement, number][];
+      });
+      for (const [el, x] of start) {
+        const s = touch(el);
+        s.transition = "none";
+        s.transform = `translateX(${x}px)`;
+      }
+      void frame.offsetWidth; // commit the start positions, then transition from them
+      for (const [el] of start) el.style.transition = "";
+      entering.clear();
+    }
     let right = -1;
     let last = "";
     const active = document.activeElement;
@@ -411,7 +468,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const shift = focusShift(b.width, b.visible, kv == null || !b.width ? null : keepPx(kv, b.width) / b.width);
       const s = touch(el);
       s.transform = `translateX(${x - shift}px)`;
-      s.width = `${b.width}px`;
+      size(el, b.width + Math.max(0, hold ? x - (lastX.get(p.id) ?? x) : 0)); // moving right: cover the trail
+      lastX.set(p.id, x);
       s.zIndex = String(2 * k);
       s.clipPath = shift > 0 ? `inset(0px 0px 0px ${shift}px)` : "";
       const closed = b.visible < 1;
@@ -472,6 +530,14 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
 
   const refresh = () => {
+    if (!live) {
+      hold = true;
+      clearTimeout(holdT);
+      holdT = setTimeout(() => {
+        hold = false;
+        if (!destroyed) paint();
+      }, 240);
+    }
     if (dirty && !live) {
       dirty = false;
       W = frame.clientWidth;
@@ -729,6 +795,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       destroyed = true;
       gesture?.stop();
       ro.disconnect();
+      clearTimeout(holdT);
       frame.removeEventListener("click", onClick);
       frame.removeEventListener("pointerdown", onPointerDown);
       frame.removeEventListener("keydown", onKeyDown);

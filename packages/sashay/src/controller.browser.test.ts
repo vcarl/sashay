@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { frames, mountFrame, pane, tx } from "../test/dom.ts";
+import { frames, mountFrame, pane, slid, tx } from "../test/dom.ts";
 import { createSashay, type PaneOptions, type SashayHandle } from "./index.ts";
 import { decodeLayout } from "./window.ts";
 
@@ -42,12 +42,13 @@ test("paints 1:1:1", () => {
   expect(frame.hasAttribute("data-sashay-ready")).toBe(true);
 });
 
-test("invalid layout falls back to the default", () => {
+test("invalid layout falls back to the default", async () => {
   const onChange = vi.fn();
   h = createSashay(frame, { panes: P3, layout: "zz", onChange });
   expect48();
   h.setLayout("4c");
   h.setLayout("997-48");
+  await slid(); // widths only grow until the slide ends
   expect48();
   expect(onChange).not.toHaveBeenCalled();
 });
@@ -109,9 +110,9 @@ test("a workspace with its first two panes closed shows no spine", () => {
 const stack = (n: number): PaneOptions[] =>
   Array.from({ length: n }, (_, i) => ({ id: `p${i}`, title: `P${i}`, focus: 1 / 3 }));
 
-function grow(to: number, onChange = vi.fn()) {
+function grow(to: number, onChange = vi.fn(), width = 960) {
   frame.remove();
-  frame = mountFrame(["p0"]);
+  frame = mountFrame(["p0"], width);
   h = createSashay(frame, { panes: stack(1), onChange });
   for (let i = 1; i < to; i++) {
     frame.append(pane(`p${i}`));
@@ -120,7 +121,7 @@ function grow(to: number, onChange = vi.fn()) {
   return onChange;
 }
 
-test("stack: spine and offscreen panes", () => {
+test("stack: spine and offscreen panes", async () => {
   const onChange = grow(6);
   expect(onChange).toHaveBeenLastCalledWith("3-48");
   const spine = $("[data-spine]");
@@ -130,8 +131,35 @@ test("stack: spine and offscreen panes", () => {
     expect(P(id).hasAttribute("data-offscreen")).toBe(true);
     expect(P(id).inert).toBe(true);
   }
+  await slid(); // a leaving pane hides once it has slid out
   expect(getComputedStyle(P("p0")).contentVisibility).toBe("hidden");
   expect(frame.querySelectorAll("[data-sashay-edge]").length).toBe(3);
+});
+
+// 710px: thirds fit (3 units of 220px) only without the spine's 24px. Folding a pane into
+// the spine must not coarsen the grid to halves, which would shut the middle pane.
+test("the spine doesn't change the grid", () => {
+  grow(5, vi.fn(), 710);
+  expect(h?.layout).toBe("2-48");
+  for (const id of ["p2", "p3", "p4"]) expect(P(id).hasAttribute("data-closed")).toBe(false);
+});
+
+// One slide: the pushed pane starts right of where it lands, already at its own width (no
+// full-width flash); the folded pane slides left with the window, then hides.
+test("push slides the new pane in and the folded one out", async () => {
+  grow(4);
+  frame.append(pane("p4"));
+  h?.update({ panes: stack(5) });
+  const x = (el: HTMLElement) => new DOMMatrix(getComputedStyle(el).transform).m41;
+  expect(x(P("p4"))).toBeGreaterThan(tx(P("p4")) + 100);
+  expect(P("p4").getBoundingClientRect().width).toBeCloseTo(Number.parseFloat(P("p4").style.width), 0);
+  expect(P("p4").getBoundingClientRect().width).toBeLessThan(320);
+  expect(P("p1").hasAttribute("data-offscreen")).toBe(true);
+  expect(getComputedStyle(P("p1")).visibility).toBe("visible");
+  expect(tx(P("p1"))).toBeLessThan(0);
+  await slid();
+  expect(x(P("p4"))).toBeCloseTo(tx(P("p4")), 0);
+  expect(getComputedStyle(P("p1")).visibility).toBe("hidden");
 });
 
 test("spine click reveals the newest hidden pane", () => {

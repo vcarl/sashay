@@ -30,3 +30,6 @@ export const frames = (n = 2) =>
     const step = (k: number) => (k ? requestAnimationFrame(() => step(k - 1)) : r());
     step(n);
   });
+
+/** Wait out a slide: widths settle and leaving panes hide once the 0.24s transition ends. */
+export const slid = () => new Promise<void>((r) => setTimeout(r, 300));

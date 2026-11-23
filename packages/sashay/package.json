@@ -42,11 +42,11 @@
   "size-limit": [
     {
       "path": "dist/index.js",
-      "limit": "7.8 kB"
+      "limit": "8.4 kB"
     },
     {
       "path": "dist/react.js",
-      "limit": "9.1 kB",
+      "limit": "9.6 kB",
       "ignore": [
         "react",
         "react-dom"
@@ -54,7 +54,7 @@
     },
     {
       "path": "dist/style.css",
-      "limit": "2.08 kB",
+      "limit": "2.15 kB",
       "rolldown": false
     }
   ],

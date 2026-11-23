@@ -1,5 +1,5 @@
 /* Sashay: panes and edges are absolutely placed; the controller writes their
-   transform/width. They animate only when not dragging. Theme with --sashay-*. */
+   transform/width. Transforms animate only when not dragging. Theme with --sashay-*. */
 @layer sashay {
   [data-sashay-frame] {
     position: relative;
@@ -29,16 +29,20 @@
   [data-sashay-pane] {
     background: var(--sashay-pane-bg, Canvas);
   }
-  [data-sashay-pane][data-offscreen] {
-    content-visibility: hidden;
-    visibility: hidden;
-  }
 
+  /* Transforms only: the controller holds widths until the slide ends. */
   [data-sashay-frame]:not([data-dragging])
     :is([data-sashay-pane], [data-sashay-edge], [data-sashay-controls], [data-sashay-drawer]) {
+    transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* A pane leaving the window slides out before it hides. */
+  [data-sashay-frame] [data-sashay-pane][data-offscreen] {
+    content-visibility: hidden;
+    visibility: hidden;
     transition:
       transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
-      width 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+      visibility 0s 0.24s,
+      content-visibility 0s 0.24s allow-discrete;
   }
   @media (prefers-reduced-motion: reduce) {
     [data-sashay-frame] :is([data-sashay-pane], [data-sashay-edge], [data-sashay-controls], [data-sashay-drawer]),
