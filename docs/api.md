@@ -26,7 +26,8 @@ Approved design. Implementation must match. Change it only with Carl's sign-off.
 be wrapped in other components or rendered conditionally. Server rendering produces
 percentage widths from `layout`, so the first paint matches the hydrated layout on frames wide
 enough for the layout's grid. Narrower frames (compact mode, or a coarser snap grid) re-snap on
-hydration.
+hydration. With `minWidth`, the first paint matches only when you pass an explicit `layout`: the
+default split depends on the frame's width, which the server can't measure.
 
 ### `SashayHandle`
 
