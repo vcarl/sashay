@@ -123,10 +123,10 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const measure = createMeasure(frame);
   const px = measure.px;
   let W = frame.clientWidth;
-  // The live dividers during a drag, and where they would settle (the marks).
-  // A resize while dragging waits for release.
+  // The live dividers during a drag, and where they would settle (the marks): `rest` without
+  // a fling, `idx` with the current velocity. A resize while dragging waits for release.
   let live: number[] | null = null;
-  let preview: { d: number; idx: number[] } | null = null;
+  let preview: { d: number; rest: number[]; idx: number[] } | null = null;
   let gesture: { end(ev: PointerEvent | null): void; stop(): void } | null = null;
   let dirty = false;
   let destroyed = false;
@@ -448,9 +448,13 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       }
     });
     if (preview) {
-      const ghost = layout(W - sw, preview.idx.map(snapV), specs, []).edgeBoxes;
+      // Each mark sits where a no-fling release lands and stretches to where the fling lands.
+      const rest = layout(W - sw, preview.rest.map(snapV), specs, []).edgeBoxes;
+      const fly = layout(W - sw, preview.idx.map(snapV), specs, []).edgeBoxes;
       marks.forEach((m, k) => {
-        m.style.transform = `translateX(${(ghost[k + 1]?.x ?? 0) + sw}px)`;
+        const x = rest[k + 1]?.x ?? 0;
+        m.style.transform = `translateX(${x + sw}px)`;
+        m.style.setProperty("--sashay-fling", String((fly[k + 1]?.x ?? 0) - x));
         m.toggleAttribute("data-primary", k === preview?.d);
       });
     }
@@ -564,7 +568,11 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       moved = true;
       raw = start[d] + dx / C;
       live = drag(start, d, raw, S);
-      preview = { d, idx: settle(start, d, raw, velocity(samples, ev.timeStamp), o, S) };
+      preview = {
+        d,
+        rest: settle(start, d, raw, 0, o, S),
+        idx: settle(start, d, raw, velocity(samples, ev.timeStamp), o, S),
+      };
       paint();
     };
     const stop = () => {
@@ -576,6 +584,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       gesture = null;
       live = null;
       preview = null;
+      for (const m of marks) m.style.setProperty("--sashay-fling", "0");
     };
     const lost = () => end(null);
     // ev null: ended by update()/setLayout()/commit or a lost capture; settles where it is.

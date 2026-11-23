@@ -41,12 +41,13 @@
       width 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   @media (prefers-reduced-motion: reduce) {
-    [data-sashay-frame] :is([data-sashay-pane], [data-sashay-edge], [data-sashay-controls], [data-sashay-drawer]) {
+    [data-sashay-frame] :is([data-sashay-pane], [data-sashay-edge], [data-sashay-controls], [data-sashay-drawer]),
+    [data-sashay-mark]::after {
       transition: none !important;
     }
   }
 
-  /* Release preview: no transition, it tracks the pointer exactly. */
+  /* Release preview */
   [data-sashay-mark] {
     position: absolute;
     top: 18%;
@@ -60,6 +61,16 @@
     opacity: 0;
     z-index: 98;
     pointer-events: none;
+  }
+  [data-sashay-mark]::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 50%;
+    width: 1px;
+    background: inherit;
+    transform-origin: left;
+    scale: var(--sashay-fling, 0) 1;
+    transition: scale 0.16s;
   }
   [data-sashay-frame][data-dragging] [data-sashay-mark] {
     opacity: 0.35;
@@ -235,7 +246,7 @@
     outline-offset: -2px;
   }
 
-  /* The leaf pane's own close; Task 6 places it by transform. */
+  /* The leaf pane's own close. */
   [data-sashay-close] {
     position: absolute;
     top: 6px;
@@ -299,7 +310,7 @@
     border-right: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
     box-shadow: 10px 0 24px -12px var(--sashay-shadow, rgb(0 0 0 / 0.5));
   }
-  /* Sits on top of the sheet; the controller matches its transform and width. */
+  /* Over the sheet; the controller matches its transform and width. */
   [data-sashay-sheet-head] {
     position: absolute;
     top: 0;

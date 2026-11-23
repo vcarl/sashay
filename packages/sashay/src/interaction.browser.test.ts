@@ -90,6 +90,29 @@ test("fast fling carries two snaps", async () => {
   expect(onClose.mock.calls).toEqual([["c"]]);
 });
 
+// The preview mark sits where a no-fling release lands; a throw stretches it to the fling's landing.
+const fling = (m: HTMLElement) => Number(m.style.getPropertyValue("--sashay-fling"));
+test("slow drag: preview doesn't stretch", async () => {
+  mount();
+  const B = E("b");
+  const x = await drag7(B, centre(B), 60); // ~0.37 px/ms, under the fling threshold
+  expect(fling($("[data-sashay-mark][data-primary]"))).toBe(0);
+  pointer(B, "pointerup", x);
+});
+
+test("fast flick: preview stretches toward the target, release lands at its far end", async () => {
+  mount();
+  const B = E("b");
+  const x = await drag7(B, centre(B), 10);
+  const m = $("[data-sashay-mark][data-primary]");
+  const far = tx(m) + fling(m);
+  expect(fling(m)).toBeGreaterThan(0);
+  expect(tx(m)).toBeLessThan(far);
+  pointer(B, "pointerup", x);
+  expect(onChange.mock.calls).toEqual([["9c"]]);
+  expect(tx(E("b"))).toBeCloseTo(far, 6);
+});
+
 test("release below minWidth closes", async () => {
   mount();
   const C = E("c");
