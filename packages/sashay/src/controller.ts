@@ -706,8 +706,16 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     // Measured once per gesture, never per move.
     const scale = frame.getBoundingClientRect().width / frame.offsetWidth || 1;
     const x0 = e.clientX / scale;
-    const start = effective();
     const C = Math.max(content(), 1);
+    // Mid-slide, start from what's on screen, not the target: each edge's transitioning
+    // transform against the one it's heading for. Read once per gesture.
+    const w = win();
+    const start = effective().map((v, j) => {
+      const el = edges.get(w[j + 1]?.id);
+      if (!el?.style.transform) return v;
+      const off = new DOMMatrix(getComputedStyle(el).transform).m41 - new DOMMatrix(el.style.transform).m41;
+      return Math.abs(off) > 0.5 ? v + off / C : v;
+    });
     const S = sizes();
     const o = order();
     const samples: Sample[] = [{ t: e.timeStamp, x: x0 }];

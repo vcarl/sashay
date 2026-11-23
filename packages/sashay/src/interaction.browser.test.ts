@@ -179,6 +179,25 @@ test("vertical swipe neither toggles nor drags", () => {
   expect(onChange).not.toHaveBeenCalled();
 });
 
+// A slide is a CSS transition; grabbing an edge mid-slide continues from where it is on screen.
+test("grabbing mid-slide drags from the visible position", async () => {
+  mount();
+  const B = E("b");
+  const from = tx(B);
+  key(B, "ArrowRight");
+  const to = tx(B);
+  expect(to - from).toBeGreaterThan(40);
+  await wait(100);
+  const seen = new DOMMatrix(getComputedStyle(B).transform).m41;
+  expect(seen).toBeGreaterThan(from + 5);
+  expect(seen).toBeLessThan(to - 5);
+  const x0 = centre(B);
+  pointer(B, "pointerdown", x0);
+  pointer(B, "pointermove", x0 + 6);
+  expect(tx(B)).toBeCloseTo(seen + 6, 0);
+  pointer(B, "pointercancel", x0 + 6);
+});
+
 test("keyboard", () => {
   mount();
   E("b").focus();
