@@ -157,7 +157,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
 
   const win = () => panes.slice(view.offset, windowEnd(view));
   const compact = () => W > 0 && W < px(opts.compactBelow);
-  const spineW = (offset: number) => (offset > 0 ? px(SPINE) : 0);
+  // The spines: panes [0, from) fold into one at the left, panes [to, n) into one at the right.
+  const spineW = (from: number, to: number, n: number) => (from > 0 ? px(SPINE) : 0) + (to < n ? px(SPINE) : 0);
+  const spinesW = () => spineW(view.offset, windowEnd(view), panes.length);
   const edgeSpecs = (list: PaneOptions[]): EdgeSpec[] => {
     const c = compact();
     return list.map((p, k) => {
@@ -171,17 +173,17 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
   const sizesOf = (list: PaneOptions[], from: number, to: number): Sizes => {
     const w = list.slice(from, to);
-    const C = Math.max(1, contentWidth(W - spineW(from), edgeSpecs(w)));
+    const C = Math.max(1, contentWidth(W - spineW(from, to, list.length), edgeSpecs(w)));
     return {
       focus: w.map((p) => p.focus),
       min: w.map((p) => Math.min(1, px(p.minWidth ?? 0) / C)),
       max: w.map((p) => (p.maxWidth === undefined ? 1 : Math.min(1, px(p.maxWidth) / C))),
     };
   };
-  const content = () => contentWidth(W - spineW(view.offset), edgeSpecs(win()));
-  // The grid ignores the spine, so a pane folding into it doesn't coarsen the grid and
+  const content = () => contentWidth(W - spinesW(), edgeSpecs(win()));
+  // The grid ignores the spines, so a pane folding into one doesn't coarsen the grid and
   // re-round every divider (thirds becoming halves would shut a middle pane).
-  const order = () => gridOrder(content() + spineW(view.offset));
+  const order = () => gridOrder(content() + spinesW());
   const sizes = () => sizesOf(panes, view.offset, windowEnd(view));
   const sizesFor = (a: number, b: number) => sizesOf(panes, a, b);
   // The default view: an equal split over as many trailing panes as fit their minimums.
@@ -227,14 +229,18 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
 
   // Controls sashay owns.
-  const spine = document.createElement("button");
-  spine.type = "button";
-  spine.setAttribute("data-spine", "");
+  const spines = (["start", "end"] as const).map((side) => {
+    const n = document.createElement("nav");
+    n.setAttribute("data-spine", side);
+    n.setAttribute("aria-label", side === "start" ? "Earlier panes" : "Later panes");
+    return n;
+  });
+  const spineTabs = new Map<string, HTMLButtonElement>();
   const leaf = document.createElement("button");
   leaf.type = "button";
   leaf.setAttribute("data-sashay-close", "");
   leaf.textContent = "×";
-  frame.prepend(spine, leaf);
+  frame.prepend(leaf); // a spine joins the frame only while it holds tabs
   let lone = false; // closing the leaf is impossible: set in sync, read per frame in paint
   const marks: HTMLElement[] = [];
   const tabs = document.createElement("div");
@@ -275,14 +281,64 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     ctl.append(toggle, title);
   };
 
+  // A tab per folded pane, in pane order. Incremental: only tabs joining or leaving the spine
+  // touch the DOM, so a deep stack costs O(change) in DOM work. `near`: the tab next to the
+  // window (the most recently folded), which is the roving tab stop and stays scrolled into view.
+  const fillSpine = (s: HTMLElement, list: PaneOptions[], near: "first" | "last") => {
+    const want = new Set(list.map((p) => p.id));
+    const drop = (el: Element | null) => {
+      while (el) {
+        const next = el.nextElementSibling;
+        if (want.has((el as HTMLElement).dataset.sashaySpineTab as string)) return el;
+        el.remove(); // kept in spineTabs until sync ends: it may be moving to the other spine
+        el = next;
+      }
+      return null;
+    };
+    let cur = s.firstElementChild;
+    let added = false;
+    for (const p of list) {
+      cur = drop(cur);
+      let b = spineTabs.get(p.id);
+      if (!b) {
+        b = document.createElement("button");
+        b.type = "button";
+        b.tabIndex = -1;
+        b.setAttribute("data-sashay-spine-tab", p.id);
+        spineTabs.set(p.id, b);
+      }
+      if (b.textContent !== p.title) {
+        b.textContent = p.title;
+        b.setAttribute("aria-label", `${p.title}, collapsed`);
+      }
+      if (b === cur) cur = cur.nextElementSibling;
+      else {
+        s.insertBefore(b, cur);
+        added = true;
+      }
+    }
+    drop(cur);
+    if (!list.length) s.remove();
+    else if (!s.isConnected) frame.prepend(s);
+    const t = (near === "last" ? s.lastElementChild : s.firstElementChild) as HTMLElement | null;
+    if (!t) return;
+    if (!s.contains(document.activeElement)) {
+      const stop = s.querySelector<HTMLElement>('[tabindex="0"]');
+      if (stop) stop.tabIndex = -1;
+      t.tabIndex = 0;
+    }
+    if (added) s.scrollTop = near === "last" ? s.scrollHeight : 0;
+  };
+
   // Window membership, edges and ARIA. On commit and resize, never per frame.
   const sync = () => {
     const c = compact();
     frame.toggleAttribute("data-compact", c);
-    const spineFocused = document.activeElement === spine;
-    spine.hidden = !view.offset;
-    spine.textContent = String(view.offset);
-    spine.setAttribute("aria-label", `Show ${view.offset} hidden panes`);
+    const focused = document.activeElement as HTMLElement | null;
+    const fromSpine = focused?.hasAttribute("data-sashay-spine-tab") ? focused.parentElement : null;
+    fillSpine(spines[0], panes.slice(0, view.offset), "last");
+    fillSpine(spines[1], panes.slice(windowEnd(view)), "first");
+    for (const [id, b] of spineTabs) if (!b.isConnected) spineTabs.delete(id);
     const w = win();
     const ids = new Set(w.map((p) => p.id));
     for (const [id, e] of edges) {
@@ -400,7 +456,15 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       marks.push(m);
     }
     while (marks.length > Math.max(0, w.length - 1)) marks.pop()?.remove();
-    if (spineFocused && spine.hidden && w.length) edges.get(w[0].id)?.focus({ preventScroll: true });
+    // A focused spine tab that left (its pane was revealed): focus the tab now nearest the
+    // window on that side, or, with that spine empty, the window's edge on that side.
+    if (fromSpine && document.activeElement !== focused) {
+      const start = fromSpine === spines[0];
+      const t = !fromSpine.isConnected
+        ? edges.get(w[start ? 0 : w.length - 1]?.id)
+        : fromSpine.querySelector<HTMLElement>('[tabindex="0"]');
+      t?.focus({ preventScroll: true });
+    }
     const open = [...openIds()];
     lone = c || open.length < 2;
     if (lone && document.activeElement === leaf) edges.get(open.pop() ?? w[0]?.id)?.focus({ preventScroll: true });
@@ -413,11 +477,12 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       leaf.hidden = true;
       return;
     }
-    const sw = spineW(view.offset);
+    const sw = view.offset > 0 ? px(SPINE) : 0;
+    const sr = spinesW() - sw;
     const specs = edgeSpecs(w);
     const c = compact();
     const { paneBoxes, edgeBoxes } = layout(
-      W - sw,
+      W - sw - sr,
       effective(),
       specs,
       w.map((p) => ({ focus: p.focus })),
@@ -497,7 +562,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         if (c) {
           const tw = px(TABS);
           ds.transform = `translateX(${sw + tw}px)`;
-          ds.width = `${Math.min(px(p.edge?.drawer?.width ?? 0), W - sw - tw - px(EDGE))}px`;
+          ds.width = `${Math.min(px(p.edge?.drawer?.width ?? 0), W - sw - sr - tw - px(EDGE))}px`;
           ds.zIndex = "";
           sheetHead.style.transform = ds.transform;
           sheetHead.style.width = ds.width;
@@ -512,8 +577,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       // Each mark sits where a no-fling release lands; a throw bows the dragged mark's middle toward
       // where the fling lands, by up to half that distance as the throw speeds up (preview.t).
       // The other marks stay straight bars.
-      const rest = layout(W - sw, preview.rest.map(snapV), specs, []).edgeBoxes;
-      const fly = layout(W - sw, preview.idx.map(snapV), specs, []).edgeBoxes;
+      const rest = layout(W - sw - sr, preview.rest.map(snapV), specs, []).edgeBoxes;
+      const fly = layout(W - sw - sr, preview.idx.map(snapV), specs, []).edgeBoxes;
       const t = preview.t;
       marks.forEach((m, k) => {
         const x = rest[k + 1]?.x ?? 0;
@@ -597,7 +662,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     const at = (name: string) => t.closest(`[${name}]`)?.getAttribute(name);
     const tab = at("data-sashay-tab");
     const drawerTab = at("data-sashay-drawer-tab");
-    if (t.closest("[data-spine]")) revealAt(view.offset - 1);
+    const spineTab = at("data-sashay-spine-tab");
+    if (spineTab != null) revealAt(indexOf(spineTab));
     else if (t.closest("[data-sashay-close]")) {
       const k = toWidths(effIdx().map(snapV)).findLastIndex(isOpen);
       if (k >= 0) closeAt(view.offset + k, true);
@@ -685,10 +751,19 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const onKeyDown = (e: KeyboardEvent) => {
     const t = e.target as HTMLElement;
     if (t.closest("[data-sashay-frame]") !== frame) return;
-    if (t.hasAttribute("data-spine")) {
-      if (e.key !== "ArrowLeft") return;
+    if (t.hasAttribute("data-sashay-spine-tab")) {
+      const s = t.parentElement as HTMLElement;
+      const to = {
+        ArrowUp: t.previousElementSibling,
+        ArrowDown: t.nextElementSibling,
+        Home: s.firstElementChild,
+        End: s.lastElementChild,
+      }[e.key];
+      if (!(to instanceof HTMLElement)) return;
       e.preventDefault();
-      revealAt(view.offset - 1);
+      t.tabIndex = -1;
+      to.tabIndex = 0;
+      to.focus();
       return;
     }
     const k = winIndex(t.dataset.sashayEdge);
@@ -803,7 +878,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       for (const e of [...edges.values(), ...ctls.values()]) e.remove();
       edges.clear();
       ctls.clear();
-      spine.remove();
+      for (const s of spines) s.remove();
+      spineTabs.clear();
       leaf.remove();
       tabs.remove();
       sheetHead.remove();

@@ -103,9 +103,19 @@ test("a workspace with its first two panes closed shows no spine", () => {
   h = createSashay(frame, { panes: P3, layout: "48" });
   h.close("a");
   h.close("b");
-  expect($("[data-spine]").hidden).toBe(true);
+  expect($("[data-spine]")).toBeNull();
   expect(frame.querySelectorAll("[data-sashay-edge]").length).toBe(3);
 });
+
+const T = (id: string) => $(`[data-sashay-spine-tab="${id}"]`);
+const spineIds = (side: string) =>
+  [...frame.querySelectorAll(`[data-spine="${side}"] [data-sashay-spine-tab]`)].map(
+    (t) => (t as HTMLElement).dataset.sashaySpineTab,
+  );
+const openPanes = () =>
+  [...frame.querySelectorAll("[data-sashay-pane]:not([data-offscreen]):not([data-closed])")].map(
+    (p) => (p as HTMLElement).dataset.sashayPane,
+  );
 
 const stack = (n: number): PaneOptions[] =>
   Array.from({ length: n }, (_, i) => ({ id: `p${i}`, title: `P${i}`, focus: 1 / 3 }));
@@ -124,9 +134,15 @@ function grow(to: number, onChange = vi.fn(), width = 960) {
 test("stack: spine and offscreen panes", async () => {
   const onChange = grow(6);
   expect(onChange).toHaveBeenLastCalledWith("3-48");
-  const spine = $("[data-spine]");
-  expect(spine.hidden).toBe(false);
-  expect(spine.textContent).toBe("3");
+  const spine = $('[data-spine="start"]');
+  expect(spine.isConnected).toBe(true);
+  expect(spine.tagName).toBe("NAV");
+  expect(spine.getAttribute("aria-label")).toBe("Earlier panes");
+  expect(spineIds("start")).toEqual(["p0", "p1", "p2"]); // oldest at the top
+  expect(T("p1").getAttribute("aria-label")).toBe("P1, collapsed");
+  expect(T("p1").textContent).toBe("P1");
+  expect([...spine.children].map((t) => (t as HTMLElement).tabIndex)).toEqual([-1, -1, 0]); // roving stop: newest
+  expect($('[data-spine="end"]')).toBeNull(); // a spine is in the DOM only while it holds tabs
   for (const id of ["p0", "p1", "p2"]) {
     expect(P(id).hasAttribute("data-offscreen")).toBe(true);
     expect(P(id).inert).toBe(true);
@@ -162,12 +178,51 @@ test("push slides the new pane in and the folded one out", async () => {
   expect(getComputedStyle(P("p1")).visibility).toBe("hidden");
 });
 
-test("spine click reveals the newest hidden pane", () => {
+test("the spine tab next to the window reveals that pane", () => {
   const onChange = grow(6);
-  $("[data-spine]").click();
+  T("p2").click();
   expect(onChange).toHaveBeenLastCalledWith("2-48c");
   expect(P("p2").hasAttribute("data-offscreen")).toBe(false);
   expect(P("p5").hasAttribute("data-closed")).toBe(true);
+});
+
+test("a mid-spine tab reveals exactly that pane and keeps the open count", () => {
+  grow(8);
+  expect(openPanes()).toEqual(["p5", "p6", "p7"]);
+  T("p2").click();
+  expect(openPanes()).toEqual(["p2", "p3", "p4"]);
+  expect(P("p5").hasAttribute("data-closed")).toBe(true); // the window's trailing edge
+  expect(spineIds("start")).toEqual(["p0", "p1"]);
+  // Panes after the window fold into a spine at the right, nearest the window at the top.
+  expect(spineIds("end")).toEqual(["p6", "p7"]);
+  const end = $('[data-spine="end"]');
+  expect(end.getBoundingClientRect().right).toBeCloseTo(frame.getBoundingClientRect().right, 0);
+  expect(P("p4").getBoundingClientRect().right).toBeLessThanOrEqual(end.getBoundingClientRect().left + 0.5);
+  T("p7").click();
+  expect(openPanes()).toEqual(["p5", "p6", "p7"]);
+  expect(end.isConnected).toBe(false);
+  expect(spineIds("start")).toEqual(["p0", "p1", "p2", "p3", "p4"]);
+});
+
+test("spine tabs are added and removed one at a time as panes fold and unfold", () => {
+  grow(6);
+  const spine = $('[data-spine="start"]');
+  const before = [...spine.children];
+  const log: MutationRecord[] = [];
+  const mo = new MutationObserver((m) => log.push(...m));
+  mo.observe(spine, { childList: true });
+  frame.append(pane("p6"));
+  h?.update({ panes: stack(7) });
+  P("p6").remove();
+  h?.update({ panes: stack(6) });
+  log.push(...mo.takeRecords());
+  mo.disconnect();
+  expect(spineIds("start")).toEqual(["p0", "p1", "p2"]);
+  expect([...spine.children]).toEqual(before); // the same nodes, never rebuilt
+  const added = log.flatMap((m) => [...m.addedNodes]);
+  const removed = log.flatMap((m) => [...m.removedNodes]);
+  expect(added.map((n) => (n as HTMLElement).dataset.sashaySpineTab)).toEqual(["p3"]);
+  expect(removed.map((n) => (n as HTMLElement).dataset.sashaySpineTab)).toEqual(["p3"]);
 });
 
 test("pop", () => {
@@ -278,14 +333,16 @@ test("toggleDrawer opens a drawer beside its edge", () => {
   expect(d.hasAttribute("data-open")).toBe(false);
 });
 
-test("focus leaves the spine for the first window edge when the spine hides", () => {
+test("focus survives reveals: the next spine tab, then the first window edge", () => {
   grow(6);
-  const spine = $("[data-spine]") as HTMLButtonElement;
-  for (let n = 0; !spine.hidden && n < 10; n++) {
-    spine.focus();
-    spine.click();
+  const spine = $('[data-spine="start"]');
+  for (let n = 0; spine.isConnected && n < 10; n++) {
+    const t = spine.querySelector('[tabindex="0"]') as HTMLElement;
+    t.focus();
+    t.click();
+    if (spine.isConnected) expect(document.activeElement).toBe(spine.lastElementChild);
   }
-  expect(spine.hidden).toBe(true);
+  expect(spine.isConnected).toBe(false);
   expect(document.activeElement).toBe(frame.querySelector("[data-sashay-edge]"));
 });
 
@@ -375,13 +432,13 @@ test("compact: a fixed workspace shows a tab per pane and never a spine", () => 
   h = createSashay(frame, { panes: P3 });
   expect(frame.hasAttribute("data-compact")).toBe(true);
   for (const id of ["a", "b", "c", "a"]) {
-    expect($("[data-spine]").hidden).toBe(true);
+    expect($("[data-spine]")).toBeNull();
     expect(tabs().length).toBe(3);
     $(`[data-sashay-tab="${id}"]`).click();
     expect(shown(id)).toBe(true);
     expect($(`[data-sashay-tab="${id}"]`).getAttribute("aria-pressed")).toBe("true");
   }
-  expect($("[data-spine]").hidden).toBe(true);
+  expect($("[data-spine]")).toBeNull();
 });
 
 test("compact: every pane of a deep stack is reachable by tab or spine", () => {
@@ -393,7 +450,7 @@ test("compact: every pane of a deep stack is reachable by tab or spine", () => {
   );
   h = createSashay(frame, { panes });
   const spine = $("[data-spine]");
-  expect(spine.hidden).toBe(false);
+  expect(spine.isConnected).toBe(true);
   expect(tabs().length).toBeLessThanOrEqual(7);
   const reached = new Set<string>();
   for (const t of [...tabs()] as HTMLElement[]) {
@@ -402,8 +459,8 @@ test("compact: every pane of a deep stack is reachable by tab or spine", () => {
     expect(shown(id)).toBe(true);
     reached.add(id);
   }
-  while (!spine.hidden) {
-    spine.click();
+  while (spine.isConnected) {
+    (spine.lastElementChild as HTMLElement).click();
     expect(tabs().length).toBeLessThanOrEqual(7);
     const open = panes.filter((p) => shown(p.id));
     expect(open.length).toBe(1);
@@ -415,4 +472,12 @@ test("compact: every pane of a deep stack is reachable by tab or spine", () => {
     expect(shown(`p${i}`)).toBe(true);
     expect(tabs().length).toBeLessThanOrEqual(7);
   }
+  // A mid-spine tab jumps straight to its pane. Every pane stays a strip tab or a spine tab.
+  $('[data-sashay-tab="p49"]').click();
+  T("p20").click();
+  expect(shown("p20")).toBe(true);
+  const strip = [...tabs()].map((t) => (t as HTMLElement).dataset.sashayTab);
+  expect(strip.length).toBeLessThanOrEqual(6);
+  expect(strip).toContain("p20");
+  expect([...spineIds("start"), ...strip, ...spineIds("end")]).toEqual(panes.map((p) => p.id));
 });

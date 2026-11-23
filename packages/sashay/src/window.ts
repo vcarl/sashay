@@ -72,7 +72,9 @@ function fold({ offset, div }: View, cap?: number): View {
 
 /**
  * Open pane p, or uncover it. In the window: focus it. Next to the window:
- * extend the window by it, then focus it. Anywhere else: the window jumps to it.
+ * extend the window by it, then focus it. Anywhere else (a spine tab): the window
+ * jumps to start at it, then opens the panes after it, then before it, until one
+ * more is open than before or the frame is at capacity.
  */
 export function reveal(
   v: View,
@@ -86,7 +88,17 @@ export function reveal(
   if (p < 0 || p >= n) return v;
   let { offset, div } = v;
   const end = windowEnd(v);
-  if (p < offset - 1 || p > end) return normalize({ offset: p, div: [] }, n);
+  if (p < offset - 1 || p > end) {
+    const want = openAt(v, order).length + 1;
+    let j = normalize({ offset: p, div: [] }, n);
+    for (const dir of [1, -1])
+      for (let q = p + dir; q >= 0 && q < n && openAt(j, order).length < want; q += dir) {
+        const r = reveal(j, q, n, sizes, order, undefined, cap);
+        if (openAt(r, order).length <= openAt(j, order).length) break;
+        j = r;
+      }
+    return j;
+  }
   if (p === offset - 1) {
     offset = p;
     div = [0, ...div];

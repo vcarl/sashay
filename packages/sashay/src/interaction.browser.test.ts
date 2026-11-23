@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { frames, mountFrame, pane, pointer, tx } from "../test/dom.ts";
 import { createSashay, type PaneOptions, type SashayHandle, type SashayOptions } from "./index.ts";
 
@@ -178,12 +179,22 @@ test("keyboard", () => {
   expect(onClose).toHaveBeenLastCalledWith("c");
 });
 
-test("spine: ArrowLeft reveals the newest hidden pane", () => {
+test("spine: arrow keys move between tabs, Enter reveals, focus stays in the spine", async () => {
   const ids = ["p0", "p1", "p2", "p3", "p4", "p5"];
   frame.replaceChildren(...ids.map(pane));
   mount({ panes: ids.map((id) => ({ id, title: id, focus: 1 / 3 })), layout: "3-48" });
-  key($("[data-spine]"), "ArrowLeft");
-  expect(onChange).toHaveBeenLastCalledWith("2-48c");
+  const tab = (id: string) => $(`[data-sashay-spine-tab="${id}"]`);
+  tab("p2").focus();
+  key(tab("p2"), "ArrowUp");
+  expect(document.activeElement).toBe(tab("p1"));
+  key(tab("p1"), "Home");
+  expect(document.activeElement).toBe(tab("p0"));
+  key(tab("p0"), "ArrowDown");
+  expect(document.activeElement).toBe(tab("p1"));
+  expect([tab("p0").tabIndex, tab("p1").tabIndex, tab("p2").tabIndex]).toEqual([-1, 0, -1]);
+  await userEvent.keyboard("{Enter}");
+  expect(onChange).toHaveBeenLastCalledWith("1-48c");
+  expect(document.activeElement).toBe(tab("p0"));
 });
 
 test("aria", () => {

@@ -58,7 +58,11 @@ describe("stack", () => {
   it("again", () =>
     expect(reveal({ offset: 2, div: [4, 8, 12] }, 1, 6, S0(F), 6)).toEqual({ offset: 1, div: [4, 8, 12] }));
   it("same at order 4", () => expect(reveal(six, 2, 6, S0(F), 4)).toEqual({ offset: 2, div: [4, 8, 12] }));
-  it("non-adjacent reveal jumps", () => expect(reveal(six, 0, 6, S0(F), 6)).toEqual({ offset: 0, div: [12] }));
+  // A spine tab: the window starts at the pane and keeps three open; 4 and 5 follow it, hidden.
+  it("non-adjacent reveal jumps and keeps the open count", () =>
+    expect(reveal(six, 0, 6, S0(F), 6)).toEqual({ offset: 0, div: [4, 8, 12] }));
+  it("a jump to the last pane opens the panes before it", () =>
+    expect(reveal({ offset: 0, div: [4, 8, 12] }, 5, 6, S0(F), 6)).toEqual({ offset: 3, div: [4, 8] }));
   // Closing keeps the open count: the newest spine pane unfolds.
   it("close the leaf keeps its edge and unfolds the spine", () =>
     expect(close(six, 5, 6, S0(F), 6)).toEqual({ offset: 2, div: [4, 8, 12] }));

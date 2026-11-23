@@ -2,7 +2,7 @@
 // assertions on the median, measured after warm-up.
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { createSashay, type PaneOptions, type SashayHandle } from "../src/index.ts";
-import { mountFrame, pane, pointer } from "../test/dom.ts";
+import { frames, mountFrame, pane, pointer } from "../test/dom.ts";
 
 declare const gc: () => void;
 const N = 1000;
@@ -66,6 +66,37 @@ test("adding a pane < 16 ms", () => {
     if (i >= 10) t.push(performance.now() - s); // first 10 are warm-up
   }
   console.log(`add pane median ${median(t).toFixed(3)} ms`);
+  expect(median(t)).toBeLessThan(16);
+});
+
+// A rolling stack 997 deep: each step drops the oldest pane (its spine tab goes) and pushes a
+// new one (the oldest open pane folds: its tab comes). Each change touches only those tabs.
+test("adding and removing with a deep spine < 16 ms each", async () => {
+  frame.style.width = "960px"; // three panes at thirds fill it, so each push folds one
+  await frames();
+  const stackOpt = (id: string): PaneOptions => ({ id, title: id, focus: 1 / 3 });
+  panes = panes.map((p) => stackOpt(p.id));
+  h.update({ panes });
+  h.setLayout("997-48");
+  const spine = frame.querySelector('[data-spine="start"]') as HTMLElement;
+  const t: number[] = [];
+  for (let i = 0; i < 60; i++) {
+    frame.querySelector(`[data-sashay-pane="${panes[0].id}"]`)?.remove();
+    panes = panes.slice(1);
+    let s = performance.now();
+    h.update({ panes });
+    const rm = performance.now() - s;
+    frame.append(pane(`new${i}`));
+    panes = [...panes, stackOpt(`new${i}`)];
+    s = performance.now();
+    h.update({ panes });
+    if (i >= 10) t.push(rm, performance.now() - s); // the first 10 are warm-up
+    expect(h.layout).toBe("997-48");
+    expect(spine.children.length).toBe(997);
+    expect(spine.firstElementChild?.getAttribute("data-sashay-spine-tab")).toBe(panes[0].id);
+    expect(spine.lastElementChild?.getAttribute("data-sashay-spine-tab")).toBe(panes[996].id);
+  }
+  console.log(`deep spine add/remove median ${median(t).toFixed(3)} ms, max ${Math.max(...t).toFixed(3)} ms`);
   expect(median(t)).toBeLessThan(16);
 });
 

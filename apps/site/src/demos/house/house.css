@@ -9,9 +9,13 @@
   --sashay-accent: var(--butter);
   --sashay-spine-width: 2rem;
 }
-.house [data-spine] {
+.house [data-sashay-spine-tab] {
   color: var(--ink);
-  font: 600 13px var(--mono);
+  font-family: var(--mono);
+  border-color: color-mix(in srgb, var(--ink) 25%, transparent);
+}
+.house [data-sashay-spine-tab]:hover {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
 }
 .house [data-sashay-close] {
   color: var(--ink);

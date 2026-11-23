@@ -192,7 +192,8 @@ function SsrStyle({ s, scope, layout, defaultLayout }: { s: Store; scope: string
     return len(dr && d?.drawers[j++] ? dr.width : edgeWidth(p.edge));
   });
   const spine = v.offset ? SPINE : "0px";
-  const C = `(100% - ${spine} - (${edges.join(" + ")}))`;
+  const end = windowEnd(v) < n ? SPINE : "0px";
+  const C = `(100% - ${spine} - ${end} - (${edges.join(" + ")}))`;
   const div = v.div.map(snapV);
   const w = toWidths(div);
   const q = (x: string) => JSON.stringify(x).replace(/</g, "\\3c ");

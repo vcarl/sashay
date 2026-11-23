@@ -112,10 +112,12 @@ stack (drill-down: picking an item adds a pane on the right; going back removes 
   it; at capacity, the outermost open pane collapses.
   - **Capacity:** the frame is at capacity when the open panes plus the one opening can't
     all fit at their `focus`, each rounded up to the snap grid in play.
-- **Spine.** When the open panes no longer fit, the oldest panes fold into a single spine at the
-  left that shows a count. Clicking it, or pressing ← on it, reveals the newest hidden pane.
-  Closed panes keep their own edges and never
-  fold into the spine, so a fixed workspace that fits never shows one.
+- **Spine.** When the open panes no longer fit, the oldest panes fold into a spine at the
+  left: a narrow column with a vertical tab per folded pane, oldest at the top, scrolling when
+  it overflows, with the most recently folded tab kept in view. Clicking a tab (or Enter/Space)
+  is `reveal(id)`: the window jumps to start at that pane and keeps the open count. Panes left
+  after the window then fold into a second spine at the right, nearest first. Closed panes keep
+  their own edges and never fold into the spine, so a fixed workspace that fits never shows one.
 - **Compact.** The tab strip lists the visible window, up to six panes; panes fold into the
   spine only past six, so a workspace of six or fewer shows one tab per pane and no spine.
 - **Layout code.** It holds one hex digit (the snap index) per visible divider, plus the
@@ -143,7 +145,8 @@ Enforced by browser-mode benchmarks in CI.
 | `data-covered` | pane | Partly covered by the next pane, and marked `inert`. |
 | `data-closed` | pane | Closed. |
 | `data-offscreen` | pane | In the spine or otherwise not visible. |
-| `data-spine` | spine element | The collapsed stack. |
+| `data-spine="start"`, `"end"` | spine element | The panes folded before (left) or after (right) the window. |
+| `data-sashay-spine-tab="<id>"` | spine tab | The tab for one folded pane. |
 | `data-dragging` | frame | A drag is in progress. |
 | `data-compact` | frame | Compact mode is active. |
 | `data-sashay-controls="<id>"` | controls element | A sibling laid over each edge. It holds the drawer toggle, the title and, in compact mode, the tab strip. |
@@ -159,6 +162,10 @@ Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
 - On a focused edge, ← and → move between snaps, and Enter or Space opens or closes the pane.
 - Drawer toggles carry `aria-expanded`.
 - Covered and off-screen panes are `inert`.
+- Each spine is a `<nav>` labelled "Earlier panes" or "Later panes". Its tabs are buttons named
+  "<title>, collapsed", with one tab stop: ↑/↓, Home and End move between tabs. When a focused
+  tab's pane is revealed, focus moves to the spine's tab nearest the window, or to the window's
+  edge on that side once the spine is empty.
 
 ## Not public in 1.0
 
