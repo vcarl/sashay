@@ -450,14 +450,15 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       }
     });
     if (preview) {
-      // Each mark sits where a no-fling release lands; a throw bows its middle toward where the
-      // fling lands, by up to half that distance as the throw speeds up (preview.t).
+      // Each mark sits where a no-fling release lands; a throw bows the dragged mark's middle toward
+      // where the fling lands, by up to half that distance as the throw speeds up (preview.t).
+      // The other marks stay straight bars.
       const rest = layout(W - sw, preview.rest.map(snapV), specs, []).edgeBoxes;
       const fly = layout(W - sw, preview.idx.map(snapV), specs, []).edgeBoxes;
       const t = preview.t;
       marks.forEach((m, k) => {
         const x = rest[k + 1]?.x ?? 0;
-        const b = (t * ((fly[k + 1]?.x ?? 0) - x)) / 2;
+        const b = k === preview?.d ? (t * ((fly[k + 1]?.x ?? 0) - x)) / 2 : 0; // only the dragged mark bows
         m.style.transform = `translateX(${x + sw}px)`;
         m.style.setProperty("--sashay-fling", String(b));
         m.toggleAttribute("data-fling", b !== 0);

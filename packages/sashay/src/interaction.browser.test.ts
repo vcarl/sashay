@@ -120,6 +120,20 @@ test("fast flick: bulge is half the fling", async () => {
   expect(b).toBeCloseTo(half, 6);
 });
 
+// A throw that also moves the other divider ("48" → "9c"): only the dragged mark bows.
+test("fast flick: only the primary mark bows", async () => {
+  mount();
+  const B = E("b");
+  const x = await drag7(B, centre(B), 10);
+  const [primary, other] = [...frame.querySelectorAll<HTMLElement>("[data-sashay-mark]")];
+  expect(primary.hasAttribute("data-primary")).toBe(true);
+  expect(bulge(primary)).toBeGreaterThan(0);
+  expect(other.hasAttribute("data-fling")).toBe(false);
+  expect(bulge(other)).toBe(0);
+  pointer(B, "pointerup", x);
+  expect(onChange.mock.calls).toEqual([["9c"]]);
+});
+
 test("release below minWidth closes", async () => {
   mount();
   const C = E("c");
