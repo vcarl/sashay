@@ -518,3 +518,63 @@ test("compact: every pane of a deep stack is reachable by tab or spine", () => {
   expect(strip).toContain("p20");
   expect([...spineIds("start"), ...strip, ...spineIds("end")]).toEqual(panes.map((p) => p.id));
 });
+
+test("a spine has exactly one tab stop as tabs move between spines", () => {
+  const ids = Array.from({ length: 12 }, (_, i) => `p${i}`);
+  frame.style.width = "1400px";
+  frame.replaceChildren(...ids.map(pane));
+  h = createSashay(frame, { panes: ids.map((id) => ({ id, title: id, focus: 1 / 3 })) });
+  const stops = () =>
+    [...frame.querySelectorAll("[data-spine]")].map(
+      (s) => [...s.children].filter((b) => (b as HTMLElement).tabIndex === 0).length,
+    );
+  for (const id of ["p3", "p10", "p1"]) {
+    h.reveal(id);
+    expect(stops().every((n) => n === 1)).toBe(true);
+  }
+});
+
+test("keepInView re-measures the content after a commit narrows the pane", async () => {
+  frame.replaceChildren(pane("a"), pane("b"));
+  h = createSashay(frame, {
+    panes: [
+      { id: "a", title: "A", focus: 0.3 },
+      { id: "b", title: "B", focus: 0.3 },
+    ],
+    layout: "8",
+  });
+  addChild("a", "100%");
+  h.keepInView("a", "100%");
+  await slid();
+  h.setLayout("1");
+  await slid();
+  const a = P("a").getBoundingClientRect();
+  const kid = (P("a").firstElementChild as HTMLElement).getBoundingClientRect();
+  const visible = E("b").getBoundingClientRect().left - a.left;
+  expect(kid.right - a.left).toBeCloseTo(visible, 0); // the content's right edge meets the slice's
+});
+
+test("inserting at capacity with minWidth closes only the outermost pane; removing it restores", () => {
+  const mk = (id: string) => ({ id, title: id, focus: 0.3, minWidth: "280px" });
+  const onClose = vi.fn();
+  h = createSashay(frame, { panes: ["a", "b", "c"].map(mk), layout: "48", onClose });
+  const d = pane("d");
+  P("b").before(d);
+  h.update({ panes: ["a", "d", "b", "c"].map(mk) });
+  expect(h.layout).toBe("48c");
+  d.remove();
+  h.update({ panes: ["a", "b", "c"].map(mk) });
+  expect(h.layout).toBe("48");
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+test("during a continuous resize, widths track the frame", async () => {
+  h = createSashay(frame, { panes: P3, layout: "48" });
+  for (let w = 940; w >= 760; w -= 20) {
+    frame.style.width = `${w}px`;
+    await frames();
+  }
+  const f = frame.getBoundingClientRect();
+  expect(P("c").getBoundingClientRect().right).toBeLessThanOrEqual(f.right + 0.5);
+  expect(Number.parseFloat(P("c").style.width)).toBeCloseTo((760 - 36) / 3, 0);
+});

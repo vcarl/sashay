@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { cdp, userEvent } from "vitest/browser";
 import { frames, mountFrame, pane, pointer, tx } from "../test/dom.ts";
 import { createSashay, type PaneOptions, type SashayHandle, type SashayOptions } from "./index.ts";
 
@@ -565,3 +565,72 @@ for (const [css, s] of [
     wrap.remove();
   });
 }
+
+// Mid-drag, an API call, key or spine tab settles the drag, then acts on the settled view.
+test("reveal mid-drag acts on the settled drag", () => {
+  mount();
+  const C = E("c");
+  const x = tx(C);
+  pointer(C, "pointerdown", x);
+  pointer(C, "pointermove", x - 300);
+  h?.reveal("c");
+  expect(onChange.mock.calls).toEqual([["04"]]);
+  expect(h?.layout).toBe("04");
+  expect(onClose.mock.calls).toEqual([["a"]]);
+});
+test("an arrow key mid-drag acts on the settled drag", () => {
+  mount();
+  const C = E("c");
+  const x = tx(C);
+  pointer(C, "pointerdown", x);
+  pointer(C, "pointermove", x + 200);
+  key(E("b"), "ArrowLeft");
+  expect(onChange.mock.calls[0]).toEqual(["4c"]);
+  expect(h?.layout).toMatch(/c$/);
+  expect(h?.layout).toBe(onChange.mock.lastCall?.[0]);
+});
+test("a spine tab click mid-drag acts on the settled drag", () => {
+  const ids = ["p0", "p1", "p2", "p3", "p4", "p5"];
+  frame.style.width = "1400px";
+  frame.replaceChildren(...ids.map(pane));
+  mount({ panes: ids.map((id) => ({ id, title: id, focus: 1 / 3 })), layout: "3-48" });
+  const e = E("p4");
+  const x = tx(e);
+  pointer(e, "pointerdown", x);
+  pointer(e, "pointermove", x - 150);
+  $('[data-sashay-spine-tab="p2"]').click();
+  expect(onChange.mock.calls).toEqual([["3-28"], ["2-46c"]]); // as a click from 3-28 lands
+});
+
+test("a mouse click on a text input under the neighbour doesn't reveal", async () => {
+  mount({ panes: [{ ...P3[0], focus: 0.4 }, P3[1], P3[2]] });
+  const a = $('[data-sashay-pane="a"]');
+  expect(a.hasAttribute("data-covered")).toBe(true);
+  const inp = document.createElement("input");
+  inp.style.cssText = "position:absolute;left:30px;top:100px;width:600px";
+  a.append(inp);
+  await userEvent.click(inp, { position: { x: 20, y: 5 } });
+  expect(document.activeElement).toBe(inp);
+  expect(a.hasAttribute("data-covered")).toBe(true);
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+// Real mouse input (CDP), 1px at a time: a drag from the grab strip over text selects nothing.
+test("dragging an edge from its pane's text selects nothing", async () => {
+  mount();
+  const t = document.createElement("p");
+  t.style.cssText = "margin:0;padding-top:100px;white-space:nowrap";
+  t.textContent = "Lorem ipsum dolor sit amet ".repeat(20);
+  $('[data-sashay-pane="b"]').append(t);
+  const fe = (window.frameElement as Element).getBoundingClientRect();
+  const sc = fe.width / innerWidth;
+  const r = t.getBoundingClientRect();
+  const at = (x: number) => ({ x: fe.left + (r.left + x) * sc, y: fe.top + (r.top + 108) * sc });
+  const mouse = (type: "mousePressed" | "mouseMoved" | "mouseReleased", x: number, buttons = 1) =>
+    cdp().send("Input.dispatchMouseEvent", { type, button: "left", buttons, clickCount: 1, ...at(x) });
+  await mouse("mousePressed", 8);
+  for (let x = 9; x <= 120; x++) await mouse("mouseMoved", x);
+  await mouse("mouseReleased", 120, 0);
+  expect(onChange).toHaveBeenCalled(); // it dragged
+  expect(getSelection()?.toString()).toBe("");
+});

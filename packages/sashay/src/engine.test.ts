@@ -168,6 +168,11 @@ describe("focus and close", () => {
   it("at capacity: the outermost pane closes", () => {
     expect(focusPane([1 / 2, 1], 2, { ...S0, focus: [1 / 3, 1 / 3, 1 / 3] }, 2)).toEqual([0, 6]);
   });
+  // At capacity the outermost closes outright, so squeezing to minimums can't close two.
+  it("at capacity with minimums: only the outermost pane closes", () => {
+    const S = { focus: [0.3, 0.3, 0.3, 0.3], min: [0.307, 0.307, 0.307, 0.307], max: [1, 1, 1, 1] };
+    expect(focusPane([1 / 3, 1 / 3, 2 / 3], 1, S, 6)).toEqual([4, 8, 12]);
+  });
   // Opening takes like a drag: outermost to min, then the next, then to zero.
   const OPEN: Sizes = { focus: [0.2, 0.2, 0.5], min: [0.15, 0.15, 0.15], max: ONE };
   it("opening #3 takes from #1 before #2", () => expect(focusPane([0.5, 1], 2, OPEN, 6)).toEqual([2, 6]));

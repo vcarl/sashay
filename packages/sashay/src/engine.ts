@@ -185,9 +185,21 @@ export const fit = (vals: number[], S: Sizes, order: number): number[] =>
 export function focusPane(dividers: number[], p: number, S: Sizes, order: number): number[] {
   const w = toWidths(dividers);
   let d = dividers.slice();
-  const need = Math.min(S.max[p], Math.max(S.focus[p], S.min[p])) - w[p];
+  let need = Math.min(S.max[p], Math.max(S.focus[p], S.min[p])) - w[p];
   const up = w.map((_, k) => SNAPS[snapToward(Math.max(S.focus[k], S.min[k]), 1, order)].v);
   const room = w.reduce((s, x, k) => s + (k === p || isOpen(x) ? up[k] : 0), 0) <= 1 + 1e-9;
+  // Opening at capacity: the outermost open pane closes outright first, so trimming the
+  // rest to their minimums can't close a second one. Any width p doesn't need stays near it.
+  const out = !room && !isOpen(w[p]) && need > 1e-9 ? byDistance(p, w.length).findLast((k) => isOpen(w[k])) : undefined;
+  if (out !== undefined) {
+    const x = w[out];
+    const g = Math.min(x, need);
+    w[out] = 0;
+    w[p] += g;
+    need -= g;
+    fill(w, [...byDistance(out, w.length).filter((j) => j !== p && isOpen(w[j])), p], x - g, S.max);
+    d = toDividers(w);
+  }
   if (need > 1e-9) {
     const r = take(w, S, byDistance(p, w.length), need, room ? up : undefined);
     r.w[p] += need - r.short;
@@ -217,7 +229,7 @@ export function focusPane(dividers: number[], p: number, S: Sizes, order: number
 // below FLING[0] → nearest snap; ≥ FLING[0] → first snap beyond the pointer
 // in the throw direction; ≥ FLING[1] → the one after that.
 // ponytail: fixed thresholds; tune by feel (trackpads and touch differ).
-const FLING = [0.45, 1.4] as const;
+export const FLING = [0.45, 1.4] as const;
 const VELOCITY_WINDOW_MS = 90;
 
 export interface Sample {
