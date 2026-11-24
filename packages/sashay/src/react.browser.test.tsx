@@ -1,4 +1,4 @@
-import { act, type ReactNode, StrictMode, useEffect, useState } from "react";
+import { Activity, act, type ReactNode, StrictMode, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -184,6 +184,54 @@ test("StrictMode", async () => {
   );
   expect(tx(P("b"))).toBeCloseTo(332, 1);
   expect(host.querySelectorAll("[data-sashay-close]")).toHaveLength(1);
+});
+
+// A remount (StrictMode's second mount, Fast Refresh, a re-shown Activity or Suspense) re-registers
+// every pane; the layout prop must survive it. B's x under "5c.0", as without StrictMode.
+const D3: PaneProps[] = [
+  { ...P3[0], edge: { drawer: { width: "12rem", title: "Files", content: "files" } } },
+  P3[1],
+  P3[2],
+];
+const at5c = () => {
+  expect(tx(P("b"))).toBeCloseTo(353.33, 1);
+  expect(P("c").hasAttribute("data-closed")).toBe(true);
+};
+test("StrictMode keeps a non-default initial layout", async () => {
+  const h = { current: null as SashayHandle | null };
+  const spy = vi.fn();
+  await render(
+    <StrictMode>
+      <App ref={h} panes={D3} layout="5c.0" onLayoutChange={spy} />
+    </StrictMode>,
+  );
+  expect(h.current?.layout).toBe("5c.0");
+  at5c();
+  expect(spy).not.toHaveBeenCalled();
+  await render(
+    <StrictMode>
+      <App ref={h} panes={D3} layout="48.0" onLayoutChange={spy} />
+    </StrictMode>,
+  );
+  expect(h.current?.layout).toBe("48.0");
+  expect(P("c").hasAttribute("data-closed")).toBe(false);
+  expect(spy).not.toHaveBeenCalled();
+});
+
+test("a remount that keeps state (Fast Refresh, re-shown Activity) keeps the layout", async () => {
+  const h = { current: null as SashayHandle | null };
+  const spy = vi.fn();
+  const at = (mode: "visible" | "hidden") => (
+    <Activity mode={mode}>
+      <App ref={h} panes={D3} layout="5c.0" onLayoutChange={spy} />
+    </Activity>
+  );
+  await render(at("visible"));
+  await render(at("hidden"));
+  await render(at("visible"));
+  expect(h.current?.layout).toBe("5c.0");
+  at5c();
+  expect(spy).not.toHaveBeenCalled();
 });
 
 // Two wide panes appended together: the second covers the first until reveal() brings it back.

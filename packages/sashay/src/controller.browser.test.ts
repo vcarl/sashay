@@ -279,6 +279,19 @@ test("remove everything, then add", () => {
   expect(Number.parseFloat(P("x").style.width)).toBeCloseTo(948, 1);
 });
 
+test("panes added to an empty frame take the layout given at creation, silently", () => {
+  const els = [...frame.querySelectorAll("[data-sashay-pane]")];
+  for (const el of els) el.remove();
+  const onChange = vi.fn();
+  h = createSashay(frame, { panes: [], layout: "4c", onChange });
+  expect(h.layout).toBe("4c");
+  frame.append(...els);
+  h.update({ panes: P3 });
+  expect(h.layout).toBe("4c");
+  expect(P("c").hasAttribute("data-closed")).toBe(true);
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 test("resize re-measures lengths", async () => {
   frame.style.width = "600px";
   h = createSashay(frame, { panes: P3, layout: "48", compactBelow: "40rem" });
