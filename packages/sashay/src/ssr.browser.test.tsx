@@ -265,3 +265,19 @@ test("without JS, a frame with panes out of reach is a row that scrolls, bars un
     expect(box(f.querySelector("[data-sashay-ssr-ui]") as Element).width).toBe(0);
   }
 });
+
+test("a pane that arrives late stays hidden until hydration, and a nested frame's panes don't", () => {
+  host.style.width = "1200px";
+  host.innerHTML = renderToString(<App panes={P("abc")} layout="48" />);
+  const f = host.querySelector("[data-sashay-frame]") as HTMLElement;
+  f.insertAdjacentHTML("beforeend", '<section data-sashay-pane="late">late</section>');
+  const a = f.querySelector('[data-sashay-pane="a"]') as HTMLElement;
+  a.insertAdjacentHTML(
+    "beforeend",
+    '<div data-sashay-frame=""><section data-sashay-pane="inner">inner</section></div>',
+  );
+  const vis = (id: string) => getComputedStyle(f.querySelector(`[data-sashay-pane="${id}"]`) as Element).visibility;
+  expect(["late", "a", "inner"].map(vis)).toEqual(["hidden", "visible", "visible"]);
+  f.setAttribute("data-sashay-ready", "");
+  expect(vis("late")).toBe("visible");
+});

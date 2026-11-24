@@ -147,6 +147,8 @@ export function ssrHtml(
 
   const css =
     `${frame}{container:sashay / inline-size}` +
+    // A pane that streams in later has no place until hydration. Any pane's own rule outranks this.
+    `${frame} :where([data-sashay-pane]:not(${frame} [data-sashay-frame] *)){${HIDE}}` +
     // The controller scrolls the start spine to its end, where its newest tab is.
     `${ui} [data-spine="start"]{justify-content:flex-end}${ui} [data-spine="start"]::after{content:"";margin-bottom:auto}` +
     chain(views, false) +

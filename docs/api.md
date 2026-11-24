@@ -44,7 +44,7 @@ removed when the frame mounts.
 - Set on hydration, so not there for your CSS to match in the first paint: `data-compact`,
   `data-covered`, `data-closed`, `data-offscreen`, `data-open` and the `keepInView` shift.
 - Suspend inside a `<Pane>`, not around one: the first paint covers the panes rendered with
-  `<Sashay>`, and one that arrives later opens as an added pane.
+  `<Sashay>`, and one that arrives later is hidden until hydration, then opens as an added pane.
 - `nonce` on `<Sashay>` is set on the inline `<style>` the first paint uses, for a Content Security
   Policy.
 - Without JavaScript the bars show open, and a frame where any pane would be covered, folded or
