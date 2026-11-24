@@ -231,3 +231,53 @@ test("stand-in controls are never a form's default button", () => {
     "Send",
   ]);
 });
+
+test("without JS, a frame with panes out of reach is a row that scrolls, bars under their panes", () => {
+  for (const [width, layout] of [
+    [300, "48.0"],
+    [1200, "2-48.0"],
+    [1200, "0c.0"],
+  ] as const) {
+    host.style.width = `${width}px`;
+    const panes = P(layout[1] === "-" ? "abcde" : "abc", (k) => (k ? { bar } : {}));
+    host.innerHTML = renderToString(<App panes={panes} layout={layout} />).replaceAll("(scripting: none)", "all");
+    const f = host.querySelector("[data-sashay-frame]") as HTMLElement;
+    const all = [...f.querySelectorAll<HTMLElement>("[data-sashay-pane]")];
+    const box = (el: Element) => el.getBoundingClientRect();
+    all.forEach((el, k) => {
+      const r = box(el);
+      expect(getComputedStyle(el).visibility).toBe("visible");
+      expect(r.top).toBe(box(f).top);
+      expect(r.width).toBeGreaterThan(100);
+      if (k) expect(r.left).toBeGreaterThanOrEqual(box(all[k - 1]).right);
+      const b = f.querySelector(`[data-sashay-bar="${el.dataset.sashayPane}"]`);
+      if (!b) {
+        expect(r.bottom).toBe(box(f).bottom);
+        return;
+      }
+      expect(getComputedStyle(b).visibility).toBe("visible");
+      expect([box(b).left, box(b).width, box(b).bottom]).toEqual([r.left, r.width, box(f).bottom]);
+      expect(r.bottom).toBe(box(b).top);
+    });
+    const last = box(all[all.length - 1]).right - box(f).left;
+    expect(f.scrollWidth).toBeGreaterThanOrEqual(Math.floor(last)); // reachable by scrolling
+    expect(getComputedStyle(f).overflowX).toBe("auto");
+    expect(box(f.querySelector("[data-sashay-ssr-ui]") as Element).width).toBe(0);
+  }
+});
+
+test("a pane that arrives late stays hidden until hydration, and a nested frame's panes don't", () => {
+  host.style.width = "1200px";
+  host.innerHTML = renderToString(<App panes={P("abc")} layout="48" />);
+  const f = host.querySelector("[data-sashay-frame]") as HTMLElement;
+  f.insertAdjacentHTML("beforeend", '<section data-sashay-pane="late">late</section>');
+  const a = f.querySelector('[data-sashay-pane="a"]') as HTMLElement;
+  a.insertAdjacentHTML(
+    "beforeend",
+    '<div data-sashay-frame=""><section data-sashay-pane="inner">inner</section></div>',
+  );
+  const vis = (id: string) => getComputedStyle(f.querySelector(`[data-sashay-pane="${id}"]`) as Element).visibility;
+  expect(["late", "a", "inner"].map(vis)).toEqual(["hidden", "visible", "visible"]);
+  f.setAttribute("data-sashay-ready", "");
+  expect(vis("late")).toBe("visible");
+});
