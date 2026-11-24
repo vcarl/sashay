@@ -14,7 +14,7 @@ for (const id of ["fling", "bar", "spine", "code"]) await page.locator(`#cell-${
 
 const spine = page.locator('#cell-spine [data-spine="start"]');
 const tabs = spine.locator("[data-sashay-spine-tab]");
-for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Add pane" }).click();
+for (let i = 0; i < 5; i++) await page.locator("#cell-spine + .acts [data-act=add]").click();
 await spine.waitFor();
 const before = await tabs.count();
 assert.ok(before > 0, "spine shows a tab per folded pane");

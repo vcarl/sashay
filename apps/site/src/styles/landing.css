@@ -78,7 +78,7 @@ button:focus-visible {
 
 /* ── the window (hero) ──────────────────────────────────── */
 /* Until sashay mounts (or with JS off) the panes sit in a row at the default
-   layout, 58 (½ | ¼ | ¼), each with a painted stile. Sashay then supplies the
+   layout, 69.0 (½ | ¼ | ¼), each with a painted stile. Sashay then supplies the
    real edges, which take the same look below. */
 .window {
   margin-top: 20px;
@@ -152,7 +152,7 @@ button:focus-visible {
   white-space: nowrap;
 }
 .frame [data-sashay-edge]::before {
-  content: attr(data-sashay-edge);
+  content: attr(aria-label);
   position: absolute;
   inset: 0;
 }
@@ -180,9 +180,22 @@ button:focus-visible {
   background: var(--ink);
   color: var(--paper);
 }
-.frame [data-sashay-edge]:focus-visible {
+/* On the painted label too: it covers the edge's own outline. */
+.frame [data-sashay-edge]:focus-visible,
+.frame [data-sashay-edge]:focus-visible::before {
   outline: 3px solid var(--butter);
   outline-offset: -3px;
+}
+.frame [data-spine] {
+  background: var(--ink);
+}
+.frame [data-sashay-spine-tab] {
+  color: var(--paper);
+  border-color: var(--mute);
+  font: 700 11px var(--sans);
+}
+.frame [data-sashay-spine-tab]:hover {
+  color: var(--butter);
 }
 /* Compact: the first edge holds the tab strip; the others are bare grips. */
 .frame[data-compact] [data-sashay-edge]::before {
@@ -313,12 +326,62 @@ pre .s {
 .p-install pre {
   margin-top: 18px;
 }
-.p-install .meta {
+/* Install's bottom bar. */
+.frame [data-sashay-bar-toggle] {
+  border-top: var(--rule) solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 12px var(--sans);
+  letter-spacing: 0.18em;
+  padding: 0 clamp(22px, 2.2vw, 30px);
+}
+.frame [data-sashay-bar-toggle]:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+.frame [data-sashay-bar] {
+  padding: 14px clamp(22px, 2.2vw, 30px);
+  background: var(--paper);
+}
+.meta {
   font: 600 13px var(--mono);
-  margin-top: 18px;
   display: flex;
-  gap: 18px;
   flex-wrap: wrap;
+  align-content: start;
+  gap: 8px 18px;
+}
+/* Without JS the bar stays open at the foot of its pane. */
+@media (scripting: none) {
+  .frame > [data-sashay-bar] {
+    inset: auto 0 0 auto;
+    width: calc((100% - 3 * var(--edge)) / 4);
+    height: auto;
+    visibility: visible;
+    content-visibility: visible;
+  }
+}
+
+/* Panes added by the Add pane button. */
+.p-added {
+  background: var(--mint);
+}
+.p-added.tint-1 {
+  background: var(--butter);
+}
+.p-added.tint-2 {
+  background: var(--paper);
+}
+.p-added .in {
+  padding: clamp(22px, 2.2vw, 30px);
+  justify-content: start;
+}
+.p-added h2 {
+  font-size: clamp(28px, 2.7vw, 40px);
+}
+.p-added p {
+  margin: 18px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
 }
 
 /* readout */
@@ -355,8 +418,10 @@ pre .s {
 .readout .say {
   color: var(--mute);
 }
-.readout button {
+.readout [data-act="add"] {
   margin-left: auto;
+}
+.readout button {
   font: 700 14px var(--sans);
   background: none;
   border: 2px solid var(--ink);
@@ -364,9 +429,13 @@ pre .s {
   padding: 6px 14px;
   cursor: pointer;
 }
-.readout button:hover {
+.readout button:hover:not(:disabled) {
   background: var(--ink);
   color: var(--paper);
+}
+.readout button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* ── poster grid ─────────────────────────────────────────── */
@@ -740,6 +809,12 @@ footer b {
   .frame:not([data-sashay-ready]) {
     flex-direction: column;
     height: auto;
+  }
+  @media (scripting: none) {
+    .frame > [data-sashay-bar] {
+      position: static;
+      width: auto;
+    }
   }
   .frame:not([data-sashay-ready]) .pane {
     flex: none;
