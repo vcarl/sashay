@@ -86,7 +86,7 @@ button:focus-visible {
 .frame {
   position: relative;
   height: clamp(520px, 66vh, 680px);
-  overflow: hidden;
+  overflow: clip;
   border: 6px solid var(--ink);
   border-radius: 18px;
   background: var(--ink);
@@ -534,7 +534,7 @@ pre .s {
   height: 150px;
   border: 3px solid var(--ink);
   border-radius: 10px;
-  overflow: hidden;
+  overflow: clip;
   color: var(--ink);
   --sashay-bg: var(--ink);
   --sashay-fg: var(--ink);
