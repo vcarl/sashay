@@ -313,11 +313,12 @@ test("hero", async ({ page: p }) => {
 
   // Back to the opening layout, where it loops.
   await beat(BEATS.widen);
-  await page.locator('#readout [data-act="reset"]').evaluate((b: HTMLElement) => b.click());
+  // Reset goes to the default for the frame's width, so it waits until the frame is wide again.
   await root.evaluate((el) => el.classList.remove("narrow"));
-  await glide(HOME, 600);
-  await expect(code).toHaveText("69.0");
   await expect(hero).not.toHaveAttribute("data-compact");
+  await page.locator('#readout [data-act="reset"]').evaluate((b: HTMLElement) => b.click());
+  await glide(HOME, 400);
+  await expect(code).toHaveText("69.0");
   await beat(BEATS.end);
 
   await save?.(t0, process.env.HERO_VIDEO as string);

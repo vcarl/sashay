@@ -565,3 +565,98 @@ test("during a continuous resize, widths track the frame", async () => {
   expect(P("c").getBoundingClientRect().right).toBeLessThanOrEqual(f.right + 0.5);
   expect(Number.parseFloat(P("c").style.width)).toBeCloseTo((760 - 36) / 3, 0);
 });
+
+// compactLayout stands in for defaultLayout while the frame is compact. b is open alone under [0, 1].
+const CL = { panes: P3, defaultLayout: [1 / 3, 2 / 3], compactLayout: [0, 1] };
+const resized = async (width: number) => {
+  frame.style.width = `${width}px`;
+  await frames(3);
+};
+const narrow = () => {
+  frame.style.width = "390px";
+};
+
+test("compactLayout: creation, and an invalid layout, on a compact frame only", () => {
+  for (const [width, layout, code] of [
+    [390, undefined, "0c"],
+    [390, "zzz", "0c"],
+    [390, "", "0c"],
+    [390, "cc", "cc"],
+    [960, undefined, "48"],
+    [960, "zzz", "48"],
+    [960, "0c", "0c"],
+  ] as const) {
+    frame.style.width = `${width}px`;
+    h = createSashay(frame, { ...CL, layout });
+    expect(h.layout, `${width} ${layout}`).toBe(code);
+    h.destroy();
+  }
+  narrow();
+  h = createSashay(frame, { panes: P3, defaultLayout: [1 / 3, 2 / 3] });
+  expect(h.layout).toBe("48");
+  h.destroy();
+  expect(() => createSashay(frame, { panes: P3, compactLayout: [0.8, 0.2] })).toThrow(/compactLayout/);
+  h = createSashay(frame, { ...CL, compactLayout: [0.5] }); // the wrong length: an equal split, as defaultLayout
+  expect(h.layout).toBe("48");
+});
+
+test("compactLayout: setLayout's fallback goes by the frame's width at the time", async () => {
+  h = createSashay(frame, { ...CL, layout: "cc" });
+  h.setLayout("zzz");
+  expect(h.layout).toBe("48");
+  h.setLayout("cc");
+  await resized(390);
+  h.setLayout("zzz");
+  expect(h.layout).toBe("0c");
+  h.setLayout("cc");
+  expect(h.layout).toBe("cc");
+});
+
+test("compactLayout: crossing compactBelow applies nothing and reports nothing", async () => {
+  const onChange = vi.fn();
+  h = createSashay(frame, { ...CL, onChange });
+  await resized(390);
+  expect(frame.hasAttribute("data-compact")).toBe(true);
+  expect(h.layout).toBe("48");
+  h.update({ compactBelow: "10rem" });
+  h.update({ compactBelow: "40rem" });
+  expect(h.layout).toBe("48");
+  await resized(960);
+  await slid();
+  expect48();
+  h.destroy();
+  narrow();
+  h = createSashay(frame, { ...CL, onChange });
+  await resized(960);
+  expect(h.layout).toBe("0c");
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test("compactLayout: the first panes of an empty frame, and a list with nothing in common", () => {
+  narrow();
+  h = createSashay(frame, { ...CL, panes: [] });
+  h.update({ panes: P3 });
+  expect(h.layout).toBe("0c");
+  h.setLayout("cc");
+  for (const id of ["d", "e", "f"]) frame.append(pane(id));
+  h.update({ panes: ["d", "e", "f"].map((id) => ({ id, title: id, focus: 0.5 })) });
+  expect(h.layout).toBe("0c");
+});
+
+test("an empty frame's first panes, with no layout, take the default", () => {
+  h = createSashay(frame, { panes: [], defaultLayout: [0.5, 0.75] });
+  h.update({ panes: P3 });
+  expect(h.layout).toBe("69");
+});
+
+test("compactLayout with more panes than the strip holds: opening one folds to the cap", () => {
+  narrow();
+  frame.replaceChildren(...[..."abcdefgh"].map(pane));
+  const panes = [..."abcdefgh"].map((id) => ({ id, title: id, focus: 0.5 }));
+  h = createSashay(frame, { panes, compactLayout: [0, 0, 0, 1, 1, 1, 1] });
+  expect(h.layout).toBe("000cccc");
+  h.reveal("g");
+  expect(frame.querySelectorAll("[data-sashay-tab]")).toHaveLength(6);
+  expect($('[data-sashay-tab="g"]').getAttribute("aria-pressed")).toBe("true");
+  expect(frame.querySelectorAll("[data-sashay-spine-tab]")).toHaveLength(2);
+});

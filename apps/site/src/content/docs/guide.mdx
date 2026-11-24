@@ -72,6 +72,8 @@ Here the Chart pane has a **Window** bar. Pick the way your window faces, and th
 
 Below `compactBelow` (a `Length`, `"40rem"` by default) a frame switches to compact mode. The first edge becomes a tab strip and every other edge a 12px grip whatever its `width`. Bars work as they do on a wide frame. The tab strip lists up to six panes; past six, the oldest fold into the spine, so every pane stays a tap away. The frame gets `data-compact`, so your CSS can follow.
 
+A compact frame usually has room for one pane, so `defaultLayout` may open the wrong one. `compactLayout` is used in its place when the frame starts out compact: `[1, 1]` opens the first of three panes. It is only a default. A valid `layout` wins over it, and resizing a frame never applies it.
+
 The width is the frame's, not the window's, so a narrow sidebar frame goes compact on a wide screen too. This frame passes `compactBelow="100vw"`, so it is always compact.
 
 <DemoApp name="plants" region="compact" options={{ compactBelow: "100vw", initial: { plant: "monstera" } }} />
@@ -95,6 +97,27 @@ When the open panes no longer fit, the oldest fold into one spine at the left wi
 This house opens room by room, down to the contents of a drawer.
 
 <DemoApp name="house" region="stack" options={{ depth: 4 }} />
+
+## Server rendering
+
+`<Sashay>` and `<Pane>` render on the server, in React Server Components too. The HTML has the whole frame, edges, bars and spine included, so nothing moves when it hydrates. On a phone it is already in compact mode: the server doesn't know the frame's width, so the CSS it sends covers each case.
+
+```tsx
+// app/page.tsx, a server component
+import { Pane, Sashay } from "@vcarl/sashay/react";
+import "@vcarl/sashay/style.css";
+
+export default async function Page({ searchParams }) {
+  return (
+    <Sashay layout={(await searchParams).layout} style={{ height: "100vh" }}>
+      <Pane id="list" title="List" focus={1 / 3}><PlantList /></Pane>
+      <Pane id="plant" title="Plant" focus={2 / 3}><PlantCard /></Pane>
+    </Sashay>
+  );
+}
+```
+
+A server component can't pass functions, so `onLayoutChange`, `onClose`, `ref` and a function as a pane's children need a client component. Put a `<Suspense>` inside a pane rather than around it. With a Content Security Policy, pass `nonce`. `data-compact` is set on hydration, so CSS that follows compact mode from the first paint should use a container query. The [Reference](../reference/#server-rendering) has the details.
 
 ## Without React
 

@@ -8,8 +8,9 @@ Approved design. Implementation must match. Change it only with Carl's sign-off.
 
 | Prop | Description |
 |---|---|
-| `layout`, `defaultLayout`, `compactBelow` | Same as the core options, below. |
+| `layout`, `defaultLayout`, `compactLayout`, `compactBelow` | Same as the core options, below. |
 | `onLayoutChange` | Same as `onChange`. |
+| `nonce` | For the server's inline `<style>` (see Server rendering). |
 | `ref` | Gives you the `SashayHandle` methods (below). |
 
 ### `<Pane>`
@@ -23,11 +24,31 @@ Approved design. Implementation must match. Change it only with Carl's sign-off.
 | other div props | Passed to the pane element: `className`, `style`, `data-*`, `aria-*`, event handlers. Sashay's own attributes win: `data-sashay-pane`, `aria-label` (from `title`), `inert`, `data-covered`, `data-closed`, `data-offscreen`, and the inline position and width (`transform`, `width`, `zIndex`, `clipPath` are dropped from `style`; other `style` keys merge). |
 
 `<Pane>` renders its own element and registers itself with the nearest `<Sashay>`, so it can
-be wrapped in other components or rendered conditionally. Server rendering produces
-percentage widths from `layout`, so the first paint matches the hydrated layout on frames wide
-enough for the layout's grid. Narrower frames (compact mode, or a coarser snap grid) re-snap on
-hydration. With `minWidth`, the first paint matches only when you pass an explicit `layout`: the
-default split depends on the frame's width, which the server can't measure.
+be wrapped in other components or rendered conditionally.
+
+### Server rendering
+
+The server's HTML has the whole frame: panes, edges, bars, spines and compact tabs, each where
+hydration will put it. The frame's width isn't known on the server, so the snap grid, compact mode
+and the default split are chosen by container queries. The server's controls are `inert` copies,
+removed when the frame mounts.
+
+- The React entry is a client module, so a server component can render `<Sashay>` and `<Pane>`
+  directly, with server components as pane children and bar content. Functions and refs can't be
+  passed from a server component: a function as `children`, `onLayoutChange`, `onClose` and `ref` need
+  a client component.
+- Lengths with `var()` or `%` can't be used in a container query. For `compactBelow`, `edge.width`
+  and `minWidth` written that way, the first paint is chosen as if they were `"40rem"`, `"0.75rem"`
+  and `0`, so a frame whose width is near a threshold may re-snap on hydration. So may one that
+  changes `--sashay-tabs-width` or `--sashay-spine-width`.
+- Set on hydration, so not there for your CSS to match in the first paint: `data-compact`,
+  `data-covered`, `data-closed`, `data-offscreen`, `data-open` and the `keepInView` shift.
+- Suspend inside a `<Pane>`, not around one: the first paint covers the panes rendered with
+  `<Sashay>`, and one that arrives later opens as an added pane.
+- `nonce` on `<Sashay>` is set on the inline `<style>` the first paint uses, for a Content Security
+  Policy.
+- Without JavaScript the bars show open, and a frame where any pane would be covered, folded or
+  closed stacks its panes in a column that scrolls.
 
 ### `SashayHandle`
 
@@ -64,6 +85,7 @@ spine.
 | `panes` | `PaneOptions[]` | required | The panes, left to right. The list may change at any time (see Dynamic panes). |
 | `layout` | `string` | none | A saved layout code. Invalid input falls back to `defaultLayout`. |
 | `defaultLayout` | `number[]` | equal split | Divider positions as fractions (0–1). |
+| `compactLayout` | `number[]` | `defaultLayout` | Used in place of `defaultLayout` when the frame is compact at that moment. A valid `layout` still wins, and a frame that becomes compact later keeps its layout. |
 | `onChange` | `(layout: string) => void` | none | Fires on release, click, keypress or a pane-list change, never during a drag. |
 | `onClose` | `(id: string) => void` | none | Fires when the user closes a pane (×, edge click, Enter/Space, or dragging it below `minWidth`). Not fired by `close()`. |
 | `compactBelow` | `Length` | `"40rem"` | Below this frame width, compact mode applies. |

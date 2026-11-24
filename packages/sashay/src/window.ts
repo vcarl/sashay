@@ -257,7 +257,7 @@ export function decodeLayout(
   if (!m) return null;
   const offset = m[1] ? Number(m[1]) : 0;
   const V = m[2].length;
-  if (offset + V + 1 > n) return null;
+  if (offset + V + 1 > n || (!code && n > 1)) return null; // no code, unless for one pane
   let D = 0;
   for (let p = offset; p <= offset + V; p++) if (hasBar(p)) D++;
   if ((m[3] !== undefined) !== D > 0) return null;
