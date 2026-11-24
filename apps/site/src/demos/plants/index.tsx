@@ -4,13 +4,13 @@ import { type Facing, MAX_LIGHT, MAX_WATER, neighbours, PLANTS, type Plant, WIND
 import "./plants.css";
 
 // A fixed workspace of three panes: Chart → Nearby → Plant.
-// The Guide grows it one step at a time: `drawer` adds the Window drawer, `compactBelow` is
-// passed straight through, and `initial` opens it on a layout, a plant, its card or the drawer.
+// The Guide grows it one step at a time: `bar` adds the Window bar, `compactBelow` is
+// passed straight through, and `initial` opens it on a layout, a plant, its card or the bar.
 // `onUrl` gets the app's URL (layout, plant) whenever it changes.
 // The `#region` comments mark the excerpts the Guide shows.
-type Initial = { layout?: string; plant?: string; card?: boolean; drawerOpen?: boolean };
+type Initial = { layout?: string; plant?: string; card?: boolean; barOpen?: boolean };
 export type PlantsProps = {
-  drawer?: boolean;
+  bar?: boolean;
   compactBelow?: Length;
   initial?: Initial;
   onUrl?: (url: string) => void;
@@ -25,7 +25,7 @@ const sy = (water: number) => 16 + (1 - water / MAX_WATER) * (H - 56);
 const byId = (id?: string | null) => PLANTS.find((p) => p.id === id);
 
 export function Plants({
-  drawer = true,
+  bar = true,
   compactBelow,
   initial = {},
   // #region url
@@ -53,21 +53,21 @@ export function Plants({
   useEffect(() => saveToUrl()); // after each render: a new plant
   // #endregion
 
-  // Open on the step the Guide asks for: a plant, its card, a layout, the drawer.
+  // Open on the step the Guide asks for: a plant, its card, a layout, the bar.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, on mount
   useLayoutEffect(() => {
     const h = sash.current as SashayHandle;
     if (initial.plant) h.reveal("nearby");
     if (initial.card) h.reveal("plant");
     if (initial.layout) h.setLayout(initial.layout); // reveal() may have moved the dividers
-    if (initial.drawerOpen) h.toggleDrawer("chart", true);
+    if (initial.barOpen) h.toggleBar("chart", true);
   }, []);
 
-  // #region drawer
-  // The drawer's content is part of the edge that opens it.
+  // #region bar
+  // The bar's content is part of the pane it belongs to.
   const windows = (
     <>
-      <p className="pl-drawer-title">Your window faces</p>
+      <p className="pl-bar-title">Your window faces</p>
       {(Object.keys(WINDOWS) as Facing[]).map((f) => (
         <button
           key={f}
@@ -106,8 +106,8 @@ export function Plants({
         // chart, sashay slides the chart left just enough to keep that point showing.
         keepInView={plant ? PAD + sx(plant.light) : null}
         // #endregion
-        // #region drawer
-        edge={drawer ? { drawer: { width: "9rem", title: "Window", content: windows } } : undefined}
+        // #region bar
+        bar={bar ? { title: "Window", height: "9rem", content: windows } : undefined}
         // #endregion
       >
         <Chart plant={plant} facing={facing} onPick={pick} />

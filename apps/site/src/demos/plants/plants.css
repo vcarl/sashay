@@ -1,5 +1,5 @@
 /* #region styling */
-/* Edges, drawers and controls take their colours from --sashay-*. Panes are your own elements. */
+/* Edges, bars and controls take their colours from --sashay-*. Panes are your own elements. */
 .plants {
   font: 15px / 1.45 var(--sans);
   --sashay-bg: var(--ink);
@@ -102,13 +102,17 @@
   pointer-events: none;
 }
 
-/* The Window drawer, on the ink edge. */
-.plants [data-sashay-drawer] {
-  gap: 6px;
+/* The Window bar, ink over the chart. */
+.plants [data-sashay-bar] {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  gap: 8px;
+  color: var(--paper);
   font: 600 13px var(--sans);
 }
-.plants .pl-drawer-title {
-  margin-bottom: 4px;
+.plants .pl-bar-title {
+  flex-basis: 100%;
   color: var(--mint);
 }
 .plants [data-facing] {

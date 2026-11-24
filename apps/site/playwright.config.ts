@@ -1,7 +1,6 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig } from "@playwright/test";
 
-// The tour (e2e/tour.spec.ts) runs against the built site: `pnpm site:build` first.
-const size = { width: 1280, height: 800 };
+// The hero recording (e2e/hero.spec.ts) runs against the built site: `pnpm site:build` first.
 const port = 4400; // 4321 is the usual dev preview
 
 export default defineConfig({
@@ -9,10 +8,10 @@ export default defineConfig({
   timeout: 120_000,
   reporter: "list",
   use: {
-    ...devices["Desktop Chrome"],
     baseURL: `http://localhost:${port}/`,
-    viewport: size,
-    video: { mode: "on", size },
+    // A real 2x display, not an emulated one: the recording of an emulated one is 1x.
+    viewport: null,
+    launchOptions: { args: ["--force-device-scale-factor=2", "--window-size=1280,800", "--hide-scrollbars"] },
   },
   projects: [{ name: "chromium" }],
   webServer: {

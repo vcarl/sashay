@@ -11,20 +11,12 @@
   }
 
   [data-sashay-pane],
-  [data-sashay-edge],
-  [data-sashay-controls] {
+  [data-sashay-edge] {
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     overflow: hidden;
-  }
-  /* Laid over its edge; only the controls inside take the pointer. */
-  [data-sashay-controls] {
-    pointer-events: none;
-  }
-  [data-sashay-controls] :is(button, [data-sashay-tabs]) {
-    pointer-events: auto;
   }
   [data-sashay-pane] {
     background: var(--sashay-pane-bg, Canvas);
@@ -36,20 +28,34 @@
 
   /* Transforms only: the controller holds widths until the slide ends. */
   [data-sashay-frame]:not([data-dragging])
-    :is([data-sashay-pane], [data-sashay-edge], [data-sashay-controls], [data-sashay-drawer]) {
-    transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+    :is([data-sashay-pane], [data-sashay-edge], [data-sashay-tabs], [data-sashay-bar-toggle], [data-sashay-bar]) {
+    transition:
+      transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+      bottom 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-  /* A pane leaving the window slides out before it hides. */
-  [data-sashay-frame] [data-sashay-pane][data-offscreen] {
+  /* A pane leaving the window slides out before it hides; so does a collapsing bar. */
+  [data-sashay-frame]
+    :is(
+      [data-sashay-pane][data-offscreen],
+      [data-sashay-bar-toggle]:is([data-closed], [data-offscreen]),
+      [data-sashay-bar]:is([data-closed], [data-offscreen], :not([data-open]))
+    ) {
     content-visibility: hidden;
     visibility: hidden;
     transition:
       transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+      bottom 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
       visibility 0s 0.24s,
       content-visibility 0s 0.24s allow-discrete;
   }
+  /* A bar whose pane a drag shuts keeps up with the drag. */
+  [data-sashay-frame][data-dragging] :is([data-sashay-bar-toggle], [data-sashay-bar]) {
+    transition: none;
+  }
   @media (prefers-reduced-motion: reduce) {
-    [data-sashay-frame] :is([data-sashay-pane], [data-sashay-edge], [data-sashay-controls], [data-sashay-drawer]),
+    [data-sashay-frame]
+      :is([data-sashay-pane], [data-sashay-edge], [data-sashay-tabs], [data-sashay-bar-toggle], [data-sashay-bar]),
+    [data-sashay-bar-toggle] svg,
     [data-sashay-mark] path {
       transition: none !important;
     }
@@ -103,7 +109,7 @@
     opacity: 0.9;
   }
 
-  /* Edges: a grip, optionally with a drawer toggle. */
+  /* Edges: a grip. */
   [data-sashay-edge] {
     background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
     border-left: 1px solid var(--sashay-edge-border, color-mix(in srgb, CanvasText 55%, Canvas));
@@ -133,7 +139,7 @@
     );
   }
   [data-sashay-edge]:focus-visible,
-  [data-sashay-toggle]:focus-visible {
+  [data-sashay-bar-toggle]:focus-visible {
     outline: 2px solid var(--sashay-accent, oklch(0.62 0.19 255));
     outline-offset: -2px;
   }
@@ -157,88 +163,76 @@
   [data-sashay-edge]:is(:hover, :active) [data-sashay-dots] {
     background-image: radial-gradient(circle, var(--sashay-grip-hover, currentColor) 35%, transparent 40%);
   }
-  [data-sashay-edge][role="button"] [data-sashay-dots],
-  [data-sashay-edge][data-open] [data-sashay-dots] {
+  [data-sashay-edge][role="button"] [data-sashay-dots] {
     display: none;
   }
 
-  [data-sashay-title] {
+  /* A pane's bottom bar: a strip the pane ends above, and content that rises over the pane.
+     Strip and content move together by `bottom`; the controller sets the rest. */
+  [data-sashay-pane][data-bar] {
+    bottom: var(--sashay-bar-size, 2.75rem);
+  }
+  [data-sashay-bar-toggle],
+  [data-sashay-bar] {
+    --sashay-bar-rise: max(0px, min(var(--sashay-bar-height), 100%) - var(--sashay-bar-size, 2.75rem));
     position: absolute;
-    top: var(--sashay-header, 2.75rem);
-    left: 28px;
-    white-space: nowrap;
-    transform-origin: 0 0;
-    transform: rotate(90deg);
+    bottom: 0;
+    left: 0;
+    box-sizing: border-box;
+  }
+  [data-sashay-bar-toggle] {
+    height: var(--sashay-bar-size, 2.75rem);
+    margin: 0;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    border: 0;
+    border-top: 1px solid var(--sashay-edge-border, color-mix(in srgb, CanvasText 55%, Canvas));
+    border-radius: 0;
+    background: var(--sashay-raised-bg, color-mix(in srgb, CanvasText 10%, Canvas));
+    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
+    font: inherit;
     font-size: var(--sashay-font-size, 0.6875rem);
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    pointer-events: none;
-  }
-  [data-sashay-toggle] {
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    margin-left: -14px;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    display: grid;
-    place-items: center;
-    border-radius: var(--sashay-radius, 6px);
-    border: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
-    background: var(--sashay-pane-bg, Canvas);
-    color: var(--sashay-fg, CanvasText);
+    text-align: left;
     cursor: pointer;
   }
-  [data-sashay-toggle]:hover {
-    border-color: var(--sashay-accent, oklch(0.62 0.19 255));
-    color: var(--sashay-accent, oklch(0.62 0.19 255));
+  [data-sashay-bar-toggle]:hover {
+    color: var(--sashay-fg, CanvasText);
   }
-  [data-sashay-toggle] svg {
+  [data-sashay-bar-toggle][aria-expanded="true"] {
+    bottom: var(--sashay-bar-rise);
+    box-shadow: 0 -10px 18px -12px var(--sashay-shadow, rgb(0 0 0 / 0.5));
+  }
+  [data-sashay-bar-toggle] span {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  [data-sashay-bar-toggle] svg {
+    flex: none;
     width: 14px;
     height: 14px;
-    transition: transform 0.2s;
+    transition: rotate 0.2s;
   }
-  [data-sashay-controls][data-open] [data-sashay-toggle] {
-    left: auto;
-    right: 8px;
-    margin-left: 0;
+  [data-sashay-bar-toggle][aria-expanded="true"] svg {
+    rotate: 180deg;
   }
-  [data-sashay-controls][data-open] [data-sashay-toggle] svg {
-    transform: rotate(180deg);
-  }
-  [data-sashay-controls][data-open] [data-sashay-title] {
-    transform: none;
-    top: 15px;
-    left: 14px;
-  }
-  [data-sashay-edge][data-open]::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(var(--sashay-header, 2.75rem) - 1px);
-    border-top: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
-  }
-
-  [data-sashay-drawer] {
-    position: absolute;
-    top: var(--sashay-header, 2.75rem);
-    bottom: 0;
-    left: 0;
+  [data-sashay-bar] {
+    height: var(--sashay-bar-rise);
     padding: 12px 14px;
-    display: grid;
-    gap: 8px;
-    align-content: start;
-    font-size: var(--sashay-font-size, 0.6875rem);
-    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
-    box-sizing: border-box;
-    overflow-y: auto;
+    overflow: hidden auto;
+    background: var(--sashay-pane-bg, Canvas);
     touch-action: pan-y;
   }
-  [data-sashay-drawer]:not([data-open]) {
-    display: none;
+  [data-sashay-bar]:not([data-open]) {
+    bottom: calc(-1 * var(--sashay-bar-rise));
   }
 
   /* Panes folded out of the window: a tab each, oldest at the top, in a spine at the left
@@ -317,11 +311,10 @@
     outline-offset: -2px;
   }
 
-  /* Compact (phone): drawer titles stack as tabs in the first edge; an open
-     drawer is a sheet over the panes. */
+  /* Compact (phone): pane titles stack as tabs over the first edge. */
   [data-sashay-tabs] {
     position: absolute;
-    inset: 0;
+    inset: 0 auto 0 0;
     width: var(--sashay-tabs-width, 2.75rem);
     display: flex;
     flex-direction: column;
@@ -345,72 +338,5 @@
   [data-sashay-tab][aria-pressed="true"] {
     color: var(--sashay-fg, CanvasText);
     box-shadow: inset 3px 0 0 var(--sashay-accent, oklch(0.62 0.19 255));
-  }
-  [data-sashay-drawer][data-sheet] {
-    z-index: 100;
-    padding: 0;
-    display: block;
-    background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
-    border-right: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
-    box-shadow: 10px 0 24px -12px var(--sashay-shadow, rgb(0 0 0 / 0.5));
-  }
-  /* Over the sheet; the controller matches its transform and width. */
-  [data-sashay-sheet-head] {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 100;
-    box-sizing: border-box;
-    background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
-    height: var(--sashay-header, 2.75rem);
-    display: flex;
-    align-items: center;
-    padding: 0 14px;
-    border-bottom: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
-    font-size: var(--sashay-font-size, 0.6875rem);
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
-  }
-  [data-sashay-sheet-close] {
-    margin-left: auto;
-    padding: 0 4px;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    font-size: 18px;
-    cursor: pointer;
-  }
-  [data-sashay-drawer-tab] {
-    writing-mode: vertical-rl;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 0;
-    border: 0;
-    border-bottom: 1px solid var(--sashay-border, color-mix(in srgb, CanvasText 15%, transparent));
-    background: color-mix(in srgb, var(--sashay-pane-bg, Canvas) 50%, transparent);
-    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
-    font-size: var(--sashay-font-size, 0.6875rem);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-  [data-sashay-drawer-tab] svg {
-    width: 12px;
-    height: 12px;
-    transform: rotate(90deg);
-    transition: transform 0.2s;
-  }
-  [data-sashay-drawer-tab][aria-expanded="true"] {
-    background: var(--sashay-pane-bg, Canvas);
-    color: var(--sashay-accent, oklch(0.62 0.19 255));
-  }
-  [data-sashay-drawer-tab][aria-expanded="true"] svg {
-    transform: rotate(-90deg);
-  }
-  [data-sashay-drawer-tab]:hover {
-    color: var(--sashay-fg, CanvasText);
   }
 }

@@ -78,7 +78,7 @@ button:focus-visible {
 
 /* ── the window (hero) ──────────────────────────────────── */
 /* Until sashay mounts (or with JS off) the panes sit in a row at the default
-   layout, 58 (½ | ¼ | ¼), each with a painted stile. Sashay then supplies the
+   layout, 69.0 (½ | ¼ | ¼), each with a painted stile. Sashay then supplies the
    real edges, which take the same look below. */
 .window {
   margin-top: 20px;
@@ -152,7 +152,7 @@ button:focus-visible {
   white-space: nowrap;
 }
 .frame [data-sashay-edge]::before {
-  content: attr(data-sashay-edge);
+  content: attr(aria-label);
   position: absolute;
   inset: 0;
 }
@@ -180,9 +180,22 @@ button:focus-visible {
   background: var(--ink);
   color: var(--paper);
 }
-.frame [data-sashay-edge]:focus-visible {
+/* On the painted label too: it covers the edge's own outline. */
+.frame [data-sashay-edge]:focus-visible,
+.frame [data-sashay-edge]:focus-visible::before {
   outline: 3px solid var(--butter);
   outline-offset: -3px;
+}
+.frame [data-spine] {
+  background: var(--ink);
+}
+.frame [data-sashay-spine-tab] {
+  color: var(--paper);
+  border-color: var(--mute);
+  font: 700 11px var(--sans);
+}
+.frame [data-sashay-spine-tab]:hover {
+  color: var(--butter);
 }
 /* Compact: the first edge holds the tab strip; the others are bare grips. */
 .frame[data-compact] [data-sashay-edge]::before {
@@ -313,12 +326,62 @@ pre .s {
 .p-install pre {
   margin-top: 18px;
 }
-.p-install .meta {
+/* Install's bottom bar. */
+.frame [data-sashay-bar-toggle] {
+  border-top: var(--rule) solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 12px var(--sans);
+  letter-spacing: 0.18em;
+  padding: 0 clamp(22px, 2.2vw, 30px);
+}
+.frame [data-sashay-bar-toggle]:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+.frame [data-sashay-bar] {
+  padding: 14px clamp(22px, 2.2vw, 30px);
+  background: var(--paper);
+}
+.meta {
   font: 600 13px var(--mono);
-  margin-top: 18px;
   display: flex;
-  gap: 18px;
   flex-wrap: wrap;
+  align-content: start;
+  gap: 8px 18px;
+}
+/* Without JS the bar stays open at the foot of its pane. */
+@media (scripting: none) {
+  .frame > [data-sashay-bar] {
+    inset: auto 0 0 auto;
+    width: calc((100% - 3 * var(--edge)) / 4);
+    height: auto;
+    visibility: visible;
+    content-visibility: visible;
+  }
+}
+
+/* Panes added by the Add pane button. */
+.p-added {
+  background: var(--mint);
+}
+.p-added.tint-1 {
+  background: var(--butter);
+}
+.p-added.tint-2 {
+  background: var(--paper);
+}
+.p-added .in {
+  padding: clamp(22px, 2.2vw, 30px);
+  justify-content: start;
+}
+.p-added h2 {
+  font-size: clamp(28px, 2.7vw, 40px);
+}
+.p-added p {
+  margin: 18px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
 }
 
 /* readout */
@@ -355,8 +418,10 @@ pre .s {
 .readout .say {
   color: var(--mute);
 }
-.readout button {
+.readout [data-act="add"] {
   margin-left: auto;
+}
+.readout button {
   font: 700 14px var(--sans);
   background: none;
   border: 2px solid var(--ink);
@@ -364,9 +429,13 @@ pre .s {
   padding: 6px 14px;
   cursor: pointer;
 }
-.readout button:hover {
+.readout button:hover:not(:disabled) {
   background: var(--ink);
   color: var(--paper);
+}
+.readout button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* ── poster grid ─────────────────────────────────────────── */
@@ -476,6 +545,7 @@ pre .s {
   --sashay-grip-hover: var(--paper);
   --sashay-edge-border: var(--ink);
   --sashay-spine-width: 48px;
+  --sashay-bar-size: 36px;
 }
 .mf[data-sashay-ready] {
   user-select: none;
@@ -487,6 +557,9 @@ pre .s {
   position: relative;
   flex: 1;
 }
+.mf:not([data-sashay-ready]) > [data-sashay-bar] {
+  display: none;
+}
 .mf [data-sashay-pane] {
   padding: 10px 12px;
   border-left: 3px solid var(--ink);
@@ -497,10 +570,6 @@ pre .s {
 .mf [data-sashay-edge] {
   background: var(--tomato);
   color: var(--ink);
-}
-.mf [data-sashay-edge][data-open] {
-  background: var(--ink);
-  color: var(--butter);
 }
 .mf [data-sashay-edge]:hover {
   background: var(--ink);
@@ -519,12 +588,20 @@ pre .s {
 .mf [data-sashay-close] {
   display: none;
 }
-/* The drawer's title sits on its edge; light it to match the edge's state. */
-.mf [data-sashay-controls] {
-  color: var(--ink);
+.mf :is([data-sashay-bar-toggle], [data-sashay-bar]) {
+  border-left: 3px solid var(--ink);
 }
-.mf [data-sashay-controls][data-open] {
-  color: var(--butter);
+.mf [data-sashay-bar-toggle] {
+  border-top: 3px solid var(--ink);
+  background: var(--butter);
+  color: var(--ink);
+  font: 600 14px var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.mf [data-sashay-bar-toggle]:hover {
+  background: var(--ink);
+  color: var(--paper);
 }
 .md {
   min-width: 0;
@@ -533,6 +610,7 @@ pre .s {
   font: 600 13px var(--sans);
 }
 .md label {
+  margin-bottom: 4px;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -731,6 +809,12 @@ footer b {
   .frame:not([data-sashay-ready]) {
     flex-direction: column;
     height: auto;
+  }
+  @media (scripting: none) {
+    .frame > [data-sashay-bar] {
+      position: static;
+      width: auto;
+    }
   }
   .frame:not([data-sashay-ready]) .pane {
     flex: none;

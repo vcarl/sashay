@@ -2,7 +2,7 @@
 
 A sliding-panes layout for the web, in the style of webOS/Enyo. Panes sit in a horizontal
 row, each with a draggable edge. Dragging snaps to simple fractions, a throw flings the edge,
-a squeezed pane slides under its neighbour, and drawers open from edges. The whole layout
+a squeezed pane slides under its neighbour, and panes can have expanding bottom bars. The whole layout
 encodes to a short string that fits in a URL. React components (React `>=19`), with a
 zero-dependency core underneath.
 

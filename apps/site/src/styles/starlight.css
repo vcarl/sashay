@@ -299,10 +299,10 @@ h1#_top code {
   --sashay-accent: var(--cobalt);
 }
 .demo [data-sashay-pane],
-.demo [data-sashay-drawer] {
+.demo [data-sashay-bar] {
   padding: 14px 16px;
 }
-.demo button {
+.demo button:not([data-sashay-bar-toggle]) {
   font: 600 14px var(--sans);
   margin: 0 6px 6px 0;
 }

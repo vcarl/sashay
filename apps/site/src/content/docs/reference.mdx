@@ -25,7 +25,7 @@ import "@vcarl/sashay/style.css";
 
 | Prop | Description |
 |---|---|
-| all `PaneOptions` fields | Same as the core's, below. `edge.drawer` also takes `content: ReactNode`. |
+| all `PaneOptions` fields | Same as the core's, below. `bar` also takes `content: ReactNode`. |
 | `keepInView` | `Length \| null`: keeps that point of the pane's content in view, as the handle's `keepInView` does. The content must be wrapped in an element to shift; bare text nodes don't. |
 | `onClose` | Fires when this pane is closed. |
 | `children` | The pane's content, or `(state: { offscreen: boolean }) => ReactNode` so an app can unmount heavy content in very deep stacks. |
@@ -54,7 +54,7 @@ The React `ref`, and the return value of `createSashay`.
 | `layout` (getter) | The current layout code. |
 | `reveal(id)` | Opens the pane, or uncovers it (open but partly covered), including bringing it back from the spine. Uses `opensTo` if set. |
 | `close(id)` | Closes the pane. |
-| `toggleDrawer(id, open?)` | Opens or closes a drawer. Leave out `open` to toggle. |
+| `toggleBar(id, open?)` | Expands or collapses a pane's bar. Leave out `open` to toggle. |
 | `keepInView(id, x \| null)` | Whenever the pane's visible slice is too narrow for point `x` (a `Length` from the pane's left; `"40%"` is 40% of the pane's width), whether covered, squeezed or narrower than its content, shifts the pane's children left just enough to show it, never past the content's right edge. The content must be wrapped in an element to shift; bare text nodes don't. |
 | `setLayout(code)` | Applies a code. Does not fire `onChange`. |
 | `fit(fractions)` | Moves the dividers to the nearest snaps. Fires `onChange`. |
@@ -69,8 +69,9 @@ from another framework or library, or to build your own wrapper.
 ### `createSashay(frame, options) → SashayHandle`
 
 Attaches to `frame`. `frame` contains one `[data-sashay-pane="<id>"]` element per pane and,
-optionally, one `[data-sashay-drawer="<id>"]` element per pane with a drawer. sashay creates
-and owns all the controls: edges, the leaf × button, the compact tab strip, grips and the spine.
+one `[data-sashay-bar="<id>"]` element per pane with a bar, after its pane. sashay creates and
+owns all the controls: edges, bar strips, the leaf × button, the compact tab strip, grips and the
+spine.
 
 ### Options
 
@@ -94,19 +95,31 @@ and owns all the controls: edges, the leaf × button, the compact tab strip, gri
 | `maxWidth` | `Length` | none | Caps growth from dragging *other* edges. It never limits dragging the pane's own edge. |
 | `opensTo` | `number[]` | none | Divider fractions to snap to when this pane is revealed. |
 | `edge` | `EdgeOptions` | `{ width: "0.75rem" }` | The pane's leading edge. |
+| `bar` | `BarOptions` | none | A bar at the pane's bottom. |
 
 ### `EdgeOptions`
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `width` | `Length` | `"2.75rem"` with a `drawer`, else `"0.75rem"` | Edge width. Edges sit outside the fractional layout. |
-| `drawer` | `{ width: Length; title: string }` | none | The edge opens a drawer `width` wide. Its content goes in `[data-sashay-drawer]`. In compact mode, the drawer is an overlay sheet, one open at a time. |
+| `width` | `Length` | `"0.75rem"` | Edge width. Edges sit outside the fractional layout. |
+
+### `BarOptions`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `title` | `string` | required | Shown on the strip, and the toggle's accessible name. |
+| `height` | `Length` | `"50%"` | The expanded height, strip included. Percentages are of the pane's height, and it never exceeds the pane. |
+
+Collapsed, a bar is a 2.75rem strip with the title and a chevron, and the pane ends above it.
+Expanded, it grows over the lower part of the pane, which doesn't move or resize. The content goes
+in `[data-sashay-bar]` and scrolls when it's too tall. A bar is as wide as its pane's visible
+slice, any number can be open at once, and compact mode changes nothing.
 
 ## Lengths
 
 Every size option is a `Length`: either a CSS length string (`"12rem"`, `"180px"`, `"20ch"`,
 `"30%"`, `"clamp(10rem, 20vw, 18rem)"`, `"var(--rail)"`) or a number, which means pixels.
-Percentages are relative to the frame's width. sashay resolves each distinct value by
+Percentages are relative to the frame's width, except in a bar's `height`. sashay resolves each distinct value by
 measuring it in place. It re-measures on resize and font load, never during a drag. Invalid
 values throw (checked with `CSS.supports`). Pane widths themselves (`focus`, layouts) are
 fractions, because they live on the snap grid.
@@ -130,7 +143,7 @@ stack (drill-down: picking an item adds a pane on the right; going back removes 
 - **Compact.** The tab strip lists the visible window, up to six panes; panes fold into the
   spine only past six, so a workspace of six or fewer shows one tab per pane and no spine.
 - **Layout code.** It holds one hex digit (the snap index) per visible divider, plus the
-  offset where the visible window starts and the drawer bitsets, so it can be any length.
+  offset where the visible window starts and the open bars, so it can be any length.
   After a list change, dividers that didn't move keep their positions. The code stores
   geometry only. Which panes exist is app state (for example the route) and is stored
   separately.
@@ -157,8 +170,10 @@ Enforced by browser-mode benchmarks in CI.
 | `data-spine` | spine element | The collapsed stack. |
 | `data-dragging` | frame | A drag is in progress. |
 | `data-compact` | frame | Compact mode is active. |
-| `data-sashay-controls="<id>"` | controls element | A sibling laid over each edge. It holds the drawer toggle, the title and, in compact mode, the tab strip. |
-| `--sashay-*` | frame | Colour, radius, font size and shadow, all with fallbacks. |
+| `data-bar` | pane | The pane has a bar. |
+| `data-sashay-bar-toggle="<id>"` | bar strip | The button that expands a bar; `aria-expanded` gives its state. |
+| `data-sashay-bar="<id>"` | bar content | `data-open` while expanded. |
+| `--sashay-*` | frame | Colour, radius, font size, shadow and `--sashay-bar-size` (the strip's height), all with fallbacks. |
 
 Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
 
@@ -166,8 +181,10 @@ Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
 
 - Edges take focus. Edges with a divider have `role="separator"` and carry `aria-valuenow` and
   `aria-valuetext`. The first edge, which has no divider, is a `role="button"` with `aria-expanded`.
-  Drawer toggles and compact tabs sit beside the edge, not inside it, so they are announced.
+  Compact tabs sit beside the edge, not inside it, so they are announced.
 - On a focused edge, ← and → move between snaps, and Enter or Space opens or closes the pane.
-- Drawer toggles carry `aria-expanded`.
+- A bar's strip is a button with `aria-expanded` and `aria-controls`. Collapsed content is `inert`,
+  and so is the bar of a closed or off-screen pane. Keyboard focus landing under an
+  expanded bar collapses it, so focus is never hidden.
 - Closed and off-screen panes are `inert`. A partly covered pane is not: its visible slice
   takes input, and keyboard focus landing under the next pane uncovers it, so focus is never hidden.

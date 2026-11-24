@@ -55,6 +55,22 @@ test("drag frame < 2 ms of script at 1,000 panes", () => {
   expect(median(t)).toBeLessThan(2);
 });
 
+test("drag frame < 2 ms with a bar on every pane, the window's open", () => {
+  h.destroy();
+  for (const p of panes) {
+    const bar = document.createElement("div");
+    bar.setAttribute("data-sashay-bar", p.id);
+    frame.append(bar);
+  }
+  h = createSashay(frame, { panes: panes.map((p) => ({ ...p, bar: { title: p.id } })) });
+  for (let i = 994; i < N; i++) h.toggleBar(String(i), true);
+  expect(frame.querySelectorAll("[data-sashay-bar][data-open]").length).toBe(6);
+  dragFrames(30); // warm-up
+  const t = dragFrames(120);
+  console.log(`drag frame with bars median ${median(t).toFixed(3)} ms`);
+  expect(median(t)).toBeLessThan(2);
+});
+
 test("adding a pane < 16 ms", () => {
   const t: number[] = [];
   for (let i = 0; i < 60; i++) {

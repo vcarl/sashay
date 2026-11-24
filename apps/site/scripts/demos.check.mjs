@@ -50,12 +50,11 @@ for (const width of [1440, 390]) {
 
   // Plants: pick a window, pick a dot, pick from the list, open the card.
   const pl = page.locator(".plants");
-  await pl.locator(width < 640 ? "[data-sashay-drawer-tab]" : "[data-sashay-toggle]").click();
+  await pl.locator("[data-sashay-bar-toggle]").click();
   await pl.locator('[data-facing="North"]').click();
   assert.equal(await pl.locator('[data-facing="North"]').getAttribute("aria-pressed"), "true");
   assert.ok((await pl.locator("[data-dot][data-hollow]").count()) > 20, "a north window leaves most plants hollow");
-  if (width < 640) await pl.locator("[data-sashay-sheet-close]").click();
-  else await pl.locator("[data-sashay-toggle]").click();
+  await pl.locator("[data-sashay-bar-toggle]").click();
   await settle(page);
   await pl.locator('[data-dot="monstera"]').press("Enter"); // dots take the keyboard
   await settle(page);

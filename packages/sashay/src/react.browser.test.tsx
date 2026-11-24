@@ -118,15 +118,23 @@ test("a layout prop after ref.setLayout still applies", async () => {
   expect(P("c").hasAttribute("data-closed")).toBe(true);
 });
 
-test("changing drawer content re-renders it", async () => {
-  const at = (content: ReactNode): PaneProps[] => [
+test("changing bar content re-renders it, and a pane's bar comes and goes", async () => {
+  const at = (content?: ReactNode): PaneProps[] => [
     P3[0],
-    { ...P3[1], edge: { drawer: { width: "10rem", title: "N", content } } },
+    { ...P3[1], bar: content ? { title: "N", content } : undefined },
     P3[2],
   ];
+  const toggle = () => host.querySelector('[data-sashay-bar-toggle="b"]');
+  const content = () => host.querySelector('[data-sashay-bar="b"]');
   await render(<App layout="48" panes={at("one")} />);
   await render(<App layout="48" panes={at("two")} />);
-  expect(host.querySelector('[data-sashay-drawer="b"]')?.textContent).toBe("two");
+  expect(content()?.textContent).toBe("two");
+  expect(toggle()?.textContent).toBe("N");
+  await render(<App layout="48" panes={at()} />);
+  expect([toggle(), content()]).toEqual([null, null]);
+  await render(<App layout="48" panes={at(<b>notes</b>)} />);
+  expect(content()?.innerHTML).toBe("<b>notes</b>");
+  expect(toggle()).not.toBeNull();
 });
 
 test("per-pane onClose", async () => {
@@ -146,12 +154,6 @@ test("render-prop offscreen", async () => {
   await render(<App layout="3-48" panes={panes} />);
   await vi.waitFor(() => expect(P("p0").textContent).toBe("zzz"));
   expect(P("p5").textContent).toBe("awake");
-});
-
-test("drawer content renders into the drawer element", async () => {
-  const drawer = { width: "10rem", title: "Notes", content: <b>notes</b> };
-  await render(<App layout="48" panes={[P3[0], { ...P3[1], edge: { drawer } }, P3[2]]} />);
-  expect(host.querySelector('[data-sashay-drawer="b"]')?.innerHTML).toBe("<b>notes</b>");
 });
 
 test("SSR first paint matches", async () => {
@@ -176,6 +178,52 @@ test("SSR first paint matches", async () => {
   expect(box().left).toBeCloseTo(332, 0);
 });
 
+test("SSR: a bar's room is kept, its content hidden unless the layout has it open", async () => {
+  const panes: PaneProps[] = [
+    { ...P3[0], bar: { title: "A", content: "a" } },
+    { ...P3[1], bar: { title: "B", height: 200, content: "b" } },
+    P3[2],
+  ];
+  host.innerHTML = renderToString(<App panes={panes} layout="48.2" />);
+  const content = (id: string) => host.querySelector(`[data-sashay-bar="${id}"]`) as HTMLElement;
+  const see = () => {
+    const f = host.firstElementChild?.getBoundingClientRect() as DOMRect;
+    const b = content("b").getBoundingClientRect();
+    return {
+      box: [b.left - f.left, b.top - f.top, b.width, b.height].map(Math.round),
+      pane: P("b").getBoundingClientRect().height,
+      other: P("c").getBoundingClientRect().height,
+      vis: ["a", "b"].map((id) => getComputedStyle(content(id)).visibility),
+    };
+  };
+  const first = see();
+  expect(first).toEqual({ box: [332, 444, 308, 156], pane: 556, other: 600, vis: ["hidden", "visible"] });
+  const recover = vi.fn();
+  await act(async () => {
+    root = hydrateRoot(host, <App panes={panes} layout="48.2" />, { onRecoverableError: recover });
+  });
+  expect(recover).not.toHaveBeenCalled();
+  expect(see()).toEqual(first);
+  await act(() => new Promise((r) => requestAnimationFrame(r)));
+  expect(see()).toEqual(first);
+});
+
+test("StrictMode with an open bar", async () => {
+  const panes: PaneProps[] = [{ ...P3[0], bar: { title: "Files", content: "files" } }, P3[1], P3[2]];
+  await render(
+    <StrictMode>
+      <App panes={panes} layout="48.1" />
+    </StrictMode>,
+  );
+  const toggles = host.querySelectorAll<HTMLElement>("[data-sashay-bar-toggle]");
+  expect(toggles).toHaveLength(1);
+  expect(toggles[0].getAttribute("aria-expanded")).toBe("true");
+  expect(document.getElementById(toggles[0].getAttribute("aria-controls") ?? "")?.textContent).toBe("files");
+  expect(P("a").getBoundingClientRect().height).toBe(556);
+  await act(() => toggles[0].click());
+  expect(toggles[0].getAttribute("aria-expanded")).toBe("false");
+});
+
 test("StrictMode", async () => {
   await render(
     <StrictMode>
@@ -188,13 +236,9 @@ test("StrictMode", async () => {
 
 // A remount (StrictMode's second mount, Fast Refresh, a re-shown Activity or Suspense) re-registers
 // every pane; the layout prop must survive it. B's x under "5c.0", as without StrictMode.
-const D3: PaneProps[] = [
-  { ...P3[0], edge: { drawer: { width: "12rem", title: "Files", content: "files" } } },
-  P3[1],
-  P3[2],
-];
+const D3: PaneProps[] = [{ ...P3[0], bar: { title: "Files", content: "files" } }, P3[1], P3[2]];
 const at5c = () => {
-  expect(tx(P("b"))).toBeCloseTo(353.33, 1);
+  expect(tx(P("b"))).toBeCloseTo(332, 1);
   expect(P("c").hasAttribute("data-closed")).toBe(true);
 };
 test("StrictMode keeps a non-default initial layout", async () => {

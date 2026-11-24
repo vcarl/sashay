@@ -18,13 +18,13 @@ export function mountCells(root: HTMLElement): () => void {
   });
   off.push(fling.destroy);
 
-  // 03: a pane whose edge opens a drawer.
-  const drawer = createSashay($("#cell-drawer"), {
+  // 03: a pane with a bottom bar.
+  const bar = createSashay($("#cell-bar"), {
     compactBelow,
-    panes: [{ id: "list", title: "List", focus: 1, edge: { drawer: { width: "50%", title: "Filters" } } }],
+    panes: [{ id: "list", title: "List", focus: 1, edge, bar: { title: "Filters", height: "118px" } }],
   });
-  drawer.toggleDrawer("list", true);
-  off.push(drawer.destroy);
+  bar.toggleBar("list", true);
+  off.push(bar.destroy);
 
   // 04: a stack the app edits; old panes fold into the spine.
   const stackEl = $("#cell-spine");

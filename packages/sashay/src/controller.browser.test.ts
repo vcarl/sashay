@@ -363,25 +363,6 @@ test("the leaf × is hidden when closing it is impossible", () => {
   expect($("[data-sashay-close]").hidden).toBe(true);
 });
 
-test("toggleDrawer opens a drawer beside its edge", () => {
-  const onChange = vi.fn();
-  const d = document.createElement("div");
-  d.setAttribute("data-sashay-drawer", "b");
-  frame.append(d);
-  const panes = [P3[0], { ...P3[1], edge: { drawer: { width: "14rem", title: "Filters" } } }, P3[2]];
-  h = createSashay(frame, { panes, layout: "48.0", onChange });
-  expect(E("b").hasAttribute("data-drawer")).toBe(true);
-  h.toggleDrawer("b");
-  expect(onChange).toHaveBeenLastCalledWith("48.1");
-  expect(E("b").style.width).toBe("224px");
-  expect(d.hasAttribute("data-open")).toBe(true);
-  expect(d.style.transform).toBe(E("b").style.transform);
-  expect($("[data-sashay-toggle]").getAttribute("aria-expanded")).toBe("true");
-  h.toggleDrawer("b", false);
-  expect(onChange).toHaveBeenLastCalledWith("48.0");
-  expect(d.hasAttribute("data-open")).toBe(false);
-});
-
 test("focus survives reveals: the next spine tab, then the first window edge", () => {
   grow(6);
   const spine = $('[data-spine="start"]');
@@ -411,16 +392,9 @@ test("focus inside a pane that closes moves to its edge; becoming covered keeps 
   expect(document.activeElement).toBe(ba);
 });
 
-test("drawer toggles and compact tabs are not inside a role element", () => {
-  const d = document.createElement("div");
-  d.setAttribute("data-sashay-drawer", "b");
-  frame.append(d);
-  const panes = [P3[0], { ...P3[1], edge: { drawer: { width: "14rem", title: "Filters" } } }, P3[2]];
-  h = createSashay(frame, { panes, layout: "48.0" });
-  expect($("[data-sashay-toggle]").closest("[role]")).toBeNull();
-  h.destroy();
+test("compact tabs are not inside a role element", () => {
   frame.style.width = "600px";
-  h = createSashay(frame, { panes, layout: "48.0" });
+  h = createSashay(frame, { panes: P3, layout: "48" });
   expect(frame.hasAttribute("data-compact")).toBe(true);
   expect($("[data-sashay-tab]").closest("[role]")).toBeNull();
 });
@@ -455,7 +429,7 @@ test("handle methods are no-ops after destroy", () => {
   x.destroy();
   x.reveal("a");
   x.close("a");
-  x.toggleDrawer("a");
+  x.toggleBar("a");
   x.keepInView("a", 10);
   x.setLayout("4c");
   x.fit([0.5, 0.75]);

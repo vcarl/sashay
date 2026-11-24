@@ -10,8 +10,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       <div class="frame" id="hero">
         <div class="pane p-hello" data-sashay-pane="hello"><div class="in">
           <div>
-            <h1>Panes that sashay.</h1>
-            <p>Drag an edge and it snaps to a fraction. Throw it and it flings. Panes slide over each other instead of squishing, and the whole arrangement fits in a URL.</p>
+            <h1>Sashay</h1>
+            <p>Drag the edge between two panes to resize them. The edge settles at a simple fraction of the width, and a pane with no room left slides under its neighbour. The layout can be saved in the URL.</p>
             <div class="cta"><a class="btn fill" href={`${base}guide/`}>Read the docs</a><a class="btn" href="#install">npm i @vcarl/sashay</a></div>
           </div>
           <div class="hint"><svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 9h24M7 3 1 9l6 6M19 3l6 6-6 6"/></svg> <span class="wide">This headline is a pane. Grab the red edge to its right.</span><span class="narrow">This headline is a pane. On a phone the edges become tabs: tap one.</span></div>
@@ -38,15 +38,16 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
     title=<span class="s">"Detail"</span>
     focus={"{"}<span class="s">1/2</span>{"}"}&gt;…&lt;/Pane&gt;
 &lt;/Sashay&gt;</pre>
-            <div class="meta"><span>ESM only</span><span>React ≥19</span><span>0-dep core</span><span>MIT</span></div>
           </div>
         </div></div>
+        <div class="meta" data-sashay-bar="install"><span>ESM only</span><span>React ≥19</span><span>0-dep core</span><span>MIT</span></div>
       </div>
 
       <div class="readout" id="readout">
-        <span class="url"><span>?layout=</span><span class="code">58</span></span>
-        <span class="say">That's the whole layout: one hex digit per divider. Drag an edge, throw it, or click one to open and close.</span>
-        <button type="button">Reset</button>
+        <span class="url"><span>?layout=</span><span class="code">69.0</span></span>
+        <span class="say">This code is the layout. Drag an edge, throw it, or click one to open and close.</span>
+        <button type="button" data-act="add">Add pane</button>
+        <button type="button" data-act="reset">Reset</button>
       </div>
     </section>
 
@@ -67,12 +68,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         </div>
       </div>
       <div class="cell c-2">
-        <h2>Drawers in the frame.</h2>
-        <p>Any edge can open a drawer: filters, settings, a table of contents. On a phone it becomes a sheet.</p>
-        <a class="more" href={`${base}guide/#drawers`}>Guide: Drawers →</a>
-        <div class="art mf" id="cell-drawer">
+        <h2>A bar for each pane.</h2>
+        <p>Any pane can have a bar at its bottom for filters, settings or a table of contents. It expands over the pane and works the same on a phone.</p>
+        <a class="more" href={`${base}guide/#bottom-bars`}>Guide: Bottom bars →</a>
+        <div class="art mf" id="cell-bar">
           <div data-sashay-pane="list"><div class="line" style="width:70%"></div><div class="line" style="width:50%"></div><div class="line" style="width:60%"></div></div>
-          <div data-sashay-drawer="list" class="md"><label><input type="checkbox" checked /> Open</label><label><input type="checkbox" checked /> Mine</label><label><input type="checkbox" /> Archived</label></div>
+          <div data-sashay-bar="list" class="md"><label><input type="checkbox" checked /> Open</label><label><input type="checkbox" checked /> Mine</label><label><input type="checkbox" /> Archived</label></div>
         </div>
       </div>
       <div class="cell c-2 mint">
@@ -89,7 +90,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       </div>
       <div class="cell c-2 butter">
         <h2>Deep linked pane arrangements</h2>
-        <p>Which panes are open, how wide they are, and which drawers are out all fit in a short code you can keep in the URL. Share the link and the other person sees the same arrangement.</p>
+        <p>Which panes are open, how wide they are, and which bars are open all fit in a short code you can keep in the URL. Share the link and the other person sees the same arrangement.</p>
         <a class="more" href={`${base}guide/#layout-in-the-url`}>Guide: Layout in the URL →</a>
         <div class="art">
           <div class="mf" id="cell-code">
