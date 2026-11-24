@@ -103,6 +103,9 @@ export function Sashay(props: SashayProps): ReactElement {
 
   useLayoutEffect(() => {
     const f = frame.current as HTMLDivElement;
+    // A remount (StrictMode, Fast Refresh, a re-shown Activity or Suspense) reuses the element
+    // that destroy() stripped; paneList matches panes by this attribute.
+    f.setAttribute("data-sashay-frame", "");
     const panes = paneList(f, s.reg);
     s.key = JSON.stringify(panes);
     const h = createSashay(f, {

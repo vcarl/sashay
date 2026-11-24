@@ -1,6 +1,6 @@
 {
   "name": "@vcarl/sashay",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "license": "MIT",
   "author": "Carl Vitullo",
   "type": "module",
@@ -28,7 +28,10 @@
       "types": "./dist/react.d.ts",
       "default": "./dist/react.js"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": {
+      "types": "./dist/style.css.d.ts",
+      "default": "./dist/style.css"
+    }
   },
   "peerDependencies": {
     "react": ">=19"
@@ -43,7 +46,7 @@
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "bench": "vitest run --project bench",
-    "build": "tsdown && cp src/sashay.css dist/style.css",
+    "build": "tsdown && cp src/sashay.css dist/style.css && echo 'export {};' > dist/style.css.d.ts",
     "size": "size-limit"
   },
   "size-limit": [
