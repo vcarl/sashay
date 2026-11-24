@@ -1,8 +1,8 @@
 ---
-"@vcarl/sashay": major
+"@vcarl/sashay": minor
 ---
 
-Bottom bars replace edge drawers. A pane takes a `bar`: a strip along its bottom that expands over the lower part of the pane. Edges only resize panes and open or close them, and are `0.75rem` wide by default.
+**Breaking:** bottom bars replace edge drawers. A pane takes a `bar`: a strip along its bottom that expands over the lower part of the pane. Edges only resize panes and open or close them, and are `0.75rem` wide by default.
 
 ```tsx
 // Before
