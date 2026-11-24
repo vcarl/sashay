@@ -77,9 +77,6 @@ button:focus-visible {
 }
 
 /* ── the window (hero) ──────────────────────────────────── */
-/* Until sashay mounts (or with JS off) the panes sit in a row at the default
-   layout, 69.0 (½ | ¼ | ¼), each with a painted stile. Sashay then supplies the
-   real edges, which take the same look below. */
 .window {
   margin-top: 20px;
 }
@@ -116,30 +113,11 @@ button:focus-visible {
   justify-content: space-between;
 }
 
-.frame:not([data-sashay-ready]) {
-  display: flex;
-}
-.frame:not([data-sashay-ready]) .pane {
-  position: relative;
-  display: grid;
-  grid-template-columns: var(--edge) minmax(0, 1fr);
-  min-width: 0;
-}
-.frame:not([data-sashay-ready]) .p-hello {
-  flex: 0 0 calc(var(--edge) + (100% - 3 * var(--edge)) / 2);
-}
-.frame:not([data-sashay-ready]) .p-why {
-  flex: 0 0 calc(var(--edge) + (100% - 3 * var(--edge)) / 4);
-}
-.frame:not([data-sashay-ready]) .p-install {
-  flex: 1 1 0;
-}
-
-/* Stile: painted on the pane before mount, sashay's own edge after. */
-.frame:not([data-sashay-ready]) .pane::before,
+/* Stile: sashay's edge, with its pane's title. */
 .frame [data-sashay-edge]::before {
-  content: attr(data-sashay-pane);
-  align-self: stretch;
+  content: attr(aria-label);
+  position: absolute;
+  inset: 0;
   background: var(--tomato);
   color: var(--ink);
   writing-mode: vertical-rl;
@@ -151,27 +129,9 @@ button:focus-visible {
   text-transform: uppercase;
   white-space: nowrap;
 }
-.frame [data-sashay-edge]::before {
-  content: attr(aria-label);
-  position: absolute;
-  inset: 0;
-}
-.frame:not([data-sashay-ready]) .pane + .pane::before,
 .frame [data-sashay-edge] {
+  container-type: inline-size;
   box-shadow: -14px 0 24px -14px rgba(27, 26, 23, 0.65);
-}
-.frame:not([data-sashay-ready]) .pane + .pane::after {
-  content: "";
-  position: absolute;
-  left: calc(var(--edge) / 2 - 2px);
-  top: 50%;
-  width: 4px;
-  height: 26px;
-  margin-top: -13px;
-  background: repeating-linear-gradient(var(--ink) 0 4px, transparent 4px 11px);
-  opacity: 0.85;
-}
-.frame [data-sashay-edge] {
   background: var(--tomato);
   color: var(--ink);
 }
@@ -198,8 +158,10 @@ button:focus-visible {
   color: var(--butter);
 }
 /* Compact: the first edge holds the tab strip; the others are bare grips. */
-.frame[data-compact] [data-sashay-edge]::before {
-  display: none;
+@container (width < 20px) {
+  .frame [data-sashay-edge]::before {
+    display: none;
+  }
 }
 .frame [data-sashay-tab] {
   flex: 1;
@@ -349,16 +311,6 @@ pre .s {
   flex-wrap: wrap;
   align-content: start;
   gap: 8px 18px;
-}
-/* Without JS the bar stays open at the foot of its pane. */
-@media (scripting: none) {
-  .frame > [data-sashay-bar] {
-    inset: auto 0 0 auto;
-    width: calc((100% - 3 * var(--edge)) / 4);
-    height: auto;
-    visibility: visible;
-    content-visibility: visible;
-  }
 }
 
 /* Panes added by the Add pane button. */
@@ -802,28 +754,6 @@ footer b {
   }
   .pane .in {
     padding: 22px 20px;
-  }
-  .frame {
-    --edge: 44px;
-  }
-  .frame:not([data-sashay-ready]) {
-    flex-direction: column;
-    height: auto;
-  }
-  @media (scripting: none) {
-    .frame > [data-sashay-bar] {
-      position: static;
-      width: auto;
-    }
-  }
-  .frame:not([data-sashay-ready]) .pane {
-    flex: none;
-  }
-  .frame:not([data-sashay-ready]) .pane + .pane {
-    border-top: var(--rule) solid var(--ink);
-  }
-  .frame:not([data-sashay-ready]) .pane + .pane::after {
-    display: none;
   }
   .p-hello h1 {
     font-size: 54px;

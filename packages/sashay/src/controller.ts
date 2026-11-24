@@ -57,6 +57,7 @@ export interface SashayOptions {
   panes: PaneOptions[];
   layout?: string;
   defaultLayout?: number[];
+  compactLayout?: number[];
   onChange?: (layout: string) => void;
   onClose?: (id: string) => void;
   compactBelow?: Length;
@@ -76,13 +77,13 @@ export interface SashayHandle {
 
 export const EDGE = "0.75rem"; // internal, as COMPACT
 export const COMPACT = "40rem"; // internal: shared with react.tsx, not re-exported
-const TABS = "var(--sashay-tabs-width, 2.75rem)";
+export const TABS = "var(--sashay-tabs-width, 2.75rem)"; // internal, as COMPACT
 export const SPINE = "var(--sashay-spine-width, 1.5rem)"; // internal, as COMPACT
-export const STRIP = "var(--sashay-bar-size, 2.75rem)"; // internal, as COMPACT
 export const barHeight = ({ height = "50%" }: BarOptions) => (typeof height === "number" ? `${height}px` : height); // internal, as COMPACT
 // Compact: the most panes the window (and so the tab strip) holds; the rest are in the spine.
 const COMPACT_CAP = 6;
-const CHEVRON =
+// internal, as COMPACT
+export const CHEVRON =
   '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 10l5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const own = (frame: HTMLElement, sel: string) =>
@@ -106,9 +107,11 @@ let uid = 0;
 export function createSashay(frame: HTMLElement, options: SashayOptions): SashayHandle {
   const opts = { ...options, compactBelow: options.compactBelow ?? (COMPACT as Length) };
   checkLength(opts.compactBelow);
-  const dl = options.defaultLayout;
-  if (dl?.some((x, i) => !(x >= 0 && x <= 1) || (i > 0 && x < dl[i - 1])))
-    throw new RangeError(`sashay: defaultLayout must be ascending fractions from 0 to 1, got ${JSON.stringify(dl)}`);
+  for (const k of ["defaultLayout", "compactLayout"] as const) {
+    const dl = options[k];
+    if (dl?.some((x, i) => !(x >= 0 && x <= 1) || (i > 0 && x < dl[i - 1])))
+      throw new RangeError(`sashay: ${k} must be ascending fractions from 0 to 1, got ${JSON.stringify(dl)}`);
+  }
   frame.setAttribute("data-sashay-frame", "");
   let found: ReturnType<typeof scan>;
   try {
@@ -232,7 +235,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     );
   const decodeState = (c: unknown) => {
     const d = decodeLayout(c, panes.length, (p) => Boolean(panes[p].bar));
-    const v = normalize(d?.view ?? defaultView(panes.length, opts.defaultLayout, fits), panes.length);
+    const dl = (compact() && opts.compactLayout) || opts.defaultLayout;
+    const v = normalize(d?.view ?? defaultView(panes.length, dl, fits), panes.length);
     const m = new Map<string, boolean>();
     if (d) {
       const ids = panes.slice(v.offset, windowEnd(v)).filter((p) => p.bar);

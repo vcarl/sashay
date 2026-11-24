@@ -1,3 +1,5 @@
+"use client";
+
 // React wrapper: <Pane>s register through context, one controller owns the DOM.
 // Drag geometry never re-renders; prop changes go through update().
 import {
@@ -12,27 +14,24 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import {
   type BarOptions,
-  barHeight,
   COMPACT,
   createSashay,
-  EDGE,
   type Length,
   type PaneOptions,
   type SashayHandle,
-  SPINE,
-  STRIP,
 } from "./controller.ts";
-import { isOpen, snapV, toWidths } from "./engine.ts";
-import { decodeLayout, defaultView, normalize, windowEnd } from "./window.ts";
+import { ssrHtml } from "./ssr.ts";
 
 export type { Length, SashayHandle };
 
 export interface SashayProps extends Omit<ComponentProps<"div">, "onChange" | "ref"> {
   layout?: string;
   defaultLayout?: number[];
+  compactLayout?: number[];
   compactBelow?: Length;
   onLayoutChange?: (layout: string) => void;
   ref?: Ref<SashayHandle>;
@@ -51,6 +50,7 @@ interface Store {
   reg: Map<string, PaneProps>;
   h: SashayHandle | null;
   code: string | undefined; // last layout code reported or applied
+  held?: string; // the layout at unmount, for a remount: the default may differ by then
   key: string; // last pane list sent to the controller
   dirty: boolean; // a pane registered or unregistered since the last flush
   flush(): void;
@@ -68,15 +68,30 @@ const toOptions = ({ id, title, focus, minWidth, maxWidth, opensTo, edge, bar }:
   edge,
   bar: bar && { title: bar.title, height: bar.height },
 });
+const noSubscribe = () => () => {};
+const returnFalse = () => false;
+const returnTrue = () => true;
 const METHODS = ["reveal", "close", "toggleBar", "keepInView", "fit", "update", "destroy"] as const;
 
 export function Sashay(props: SashayProps): ReactElement {
-  const { layout, defaultLayout, compactBelow, onLayoutChange, ref, children, ...rest } = props;
+  const {
+    layout,
+    defaultLayout: _d,
+    compactLayout: _c,
+    compactBelow,
+    onLayoutChange,
+    ref,
+    nonce: _n,
+    children,
+    ...rest
+  } = props;
   const frame = useRef<HTMLDivElement>(null);
   const latest = useRef(props);
   latest.current = props;
   const scope = useId();
-  const [mounted, setMounted] = useState(false);
+  const ui = useRef<HTMLDivElement>(null);
+  // True on the server and while hydrating; a client render needs no stand-in for the controller.
+  const [ssr, setSsr] = useState(useSyncExternalStore(noSubscribe, returnFalse, returnTrue));
   const [s] = useState<Store>(() => ({
     reg: new Map(),
     h: null,
@@ -109,10 +124,13 @@ export function Sashay(props: SashayProps): ReactElement {
     f.setAttribute("data-sashay-frame", "");
     const panes = paneList(f, s.reg);
     s.key = JSON.stringify(panes);
+    // The controller makes the real controls before this commit paints. The style stays (see below).
+    for (const el of ui.current?.querySelectorAll(":scope > div") ?? []) el.remove();
     const h = createSashay(f, {
       panes,
-      layout: s.code,
+      layout: s.held ?? s.code,
       defaultLayout: latest.current.defaultLayout,
+      compactLayout: latest.current.compactLayout,
       compactBelow: latest.current.compactBelow,
       onChange: (c) => {
         s.code = c;
@@ -122,10 +140,11 @@ export function Sashay(props: SashayProps): ReactElement {
     });
     s.h = h;
     for (const p of s.reg.values()) if (p.keepInView != null) h.keepInView(p.id, p.keepInView);
-    // The SSR style keeps transitions off until the controller's first paint has been styled.
-    const raf = requestAnimationFrame(() => setMounted(true));
+    // The first paint's style keeps transitions off until the controller's first paint has been styled.
+    const raf = requestAnimationFrame(() => setSsr(false));
     return () => {
       cancelAnimationFrame(raf);
+      s.held = h.layout;
       h.destroy();
       s.h = null;
     };
@@ -159,6 +178,7 @@ export function Sashay(props: SashayProps): ReactElement {
       setLayout(c: string) {
         if (s.dirty) s.flush();
         s.code = c; // so a later `layout` prop equal to the old code still applies
+        s.held = undefined;
         s.h?.setLayout(c);
       },
     }),
@@ -169,7 +189,7 @@ export function Sashay(props: SashayProps): ReactElement {
     <Ctx value={s}>
       <div {...rest} ref={frame} data-sashay-frame="" data-sashay-ssr={scope}>
         {children}
-        {!mounted && <SsrStyle s={s} scope={scope} layout={layout} defaultLayout={defaultLayout} />}
+        {ssr && <FirstPaint s={s} scope={scope} props={props} ref={ui} />}
       </div>
     </Ctx>
   );
@@ -182,36 +202,31 @@ const paneList = (f: HTMLElement, reg: Map<string, PaneProps>) =>
     return p ? [toOptions(p)] : [];
   });
 
-// Rendered after the panes, so the registry holds them in render order.
-function SsrStyle({ s, scope, layout, defaultLayout }: { s: Store; scope: string } & SashayProps) {
-  const panes = [...s.reg.values()];
-  const n = panes.length;
-  const d = decodeLayout(layout, n, (p) => Boolean(panes[p].bar));
-  const v = normalize(d?.view ?? defaultView(n, defaultLayout), n);
-  const win = panes.slice(v.offset, windowEnd(v));
-  const len = (x: Length) => (typeof x === "number" ? `${x}px` : x);
-  let j = 0;
-  const edges = win.map((p) => len(p.edge?.width ?? EDGE));
-  const spine = v.offset ? SPINE : "0px";
-  const end = windowEnd(v) < n ? SPINE : "0px";
-  const C = `(100% - ${spine} - ${end} - (${edges.join(" + ")}))`;
-  const div = v.div.map(snapV);
-  const w = toWidths(div);
-  const q = (x: string) => JSON.stringify(x).replace(/</g, "\\3c ");
-  const css = panes.map((p, i) => {
-    const k = i - v.offset;
-    const at = (part: string) =>
-      `[data-sashay-ssr=${q(scope)}]:not([data-sashay-ready]) [data-sashay-${part}=${q(p.id)}]`;
-    const sel = at("pane");
-    if (k < 0 || k >= win.length) return `${sel}{visibility:hidden}`;
-    const left = `calc(${C} * ${k ? div[k - 1] : 0} + ${spine} + ${edges.slice(0, k + 1).join(" + ")})`;
-    const box = `${sel}{left:${left};width:max(calc(${C} * ${w[k]}), calc(${C} * ${p.focus}))}`;
-    if (!p.bar) return box;
-    const open = d?.bars[j++] && isOpen(w[k]);
-    return `${box}${sel}{bottom:${STRIP}}${at("bar")}{left:${left};width:calc(${C} * ${w[k]});--sashay-bar-height:${barHeight(p.bar)}${open ? ";bottom:0;visibility:visible;content-visibility:visible" : ""}}`;
-  });
-  css.push(`[data-sashay-ssr=${q(scope)}] :is([data-sashay-pane], [data-sashay-bar]){transition:none}`);
-  return <style>{css.join("")}</style>;
+// Rendered after the panes, so the registry holds them in render order. Opaque HTML, so hydration
+// keeps the server's as it is: a suspended <Pane> may not have registered yet.
+function FirstPaint({
+  s,
+  scope,
+  props,
+  ref,
+}: {
+  s: Store;
+  scope: string;
+  props: SashayProps;
+  ref: Ref<HTMLDivElement>;
+}) {
+  const [__html] = useState(() => ssrHtml([...s.reg.values()].map(toOptions), props, scope, props.nonce));
+  return (
+    <div
+      ref={ref}
+      data-sashay-ssr-ui={scope}
+      inert
+      aria-hidden="true"
+      suppressHydrationWarning
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: ssrHtml escapes it
+      dangerouslySetInnerHTML={{ __html }}
+    />
+  );
 }
 
 export function Pane(props: PaneProps): ReactElement {
@@ -245,7 +260,7 @@ export function Pane(props: PaneProps): ReactElement {
 
   return (
     <>
-      <section {...rest} style={ownStyle} ref={el} data-sashay-pane={id} aria-label={title}>
+      <section {...rest} style={ownStyle} ref={el} data-sashay-pane={id} data-bar={bar && ""} aria-label={title}>
         {fn ? children({ offscreen }) : children}
       </section>
       {bar && <div data-sashay-bar={id}>{bar.content}</div>}

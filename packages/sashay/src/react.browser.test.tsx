@@ -278,6 +278,24 @@ test("a remount that keeps state (Fast Refresh, re-shown Activity) keeps the lay
   expect(spy).not.toHaveBeenCalled();
 });
 
+test("a layout prop, or panes, changed while hidden apply when the frame is shown again", async () => {
+  const h = { current: null as SashayHandle | null };
+  const at = (mode: "visible" | "hidden", layout: string, panes = P3) => (
+    <Activity mode={mode}>
+      <App ref={h} panes={panes} layout={layout} />
+    </Activity>
+  );
+  await render(at("visible", "5c"));
+  await render(at("hidden", "5c"));
+  await render(at("hidden", "48"));
+  await render(at("visible", "48"));
+  expect(h.current?.layout).toBe("48");
+  await render(at("hidden", "48"));
+  await render(at("hidden", "6", P3.slice(0, 2)));
+  await render(at("visible", "6", P3.slice(0, 2)));
+  expect(h.current?.layout).toBe("6");
+});
+
 // Two wide panes appended together: the second covers the first until reveal() brings it back.
 const deep = Array.from({ length: 6 }, (_, k) => ({ id: `p${k}`, title: `P${k}`, focus: 1 / 3 }));
 const wide = [
@@ -364,4 +382,39 @@ test("<Pane> passes div props through; sashay's own attributes win", async () =>
   expect(Number.isFinite(tx(el))).toBe(true);
   await act(() => el.click());
   expect(onClick).toHaveBeenCalledOnce();
+});
+
+test("compactLayout: a compact frame's default; a valid layout wins; not passed to the div", async () => {
+  const at = async (width: number, layout?: string) => {
+    const ref = { current: null as SashayHandle | null };
+    const onLayoutChange = vi.fn();
+    const p = { layout, ref, onLayoutChange, defaultLayout: [1 / 3, 2 / 3], compactLayout: [0, 1] };
+    const app = <App key={`${width}${layout}`} {...p} style={{ width, height: 600 }} />;
+    await render(<StrictMode>{app}</StrictMode>);
+    expect(onLayoutChange).not.toHaveBeenCalled();
+    return ref.current?.layout;
+  };
+  expect(await at(390)).toBe("0c");
+  expect(await at(390, "zzz")).toBe("0c");
+  expect(await at(390, "cc")).toBe("cc");
+  expect(await at(960)).toBe("48");
+  expect(host.querySelector("[compactlayout]")).toBeNull();
+});
+
+test("compactLayout: a remount after the width crossed compactBelow keeps the layout", async () => {
+  const h = { current: null as SashayHandle | null };
+  const at = (mode: "visible" | "hidden", width: number) => (
+    <Activity mode={mode}>
+      <App ref={h} compactLayout={[0, 1]} defaultLayout={[1 / 3, 2 / 3]} style={{ width, height: 600 }} />
+    </Activity>
+  );
+  await render(at("visible", 960));
+  await render(at("hidden", 960));
+  await render(at("visible", 390));
+  expect(host.querySelector("[data-compact]")).not.toBeNull();
+  expect(h.current?.layout).toBe("48");
+  h.current?.setLayout("cc");
+  await render(at("hidden", 390));
+  await render(at("visible", 390));
+  expect(h.current?.layout).toBe("cc");
 });

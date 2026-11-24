@@ -13,7 +13,7 @@ interface Snap {
   v: number;
 }
 
-const MAX_DEN = 6;
+export const MAX_DEN = 6;
 export const SNAPS: Snap[] = (() => {
   const seen = new Map<number, Snap>();
   for (let n = 1; n <= MAX_DEN; n++)
@@ -29,7 +29,7 @@ export const snapV = (i: number): number => SNAPS[i].v;
 // A phone (< 440px content) → 1; a tablet → halves/thirds/quarters;
 // ~1320px+ (a wide desktop) → all sixths.
 // ponytail: flat px heuristic; per-pane minimums replace it once UX is tuned.
-const UNIT_PX = 220;
+export const UNIT_PX = 220;
 export const gridOrder = (contentPx: number): number => Math.max(1, Math.min(MAX_DEN, Math.floor(contentPx / UNIT_PX)));
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
