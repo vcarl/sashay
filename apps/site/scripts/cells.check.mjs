@@ -10,7 +10,7 @@ page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 await page.goto(url, { waitUntil: "networkidle" });
 
-for (const id of ["fling", "drawer", "spine", "code"]) await page.locator(`#cell-${id}[data-sashay-ready]`).waitFor();
+for (const id of ["fling", "bar", "spine", "code"]) await page.locator(`#cell-${id}[data-sashay-ready]`).waitFor();
 
 const spine = page.locator('#cell-spine [data-spine="start"]');
 const tabs = spine.locator("[data-sashay-spine-tab]");
@@ -23,7 +23,7 @@ await page.waitForTimeout(300);
 assert.ok((await tabs.count()) < before, "a spine tab reveals its pane");
 await page.getByRole("button", { name: "Back", exact: true }).click();
 
-const toggle = page.locator("#cell-drawer [data-sashay-toggle]");
+const toggle = page.locator("#cell-bar [data-sashay-bar-toggle]");
 assert.equal(await toggle.getAttribute("aria-expanded"), "true");
 await toggle.click();
 assert.equal(await toggle.getAttribute("aria-expanded"), "false");
@@ -38,7 +38,7 @@ const hrefs = await page.locator(".cell .more").evaluateAll((as) => as.map((a) =
 assert.deepEqual(hrefs, [
   "#your-first-frame",
   "#your-first-frame",
-  "#drawers",
+  "#bottom-bars",
   "#navigation-stacks",
   "#layout-in-the-url",
 ]);

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cdp, userEvent } from "vitest/browser";
-import { frames, mountFrame, pane, pointer, tx } from "../test/dom.ts";
+import { frames, mountFrame, pane, pointer, slid, tx } from "../test/dom.ts";
 import { createSashay, type PaneOptions, type SashayHandle, type SashayOptions } from "./index.ts";
 
 const P3: PaneOptions[] = [
@@ -22,13 +22,6 @@ const centre = (el: Element) => {
 };
 const key = (el: Element, k: string) =>
   el.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true }));
-const drawer = (id: string) => {
-  const d = document.createElement("div");
-  d.setAttribute("data-sashay-drawer", id);
-  d.innerHTML = "<p>body</p>";
-  frame.append(d);
-  return d;
-};
 const mount = (o: Partial<SashayOptions> = {}) => {
   h = createSashay(frame, { panes: P3, layout: "48", onChange, onClose, ...o });
   return h;
@@ -341,109 +334,324 @@ test("leaf ×", () => {
   expect(onClose.mock.calls).toEqual([["c"]]);
 });
 
-const withDrawers = (a?: string, b = "14rem"): PaneOptions[] => [
-  a ? { ...P3[0], edge: { drawer: { width: a, title: "Data" } } } : P3[0],
-  { ...P3[1], edge: { drawer: { width: b, title: "Filters" } } },
+const T = (id: string) => $(`[data-sashay-bar-toggle="${id}"]`);
+const B = (id: string) => $(`[data-sashay-bar="${id}"]`);
+/** Adds the content element of a pane's bar. */
+const bar = (id: string, html = "<button>tool</button>") => {
+  const d = document.createElement("div");
+  d.setAttribute("data-sashay-bar", id);
+  d.innerHTML = html;
+  $(`[data-sashay-pane="${id}"]`).after(d);
+  return d;
+};
+const withBars = (a?: PaneOptions["bar"], b: PaneOptions["bar"] = { title: "Filters" }): PaneOptions[] => [
+  { ...P3[0], bar: a },
+  { ...P3[1], bar: b },
   P3[2],
 ];
+/** An element's box relative to the frame. */
+const box = (el: Element) => {
+  const [r, f] = [el.getBoundingClientRect(), frame.getBoundingClientRect()];
+  return { left: r.left - f.left, top: r.top - f.top, bottom: f.bottom - r.bottom, width: r.width, height: r.height };
+};
 
-test("drawer", () => {
-  drawer("b");
-  mount({ panes: withDrawers(), layout: "48.0" });
-  const t = $('[data-sashay-controls="b"] [data-sashay-toggle]');
-  t.click();
-  expect(t.getAttribute("aria-expanded")).toBe("true");
-  expect(E("b").style.width).toBe("224px");
-  expect(E("b").hasAttribute("data-open")).toBe(true);
-  expect($('[data-sashay-drawer="b"]').hasAttribute("data-open")).toBe(true);
+test("a pane without a bar has nothing at the bottom", () => {
+  mount();
+  expect(frame.querySelector("[data-sashay-bar-toggle]")).toBeNull();
+  expect(box($('[data-sashay-pane="b"]')).height).toBe(600);
+});
+
+test("collapsed, a bar is a 2.75rem strip the pane's content ends above", () => {
+  bar("b");
+  mount({ panes: withBars(), layout: "48.0" });
+  expect(box(T("b"))).toEqual({ left: 332, top: 556, bottom: 0, width: 308, height: 44 });
+  expect(T("b").textContent).toBe("Filters");
+  expect(T("b").querySelector("svg")).not.toBeNull();
+  expect(T("b").getAttribute("aria-expanded")).toBe("false");
+  expect(B("b").id).not.toBe("");
+  expect(T("b").getAttribute("aria-controls")).toBe(B("b").id);
+  expect(B("b").inert).toBe(true);
+  // Scrolled to its end, the pane's content is clear of the strip.
+  const p = $('[data-sashay-pane="b"]');
+  p.style.overflow = "auto";
+  p.style.padding = "20px";
+  p.style.boxSizing = "border-box";
+  p.innerHTML = '<div style="height:2000px"></div><p style="margin:0">end</p>';
+  p.scrollTop = 9999;
+  expect(box(p.lastElementChild as Element).bottom).toBeCloseTo(64, 0);
+  expect(box($('[data-sashay-pane="a"]')).height).toBe(600);
+});
+
+test("expanded, a bar grows over the pane to half its height without resizing it", async () => {
+  bar("b");
+  mount({ panes: withBars(), layout: "48.0" });
+  const p = $('[data-sashay-pane="b"]');
+  const before = box(p);
+  T("b").click();
   expect(onChange).toHaveBeenLastCalledWith("48.1");
-  h?.toggleDrawer("b");
-  expect(onChange).toHaveBeenLastCalledWith("48.0");
-  expect(t.getAttribute("aria-expanded")).toBe("false");
-});
-
-test("an edge with a drawer defaults to 2.75rem wide, others to 0.75rem", () => {
-  drawer("b");
-  mount({ panes: withDrawers(), layout: "48.0" });
-  expect(E("a").style.width).toBe("12px");
-  expect(E("b").style.width).toBe("44px");
-  expect(E("c").style.width).toBe("12px");
-});
-
-test("drawer body drags but doesn't toggle", () => {
-  const d = drawer("b");
-  mount({ panes: withDrawers(), layout: "48.1" });
-  const body = d.querySelector("p") as HTMLElement;
-  pointer(body, "pointerdown", 400);
-  pointer(body, "pointerup", 400);
-  expect(onChange).not.toHaveBeenCalled();
-  pointer(body, "pointerdown", 400);
-  pointer(body, "pointermove", 430);
-  expect(frame.hasAttribute("data-dragging")).toBe(true);
-  pointer(body, "pointerup", 430);
-  expect(frame.hasAttribute("data-dragging")).toBe(false);
-});
-
-test("compact", () => {
-  frame.style.width = "600px";
-  drawer("a");
-  drawer("b");
-  mount({ panes: withDrawers("10rem"), layout: "48.0" });
-  expect(frame.hasAttribute("data-compact")).toBe(true);
-  expect(frame.querySelectorAll("[data-sashay-tab]").length).toBe(3);
-  expect($('[data-sashay-tab="a"]').getAttribute("aria-pressed")).toBe("true");
-  expect(E("a").querySelector("[data-sashay-toggle]")).toBeNull();
-  $('[data-sashay-drawer-tab="b"]').click();
-  const db = $('[data-sashay-drawer="b"]');
-  expect(db.hasAttribute("data-sheet")).toBe(true);
-  expect(tx(db)).toBeCloseTo(44, 1);
-  expect(db.style.width).toBe("224px");
-  const head = $("[data-sashay-sheet-head]");
-  expect(head.textContent).toContain("Filters");
-  expect(head.closest("[data-sashay-drawer]")).toBeNull();
-  expect(tx(head)).toBeCloseTo(44, 1);
-  expect(head.style.width).toBe("224px");
-  expect($('[data-sashay-drawer-tab="b"]').getAttribute("aria-expanded")).toBe("true");
-  $('[data-sashay-drawer-tab="a"]').click();
-  expect($('[data-sashay-drawer="a"]').hasAttribute("data-open")).toBe(true);
-  expect(db.hasAttribute("data-open")).toBe(false);
-  expect(frame.querySelectorAll("[data-sashay-sheet-head]").length).toBe(1);
-  expect($("[data-sashay-sheet-head]").textContent).toContain("Data");
+  expect(T("b").getAttribute("aria-expanded")).toBe("true");
+  expect(B("b").inert).toBe(false);
+  await slid();
+  expect(box(p)).toEqual(before);
+  expect(box(T("b")).top).toBe(300);
+  expect(box(B("b"))).toEqual({ left: 332, top: 344, bottom: 0, width: 308, height: 256 });
+  const f = frame.getBoundingClientRect();
+  expect(document.elementFromPoint(f.left + 350, f.top + 100)).toBe(p);
+  expect(p.inert).toBe(false);
   expect(E("b").style.width).toBe("12px");
-  $("[data-sashay-sheet-close]").click();
-  expect($('[data-sashay-drawer="a"]').hasAttribute("data-open")).toBe(false);
-  expect($("[data-sashay-sheet-head]")).toBeNull();
+  h?.toggleBar("b");
+  expect(onChange).toHaveBeenLastCalledWith("48.0");
+  expect(T("b").getAttribute("aria-expanded")).toBe("false");
+  expect(B("b").inert).toBe(true);
+  h?.toggleBar("b", false);
+  h?.toggleBar("c"); // no bar
+  expect(onChange).toHaveBeenCalledTimes(2);
 });
 
-test("entering compact shows only the rightmost open drawer, and keeps the others' bits", async () => {
-  const da = drawer("a");
-  const db = drawer("b");
-  mount({ panes: withDrawers("10rem"), layout: "48.3" });
-  expect(da.hasAttribute("data-open") && db.hasAttribute("data-open")).toBe(true);
+test("a bar's height is any Length, clamped to the pane", async () => {
+  bar("a");
+  bar("b");
+  mount({ panes: withBars({ title: "Data", height: 200 }, { title: "Filters", height: "100rem" }), layout: "48.3" });
+  expect(box(T("a")).top).toBe(400);
+  expect(box(T("b")).top).toBe(0);
+  expect(box(B("b")).height).toBe(556);
+  h?.update({ panes: withBars({ title: "Data", height: "25%" }, { title: "Filters", height: "1px" }) });
+  await slid();
+  expect(box(T("a")).top).toBe(450);
+  expect(box(T("b")).top).toBe(556);
+  expect(() => h?.update({ panes: withBars({ title: "Data", height: "nope" }) })).toThrow();
+});
+
+test("expanded content scrolls", () => {
+  const d = bar("b", '<div style="height:2000px"></div>');
+  mount({ panes: withBars(), layout: "48.1" });
+  d.scrollTop = 100;
+  expect(d.scrollTop).toBe(100);
+});
+
+test("Enter and Space on the strip toggle it; collapsing from inside returns focus to it", async () => {
+  const d = bar("b");
+  mount({ panes: withBars(), layout: "48.0" });
+  T("b").focus();
+  await userEvent.keyboard("{Enter}");
+  expect(onChange).toHaveBeenLastCalledWith("48.1");
+  await userEvent.keyboard(" ");
+  expect(onChange).toHaveBeenLastCalledWith("48.0");
+  h?.toggleBar("b", true);
+  await slid();
+  await userEvent.keyboard("{Tab}");
+  expect(document.activeElement).toBe(d.firstElementChild);
+  h?.toggleBar("b", false);
+  expect(document.activeElement).toBe(T("b"));
+});
+
+test("several bars open at once, in compact too, inside their panes", async () => {
+  bar("a");
+  bar("b");
+  mount({ panes: withBars({ title: "Data" }), layout: "48.0" });
+  T("a").click();
+  T("b").click();
+  expect(onChange).toHaveBeenLastCalledWith("48.3");
   frame.style.width = "600px";
   await frames();
   expect(frame.hasAttribute("data-compact")).toBe(true);
-  expect(db.hasAttribute("data-sheet")).toBe(true);
-  expect(da.hasAttribute("data-open")).toBe(false);
-  expect(frame.querySelectorAll("[data-sheet]").length).toBe(1);
-  expect($('[data-sashay-drawer-tab="a"]').getAttribute("aria-expanded")).toBe("false");
-  expect(onChange).not.toHaveBeenCalled();
-  frame.style.width = "960px";
-  await frames();
-  expect(da.hasAttribute("data-open") && db.hasAttribute("data-open")).toBe(true);
-  expect(frame.querySelector("[data-sheet], [data-sashay-sheet-head]")).toBeNull();
+  expect(onChange).toHaveBeenLastCalledWith("48.3");
+  for (const id of ["a", "b"]) expect(T(id).getAttribute("aria-expanded")).toBe("true");
+  await slid();
+  expect(box(T("a")).left).toBe(box($('[data-sashay-pane="a"]')).left);
 });
 
-test("opening a sheet in compact closes the visible one", () => {
-  frame.style.width = "600px";
-  const da = drawer("a");
-  const db = drawer("b");
-  mount({ panes: withDrawers("10rem"), layout: "48.2" });
-  expect(db.hasAttribute("data-sheet")).toBe(true);
-  h?.toggleDrawer("a", true);
-  expect(da.hasAttribute("data-sheet")).toBe(true);
-  expect(db.hasAttribute("data-open")).toBe(false);
+test("a covered pane's bar fits its visible slice", async () => {
+  bar("a");
+  mount({ panes: [{ ...P3[0], focus: 0.4, bar: { title: "Data" } }, P3[1], P3[2]], layout: "48.0" });
+  const a = $('[data-sashay-pane="a"]');
+  expect(a.hasAttribute("data-covered")).toBe(true);
+  const right = E("b").getBoundingClientRect().left;
+  expect(T("a").getBoundingClientRect().right).toBeCloseTo(right, 1);
+  await userEvent.click(T("a"));
   expect(onChange).toHaveBeenLastCalledWith("48.1");
+  expect(a.hasAttribute("data-covered")).toBe(true);
+  expect(B("a").getBoundingClientRect().right).toBeCloseTo(right, 1);
+  // It follows a drag, frame by frame.
+  await slid();
+  const x0 = centre(E("b"));
+  pointer(E("b"), "pointerdown", x0);
+  pointer(E("b"), "pointermove", x0 - 60);
+  expect(T("a").getBoundingClientRect().right).toBeCloseTo(E("b").getBoundingClientRect().left, 1);
+  pointer(E("b"), "pointercancel", x0 - 60);
+});
+
+test("a closed pane's bar is inert and hidden; its open state survives", async () => {
+  const d = bar("b");
+  mount({ panes: withBars(), layout: "48.1" });
+  (d.firstElementChild as HTMLElement).focus();
+  h?.close("b");
+  expect([T("b").inert, d.inert]).toEqual([true, true]);
+  expect(document.activeElement).toBe(E("b"));
+  await slid();
+  for (const el of [T("b"), d]) expect(getComputedStyle(el).visibility).toBe("hidden");
+  h?.reveal("b");
+  expect([T("b").inert, d.inert]).toEqual([false, false]);
+  expect(T("b").getAttribute("aria-expanded")).toBe("true");
+});
+
+test("a pane in the spine hides its bar; coming back, the bar is collapsed", async () => {
+  const ids = ["p0", "p1", "p2", "p3", "p4", "p5"];
+  frame.replaceChildren(...ids.map(pane));
+  bar("p4");
+  bar("p0");
+  mount({
+    panes: ids.map((id) => ({ id, title: id, focus: 1 / 3, bar: /p[04]/.test(id) ? { title: "Data" } : undefined })),
+    layout: "3-48.1",
+  });
+  expect(getComputedStyle(B("p0")).visibility).toBe("hidden");
+  expect(T("p4").getAttribute("aria-expanded")).toBe("true");
+  h?.reveal("p0");
+  await slid();
+  expect([T("p4").inert, B("p4").inert]).toEqual([true, true]);
+  expect(getComputedStyle(T("p4")).visibility).toBe("hidden");
+  expect(T("p0").inert).toBe(false);
+  h?.reveal("p4");
+  expect(T("p4").inert).toBe(false);
+  expect(T("p4").getAttribute("aria-expanded")).toBe("false");
+});
+
+test("bars come and go with update(), and the pane takes the room back", async () => {
+  bar("b");
+  mount({ panes: withBars(), layout: "48.1" });
+  h?.update({ panes: P3 });
+  expect(T("b")).toBeNull();
+  await slid();
+  expect(getComputedStyle(B("b")).visibility).toBe("hidden");
+  expect(box($('[data-sashay-pane="b"]')).height).toBe(600);
+  expect(h?.layout).toBe("48");
+  h?.update({ panes: withBars(undefined, { title: "New" }) });
+  expect(T("b").textContent).toBe("New");
+  expect(h?.layout).toBe("48.0");
+  B("b").remove();
+  $('[data-sashay-pane="b"]').remove();
+  h?.update({ panes: [P3[0], P3[2]] });
+  expect(frame.querySelector("[data-sashay-bar-toggle]")).toBeNull();
+});
+
+test("destroy restores the DOM with a bar", () => {
+  bar("b");
+  const before = frame.innerHTML;
+  mount({ panes: withBars(), layout: "48.1" });
+  h?.destroy();
+  h = undefined;
+  expect(frame.innerHTML).toBe(before);
+});
+
+test("pressing in a bar neither drags nor toggles an edge", () => {
+  const d = bar("b", "<p>body</p>");
+  mount({ panes: withBars(), layout: "48.1" });
+  for (const el of [T("b"), d.firstElementChild as Element]) {
+    pointer(el, "pointerdown", 340);
+    pointer(el, "pointermove", 370);
+    expect(frame.hasAttribute("data-dragging")).toBe(false);
+    pointer(el, "pointerup", 370);
+  }
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+// Focus under an expanded bar collapses it. The pane is 556px tall; the bar's top is at 300.
+const focusables = () => {
+  const b = bar("b");
+  mount({ panes: withBars(), layout: "48.1" });
+  const p = $('[data-sashay-pane="b"]');
+  p.style.overflow = "auto";
+  p.innerHTML = ["0", "100px", "400px", "900px"]
+    .map((top) => `<button style="position:absolute;top:${top};left:40px;height:20px">x</button>`)
+    .join("");
+  return [...p.querySelectorAll("button"), b.querySelector("button")] as HTMLElement[];
+};
+test("keyboard focus landing under an expanded bar collapses it, and reports it", async () => {
+  const [first, clear, under] = focusables();
+  first.focus();
+  await userEvent.keyboard("{Tab}");
+  expect(document.activeElement).toBe(clear);
+  expect(onChange).not.toHaveBeenCalled();
+  await userEvent.keyboard("{Tab}");
+  expect(document.activeElement).toBe(under);
+  expect(onChange.mock.calls).toEqual([["48.0"]]);
+});
+test("focus on the pane, in the bar or from a pointer leaves the bar open", async () => {
+  const [, , under, , tool] = focusables();
+  await userEvent.keyboard("{Shift}");
+  const p = $('[data-sashay-pane="b"]');
+  p.tabIndex = 0;
+  p.focus();
+  expect(document.activeElement).toBe(p);
+  tool.focus();
+  T("b").focus();
+  expect(onChange).not.toHaveBeenCalled();
+  pointer(E("c"), "pointerdown", 0, { button: 1 });
+  under.focus();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+// Real mouse input (CDP): the strip or edge moves on between press and release.
+const mouseAt = async (type: "mousePressed" | "mouseReleased", x: number, y: number) => {
+  const fe = (window.frameElement as Element).getBoundingClientRect();
+  const s = fe.width / innerWidth;
+  await cdp().send("Input.dispatchMouseEvent", {
+    type,
+    button: "left",
+    buttons: type === "mousePressed" ? 1 : 0,
+    clickCount: 1,
+    x: fe.left + x * s,
+    y: fe.top + y * s,
+  });
+};
+const pressMidSlide = async (el: Element, hold: number) => {
+  const r = el.getBoundingClientRect();
+  const x = r.left + r.width / 2;
+  const y = r.top + r.height / 2;
+  await mouseAt("mousePressed", x, y);
+  await wait(hold);
+  const now = el.getBoundingClientRect();
+  await mouseAt("mouseReleased", x, y);
+  await frames();
+  return Math.abs(now.top - r.top) + Math.abs(now.left - r.left);
+};
+test("a strip pressed mid-slide toggles though it moves from under the pointer", async () => {
+  bar("a", "");
+  mount({ panes: withBars({ title: "Data" }), layout: "48.0" });
+  await frames();
+  h?.toggleBar("a");
+  await frames(1);
+  expect(await pressMidSlide(T("a"), 120)).toBeGreaterThan(22);
+  expect(T("a").getAttribute("aria-expanded")).toBe("false");
+});
+test("an edge pressed mid-slide toggles though it moves from under the pointer", async () => {
+  mount();
+  await slid();
+  key(E("b"), "ArrowLeft");
+  await frames(1);
+  expect(await pressMidSlide(E("b"), 120)).toBeGreaterThan(6);
+  expect($('[data-sashay-pane="b"]').hasAttribute("data-closed")).toBe(true);
+});
+
+test("a bar keeps up with a drag that shuts its pane", async () => {
+  bar("b");
+  mount({ panes: withBars(), layout: "48.0" });
+  await slid();
+  const b = $('[data-sashay-pane="b"]');
+  const x0 = centre(E("c"));
+  pointer(E("c"), "pointerdown", x0);
+  for (const dx of [-200, -640, -650]) {
+    pointer(E("c"), "pointermove", x0 + dx);
+    expect(box(T("b")).left).toBeCloseTo(box(b).left, 1);
+  }
+  expect(b.hasAttribute("data-closed")).toBe(true);
+  pointer(E("c"), "pointercancel", x0);
+});
+
+test("edges default to 0.75rem, with or without a bar", () => {
+  bar("b");
+  mount({ panes: withBars(), layout: "48.1" });
+  for (const id of ["a", "b", "c"]) expect(E(id).style.width).toBe("12px");
 });
 
 test("update mid-drag settles first", async () => {
@@ -496,23 +704,24 @@ test("lostpointercapture ends the gesture", () => {
   expect($('[data-sashay-pane="c"]').hasAttribute("data-closed")).toBe(true);
 });
 
-test("compact: edges after the first are grips, with or without drawers", () => {
+test("compact: edges after the first are grips", () => {
   frame.style.width = "600px";
-  drawer("b");
-  const wide = { width: "3rem" };
-  mount({
-    panes: [P3[0], { ...P3[1], edge: { ...wide, drawer: { width: "10rem", title: "F" } } }, { ...P3[2], edge: wide }],
-    layout: "48.0",
-  });
+  const edge = { width: "3rem" };
+  mount({ panes: [P3[0], { ...P3[1], edge }, { ...P3[2], edge }] });
   expect(frame.hasAttribute("data-compact")).toBe(true);
   expect(E("b").style.width).toBe("12px");
   expect(E("c").style.width).toBe("12px");
 });
 
-test("a drawer renders at its configured width", () => {
-  const d = drawer("b");
-  mount({ panes: withDrawers(undefined, "10rem"), layout: "48.1" });
-  expect(d.getBoundingClientRect().width).toBe(160);
+test("compact: the tab strip lies over the first edge", () => {
+  frame.style.width = "600px";
+  mount();
+  expect(frame.querySelectorAll("[data-sashay-tab]").length).toBe(3);
+  expect($('[data-sashay-tab="a"]').getAttribute("aria-pressed")).toBe("true");
+  const t = $("[data-sashay-tabs]").getBoundingClientRect();
+  const e = E("a").getBoundingClientRect();
+  expect([t.left, t.width, t.height]).toEqual([e.left, 44, e.height]);
+  expect(document.elementFromPoint(e.left + 10, e.top + 10)?.hasAttribute("data-sashay-tab")).toBe(true);
 });
 
 // Pointer deltas are viewport px; the frame lays out in its own px. A scaled ancestor must not

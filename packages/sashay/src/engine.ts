@@ -316,31 +316,21 @@ function resolve(start: number[], i: number, target: number, order: number, S: S
 // ── Layout ───────────────────────────────────────────────────────────────
 // Every pane has an edge on its leading side (edges[i] leads panes[i]).
 // Edges are fixed-px and live outside the ratio system: fractions apply to
-// what's left after them. An edge is "expandable" when it has an openPx.
-export interface EdgeSpec {
-  closedPx: number;
-  openPx?: number | undefined;
-  open: boolean;
-}
+// what's left after them.
 export interface PaneSpec {
   focus: number;
 }
 
-const edgeWidth = (e: EdgeSpec) => (e.open && e.openPx ? e.openPx : e.closedPx);
-export const contentWidth = (W: number, edges: EdgeSpec[]): number =>
-  Math.max(0, W - edges.reduce((s, e) => s + edgeWidth(e), 0));
+export const contentWidth = (W: number, edges: number[]): number => Math.max(0, W - edges.reduce((s, w) => s + w, 0));
 
 // Slide-over: a pane renders at max(visible, focus·C) — never squeezed
 // below its focus size; the excess is covered by the next pane or runs off
 // the frame's right edge.
-export function layout(W: number, dividers: number[], edges: EdgeSpec[], panes: PaneSpec[]) {
+export function layout(W: number, dividers: number[], edges: number[], panes: PaneSpec[]) {
   const C = contentWidth(W, edges);
   const frac = (i: number) => (i === 0 ? 0 : i === panes.length ? 1 : dividers[i - 1]);
-  const through = (b: number) => edges.slice(0, b + 1).reduce((s, e) => s + edgeWidth(e), 0);
-  const edgeBoxes = edges.map((e, b) => {
-    const w = edgeWidth(e);
-    return { x: frac(b) * C + through(b) - w, w };
-  });
+  const through = (b: number) => edges.slice(0, b + 1).reduce((s, w) => s + w, 0);
+  const edgeBoxes = edges.map((w, b) => ({ x: frac(b) * C + through(b) - w, w }));
   const paneBoxes = panes.map((p, i) => {
     const x = frac(i) * C + through(i);
     const visible = Math.max(0, frac(i + 1) * C + through(i) - x);
@@ -363,8 +353,8 @@ export function focusShift(width: number, visible: number, x: number): number {
 
 // ── Persistence ──────────────────────────────────────────────────────────
 // One hex digit per divider (its SNAPS index), then one hex digit per bit
-// set (≤ 4 flags each; e.g. the drawers). Pane open/closed needs no bits: a
-// pane is open iff it has width. 1:1:1, drawers shut → "480".
+// set (≤ 4 flags each; e.g. the bars). Pane open/closed needs no bits: a
+// pane is open iff it has width. 1:1:1, bars shut → "480".
 export const encode = (div: number[], bitsets: boolean[][]): string =>
   div.map((i) => i.toString(16)).join("") +
   bitsets.map((bs) => bs.reduce((b, o, i) => b | (o ? 1 << i : 0), 0).toString(16)).join("");

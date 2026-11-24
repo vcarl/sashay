@@ -2,7 +2,7 @@
 
 A sliding-panes layout for the web, in the style of webOS/Enyo. Panes sit in a horizontal row,
 each with a draggable edge. Dragging snaps to simple fractions, a throw flings the edge, a
-squeezed pane slides under its neighbour, and drawers open from edges. The whole layout
+squeezed pane slides under its neighbour, and panes can have expanding bottom bars. The whole layout
 encodes to a short string that fits in a URL.
 
 Published as **`@vcarl/sashay`** (MIT), a production open-source library. It powers both
@@ -29,7 +29,7 @@ docs live in this repo.
   framework re-render. Reports go out only on release, click or keypress.
 - **Zero runtime dependencies** in the core. React is an optional peer dependency (`>=19`).
 - **Accessible by default:** separators with arrow keys and `aria-valuenow`/`valuetext`,
-  `inert` on closed and off-screen panes, and `aria-expanded` on drawer toggles.
+  `inert` on closed and off-screen panes, and `aria-expanded` on bar toggles.
 - **Fixed workspaces and navigation stacks**, through one API (panes diffed by `id`), with
   deep stacks folding into a spine. The performance budget in `docs/api.md` is a
   requirement.

@@ -238,31 +238,31 @@ export function defaultView(n: number, defaultLayout?: number[], fits?: (v: View
   }
 }
 
-// Layout code: [offset "-"] dividers ["." drawers]. One hex digit per window
-// divider (its snap index); drawer bits four per hex digit, present iff any
-// window pane has a drawer. "48", "8c.0", "997-48".
+// Layout code: [offset "-"] dividers ["." bars]. One hex digit per window
+// divider (its snap index); bar bits four per hex digit, present iff any
+// window pane has a bar. "48", "8c.0", "997-48".
 const chunks = <T>(a: T[]) => Array.from({ length: Math.ceil(a.length / 4) }, (_, j) => a.slice(4 * j, 4 * j + 4));
 
-/** drawers: open state of the window panes that have a drawer, in order. */
-export const encodeLayout = (v: View, drawers: boolean[]): string =>
-  (v.offset ? `${v.offset}-` : "") + encode(v.div, []) + (drawers.length ? `.${encode([], chunks(drawers))}` : "");
+/** bars: open state of the window panes that have a bar, in order. */
+export const encodeLayout = (v: View, bars: boolean[]): string =>
+  (v.offset ? `${v.offset}-` : "") + encode(v.div, []) + (bars.length ? `.${encode([], chunks(bars))}` : "");
 
 /** Untrusted input: anything malformed, or a window past the list's end, is null. */
 export function decodeLayout(
   code: unknown,
   n: number,
-  hasDrawer: (p: number) => boolean,
-): { view: View; drawers: boolean[] } | null {
+  hasBar: (p: number) => boolean,
+): { view: View; bars: boolean[] } | null {
   const m = typeof code === "string" ? /^(?:([1-9]\d*)-)?([0-9a-c]*)(?:\.([0-9a-f]+))?$/.exec(code) : null;
   if (!m) return null;
   const offset = m[1] ? Number(m[1]) : 0;
   const V = m[2].length;
   if (offset + V + 1 > n) return null;
   let D = 0;
-  for (let p = offset; p <= offset + V; p++) if (hasDrawer(p)) D++;
+  for (let p = offset; p <= offset + V; p++) if (hasBar(p)) D++;
   if ((m[3] !== undefined) !== D > 0) return null;
   const counts = chunks(Array(D).fill(0)).map((c) => c.length);
-  if (!V && !D) return { view: { offset, div: [] }, drawers: [] };
+  if (!V && !D) return { view: { offset, div: [] }, bars: [] };
   const r = decode(m[2] + (m[3] ?? ""), V, counts);
-  return r && { view: { offset, div: r.div }, drawers: r.bits.flat() };
+  return r && { view: { offset, div: r.div }, bars: r.bits.flat() };
 }

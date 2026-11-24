@@ -28,6 +28,7 @@ for (const width of [1440, 390]) {
 }
 
 let page = await open("guide/");
+assert.equal(await page.locator("#drawers").count(), 1, "old #drawers links still land");
 const steps = page.locator(".demo-app");
 for (let i = 0; i < 7; i++) await steps.nth(i).locator("[data-sashay-ready]").waitFor();
 const urls = await page.$$eval(".demo-app .mb-url", (els) => els.map((e) => e.value));
@@ -42,7 +43,7 @@ const slices = (i) =>
       return es.map((e, k) => [e.right, es[k + 1]?.left ?? f.getBoundingClientRect().right]);
     });
 assert.equal(await steps.count(), 7, "six plants steps and the house");
-assert.equal(await steps.nth(0).locator("[data-sashay-drawer]").count(), 0, "first frame has no drawer");
+assert.equal(await steps.nth(0).locator("[data-sashay-bar]").count(), 0, "first frame has no bar");
 assert.equal(await pane(0, "nearby").getAttribute("data-closed"), null, "first frame opens on Nearby");
 // Keep a point in view: it opens squeezed, and the picked dot shows in the chart's slice.
 assert.notEqual(await pane(1, "chart").getAttribute("data-covered"), null, "keepInView step opens squeezed");
@@ -51,8 +52,8 @@ const dot = await steps.nth(1).locator('[data-dot="lemon-tree"] circle:last-chil
 assert.ok(dot.x >= a && dot.x + dot.width <= b, `the picked dot is in view (${a}–${b}, ${dot.x})`);
 assert.match(urls[2], /^plants\.example\/\?layout=69&plant=pothos$/, "URL step shows its layout code");
 assert.equal(await pane(2, "plant").getAttribute("data-closed"), null, "URL step opens the card");
-assert.equal(await steps.nth(3).locator("[data-sashay-drawer]").count(), 1, "drawers step has one");
-assert.equal(await steps.nth(3).locator("[data-sashay-toggle]").getAttribute("aria-expanded"), "true", "drawer opens");
+assert.equal(await steps.nth(3).locator("[data-sashay-bar]").count(), 1, "bars step has one");
+assert.equal(await steps.nth(3).locator("[data-sashay-bar-toggle]").getAttribute("aria-expanded"), "true", "bar opens");
 assert.notEqual(await steps.nth(4).locator(".plants").getAttribute("data-compact"), null, "compact step is compact");
 const thirds = (await slices(5)).map(([l, r]) => r - l);
 assert.ok(Math.max(...thirds) - Math.min(...thirds) <= 2, `styling step opens at 1:1:1 (${thirds})`);
@@ -129,7 +130,7 @@ const moved = {
   install: "guide/#install",
   "first-frame": "guide/#your-first-frame",
   "layout-codes": "guide/#layout-in-the-url",
-  drawers: "guide/#drawers",
+  drawers: "guide/#bottom-bars",
   stacks: "guide/#navigation-stacks",
   compact: "guide/#compact-mode",
   styling: "guide/#styling",

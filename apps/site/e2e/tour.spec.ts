@@ -20,7 +20,7 @@
  * | 0:27–0:30 | Open the card from the list: it opens at 1:1:1. |
  * | 0:30–0:38 | House: scroll down, drill 6 levels, the spine fills. Click Parlour to jump back. |
  * | 0:38–0:40 | Keyboard: focus an edge, press → twice; it steps snaps (`aria-valuenow`). |
- * | 0:40–0:46 | Resize to 390×800: compact tab strip, tap a tab, open the Window drawer as a sheet. |
+ * | 0:40–0:46 | Resize to 390×800: compact tab strip, tap a tab, open the Window bar. |
  *
  * Changes from the brief: the deep link comes straight after the hero (it reloads the hero's
  * own `?layout=`; the demo apps never read the real URL), 1:1:1 comes from opening the card
@@ -309,7 +309,7 @@ test("tour", async ({ page: p }) => {
   expectSnapped(await valueNow(hsSep));
   await pause();
 
-  // 0:40 A phone: compact mode, a tab strip, and the drawer as a sheet.
+  // 0:40 A phone: compact mode, a tab strip, and the bar.
   await page.setViewportSize({ width: 390, height: 800 });
   at = { x: 200, y: 400 };
   await expect(pl).toHaveAttribute("data-compact");
@@ -319,11 +319,12 @@ test("tour", async ({ page: p }) => {
   await click(tab);
   await expect(tab).toHaveAttribute("aria-pressed", "true");
   await pause();
-  await click(pl.locator("[data-sashay-drawer-tab]"));
-  const sheet = pl.locator("[data-sashay-drawer][data-sheet]");
-  await expect(sheet).toHaveAttribute("data-open");
-  await click(sheet.locator('[data-facing="North"]'));
-  await expect(sheet.locator('[data-facing="North"]')).toHaveAttribute("aria-pressed", "true");
+  await click(pl.locator("[data-sashay-bar-toggle]"));
+  const bar = pl.locator("[data-sashay-bar]");
+  await expect(bar).toHaveAttribute("data-open");
+  await bar.locator('[data-facing="North"]').hover({ trial: true }); // click() aims at a fixed point: wait until it is still
+  await click(bar.locator('[data-facing="North"]'));
+  await expect(bar.locator('[data-facing="North"]')).toHaveAttribute("aria-pressed", "true");
   await pause(BEATS.heroHold / 2);
 
   expect(errors).toEqual([]);

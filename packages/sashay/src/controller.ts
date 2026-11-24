@@ -4,7 +4,6 @@
 import {
   contentWidth,
   drag,
-  type EdgeSpec,
   FLING,
   fit as fitIdx,
   flingReach,
@@ -39,7 +38,10 @@ import {
 export type { Length };
 export interface EdgeOptions {
   width?: Length;
-  drawer?: { width: Length; title: string };
+}
+export interface BarOptions {
+  title: string;
+  height?: Length;
 }
 export interface PaneOptions {
   id: string;
@@ -49,6 +51,7 @@ export interface PaneOptions {
   maxWidth?: Length;
   opensTo?: number[];
   edge?: EdgeOptions;
+  bar?: BarOptions;
 }
 export interface SashayOptions {
   panes: PaneOptions[];
@@ -63,7 +66,7 @@ export interface SashayHandle {
   readonly layout: string;
   reveal(id: string): void;
   close(id: string): void;
-  toggleDrawer(id: string, open?: boolean): void;
+  toggleBar(id: string, open?: boolean): void;
   keepInView(id: string, x: Length | null): void;
   setLayout(code: string): void;
   fit(fractions: number[]): void;
@@ -71,16 +74,16 @@ export interface SashayHandle {
   destroy(): void;
 }
 
-const EDGE = "0.75rem";
-/** An edge's width: a drawer's edge defaults wide enough for its toggle. Internal, shared with react.tsx. */
-export const edgeWidth = (e?: EdgeOptions): Length => e?.width ?? (e?.drawer ? "2.75rem" : EDGE);
+export const EDGE = "0.75rem"; // internal, as COMPACT
 export const COMPACT = "40rem"; // internal: shared with react.tsx, not re-exported
 const TABS = "var(--sashay-tabs-width, 2.75rem)";
 export const SPINE = "var(--sashay-spine-width, 1.5rem)"; // internal, as COMPACT
+export const STRIP = "var(--sashay-bar-size, 2.75rem)"; // internal, as COMPACT
+export const barHeight = ({ height = "50%" }: BarOptions) => (typeof height === "number" ? `${height}px` : height); // internal, as COMPACT
 // Compact: the most panes the window (and so the tab strip) holds; the rest are in the spine.
 const COMPACT_CAP = 6;
 const CHEVRON =
-  '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 10l5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const own = (frame: HTMLElement, sel: string) =>
   [...frame.querySelectorAll<HTMLElement>(sel)].filter((el) => el.closest("[data-sashay-frame]") === frame);
@@ -88,17 +91,18 @@ const own = (frame: HTMLElement, sel: string) =>
 // Validates a pane list against the frame's DOM. Throws before any state changes.
 function scan(frame: HTMLElement, list: PaneOptions[]) {
   const els = new Map(own(frame, "[data-sashay-pane]").map((el) => [el.dataset.sashayPane ?? "", el]));
-  const drawerEls = new Map(own(frame, "[data-sashay-drawer]").map((el) => [el.dataset.sashayDrawer ?? "", el]));
+  const barEls = new Map(own(frame, "[data-sashay-bar]").map((el) => [el.dataset.sashayBar ?? "", el]));
   const seen = new Set<string>();
   for (const p of list) {
     if (seen.has(p.id)) throw new Error(`sashay: duplicate pane id "${p.id}"`);
     seen.add(p.id);
     if (!els.has(p.id)) throw new Error(`sashay: no [data-sashay-pane="${p.id}"] element`);
-    for (const v of [p.minWidth, p.maxWidth, p.edge?.width, p.edge?.drawer?.width]) if (v !== undefined) checkLength(v);
+    for (const v of [p.minWidth, p.maxWidth, p.edge?.width, p.bar?.height]) if (v !== undefined) checkLength(v);
   }
-  return { els, drawerEls };
+  return { els, barEls };
 }
 
+let uid = 0;
 export function createSashay(frame: HTMLElement, options: SashayOptions): SashayHandle {
   const opts = { ...options, compactBelow: options.compactBelow ?? (COMPACT as Length) };
   checkLength(opts.compactBelow);
@@ -115,16 +119,21 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   }
 
   let panes = options.panes;
-  let { els, drawerEls } = found;
+  let { els, barEls } = found;
   let view: View;
-  let drawers = new Map<string, boolean>();
+  let bars = new Map<string, boolean>(); // open bars
   // keepInView points. w: the content's extent, measured on resize or a keepInView change
   // (never per frame); s: the shift applied to the pane's children.
   const keep = new Map<string, { x: Length; w?: number; s: number }>();
   const edges = new Map<string, HTMLElement>(); // window panes only
-  // Each edge's controls (drawer toggle, title, compact tabs): a sibling laid over the edge,
-  // so they aren't children of its role element.
-  const ctls = new Map<string, HTMLElement>();
+  // Each bar's strip. A bar is a sibling of its pane, so it is clear of the pane's scrolling and
+  // padding; strip and content are placed over the pane's visible slice.
+  const strips = new Map<string, HTMLButtonElement>();
+  const barOf = (id: string): HTMLElement[] => {
+    const t = strips.get(id);
+    return t ? [t, barEls.get(id) as HTMLElement] : [];
+  };
+  const named = new WeakSet<HTMLElement>(); // bar content given an id, for aria-controls
   const measure = createMeasure(frame);
   const px = measure.px;
   let W = frame.clientWidth;
@@ -165,27 +174,20 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   // The spines: panes [0, from) fold into one at the left, panes [to, n) into one at the right.
   const spineW = (from: number, to: number, n: number) => (from > 0 ? px(SPINE) : 0) + (to < n ? px(SPINE) : 0);
   const spinesW = () => spineW(view.offset, windowEnd(view), panes.length);
-  const edgeSpecs = (list: PaneOptions[]): EdgeSpec[] => {
+  const edgeWidths = (list: PaneOptions[]) => {
     const c = compact();
-    return list.map((p, k) => {
-      const dr = p.edge?.drawer;
-      return {
-        closedPx: px(c ? (k === 0 ? TABS : EDGE) : edgeWidth(p.edge)),
-        openPx: !c && dr ? px(dr.width) : undefined,
-        open: Boolean(drawers.get(p.id)),
-      };
-    });
+    return list.map((p, k) => px(c ? (k === 0 ? TABS : EDGE) : (p.edge?.width ?? EDGE)));
   };
   const sizesOf = (list: PaneOptions[], from: number, to: number): Sizes => {
     const w = list.slice(from, to);
-    const C = Math.max(1, contentWidth(W - spineW(from, to, list.length), edgeSpecs(w)));
+    const C = Math.max(1, contentWidth(W - spineW(from, to, list.length), edgeWidths(w)));
     return {
       focus: w.map((p) => p.focus),
       min: w.map((p) => Math.min(1, px(p.minWidth ?? 0) / C)),
       max: w.map((p) => (p.maxWidth === undefined ? 1 : Math.min(1, px(p.maxWidth) / C))),
     };
   };
-  const content = () => contentWidth(W - spinesW(), edgeSpecs(win()));
+  const content = () => contentWidth(W - spinesW(), edgeWidths(win()));
   // The grid ignores the spines, so a pane folding into one doesn't coarsen the grid and
   // re-round every divider (thirds becoming halves would shut a middle pane).
   const order = () => gridOrder(content() + spinesW());
@@ -196,7 +198,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const fits = (v: View) => {
     if (W <= 0 || compact()) return true;
     const to = windowEnd(v);
-    const o = gridOrder(contentWidth(W, edgeSpecs(panes.slice(v.offset, to))));
+    const o = gridOrder(contentWidth(W, edgeWidths(panes.slice(v.offset, to))));
     return toWidths(fitIdx(v.div.map(snapV), sizesFor(v.offset, to), o).map(snapV)).every(isOpen);
   };
   const effIdx = () => view.div.map((i) => nearest(snapV(i), order()));
@@ -225,17 +227,17 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     encodeLayout(
       view,
       win()
-        .filter((p) => p.edge?.drawer)
-        .map((p) => Boolean(drawers.get(p.id))),
+        .filter((p) => p.bar)
+        .map((p) => Boolean(bars.get(p.id))),
     );
   const decodeState = (c: unknown) => {
-    const d = decodeLayout(c, panes.length, (p) => Boolean(panes[p].edge?.drawer));
+    const d = decodeLayout(c, panes.length, (p) => Boolean(panes[p].bar));
     const v = normalize(d?.view ?? defaultView(panes.length, opts.defaultLayout, fits), panes.length);
     const m = new Map<string, boolean>();
     if (d) {
-      const ids = panes.slice(v.offset, windowEnd(v)).filter((p) => p.edge?.drawer);
+      const ids = panes.slice(v.offset, windowEnd(v)).filter((p) => p.bar);
       ids.forEach((p, j) => {
-        m.set(p.id, d.drawers[j]);
+        m.set(p.id, d.bars[j]);
       });
     }
     return { v, m };
@@ -259,39 +261,55 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const tabs = document.createElement("div");
   tabs.setAttribute("data-sashay-tabs", "");
   let tabsKey = "";
-  const sheetHead = document.createElement("div");
-  sheetHead.setAttribute("data-sashay-sheet-head", "");
-  const sheetTitle = document.createElement("span");
-  const sheetClose = document.createElement("button");
-  sheetClose.type = "button";
-  sheetClose.setAttribute("data-sashay-sheet-close", "");
-  sheetClose.textContent = "×";
-  sheetHead.append(sheetTitle, sheetClose);
-  // Compact: the one drawer shown, as a sheet: the rightmost open one. Others keep their bits.
-  let sheet: string | undefined;
 
-  const offscreen = (el: HTMLElement | undefined) => {
-    if (!el) return;
-    el.setAttribute("data-offscreen", "");
-    el.removeAttribute("data-covered");
-    el.removeAttribute("data-closed");
-    el.inert = true;
+  const offscreen = (id: string) => {
+    for (const el of [els.get(id), ...barOf(id)]) {
+      if (!el) continue;
+      el.setAttribute("data-offscreen", "");
+      el.removeAttribute("data-covered");
+      el.removeAttribute("data-closed");
+      el.inert = true;
+    }
   };
-
-  const makeEdge = (ctl: HTMLElement, dr: EdgeOptions["drawer"]) => {
-    const t = ctl.querySelector("[data-sashay-title]");
-    if (Boolean(dr) === Boolean(t) && (!t || t.textContent === dr?.title)) return;
-    ctl.replaceChildren();
-    if (!dr) return;
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.setAttribute("data-sashay-toggle", "");
-    toggle.innerHTML = CHEVRON;
-    const title = document.createElement("span");
-    title.setAttribute("data-sashay-title", "");
-    title.setAttribute("aria-hidden", "true");
-    title.textContent = dr.title;
-    ctl.append(toggle, title);
+  // A bar's strip takes room from its pane for as long as the pane has one, so a slide or a
+  // toggle never resizes the pane. On mount and pane-list changes.
+  const setBars = () => {
+    for (const p of panes) els.get(p.id)?.toggleAttribute("data-bar", Boolean(p.bar));
+    for (const [id, t] of strips) {
+      if (barEls.has(id) && els.get(id)?.hasAttribute("data-bar")) continue;
+      t.remove();
+      strips.delete(id);
+      bars.delete(id);
+      barEls.get(id)?.removeAttribute("data-open");
+    }
+  };
+  const syncBar = (p: PaneOptions) => {
+    const be = barEls.get(p.id);
+    if (!p.bar || !be) return;
+    let t = strips.get(p.id);
+    if (!t) {
+      t = document.createElement("button");
+      t.type = "button";
+      t.setAttribute("data-sashay-bar-toggle", p.id);
+      t.innerHTML = `<span></span>${CHEVRON}`;
+      if (!be.id) {
+        be.id = `sashay-bar-${++uid}`;
+        named.add(be);
+      }
+      t.setAttribute("aria-controls", be.id);
+      be.before(t);
+      strips.set(p.id, t);
+    }
+    (t.firstElementChild as HTMLElement).textContent = p.bar.title;
+    const open = Boolean(bars.get(p.id));
+    t.setAttribute("aria-expanded", String(open));
+    be.toggleAttribute("data-open", open);
+    if (!open && be.contains(document.activeElement)) t.focus({ preventScroll: true });
+    for (const x of [t, be]) {
+      touch(x).setProperty("--sashay-bar-height", barHeight(p.bar));
+      x.removeAttribute("data-offscreen");
+      if (entering.has(p.id)) lastW.delete(x);
+    }
   };
 
   // The spine's one tab stop (roving tabindex).
@@ -360,16 +378,12 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       if (ids.has(id)) continue;
       e.remove();
       edges.delete(id);
-      ctls.get(id)?.remove();
-      ctls.delete(id);
-      offscreen(els.get(id));
+      offscreen(id);
       const x = lastX.get(id);
       if (x !== undefined) leaving.set(id, x);
       lastX.delete(id);
-      drawers.delete(id);
-      drawerEls.get(id)?.removeAttribute("data-open");
+      bars.delete(id);
     }
-    sheet = c ? w.findLast((p) => p.edge?.drawer && drawers.get(p.id) && drawerEls.has(p.id))?.id : undefined;
     const idx = effIdx();
     const widths = toWidths(idx.map(snapV));
     w.forEach((p, k) => {
@@ -381,18 +395,14 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         e.tabIndex = 0;
         e.append(document.createElement("span"));
         e.firstElementChild?.setAttribute("data-sashay-dots", "");
-        const ctl = document.createElement("div");
-        ctl.setAttribute("data-sashay-controls", p.id);
-        el.before(e, ctl);
+        el.before(e);
         edges.set(p.id, e);
-        ctls.set(p.id, ctl);
         el.removeAttribute("data-offscreen");
         el.inert = false;
         entering.add(p.id);
         lastW.delete(el);
       }
-      const ctl = ctls.get(p.id) as HTMLElement;
-      makeEdge(ctl, c ? undefined : p.edge?.drawer);
+      syncBar(p);
       e.setAttribute("aria-label", p.title);
       if (k === 0) {
         e.setAttribute("role", "button");
@@ -408,57 +418,30 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         e.setAttribute("aria-valuenow", String(Math.round(snapV(idx[k - 1]) * 100)));
         e.setAttribute("aria-valuetext", ratio(idx));
       }
-      const dr = p.edge?.drawer;
-      const open = Boolean(dr && drawers.get(p.id));
-      e.toggleAttribute("data-drawer", Boolean(dr));
-      e.toggleAttribute("data-open", open && !c);
-      ctl.toggleAttribute("data-open", open && !c);
-      const t = ctl.querySelector("[data-sashay-toggle]");
-      t?.setAttribute("aria-expanded", String(open));
-      t?.setAttribute("aria-label", `${open ? "Close" : "Open"} ${dr?.title}`);
-      const de = drawerEls.get(p.id);
-      de?.toggleAttribute("data-open", c ? p.id === sheet : open);
-      de?.toggleAttribute("data-sheet", p.id === sheet);
-      if (p.id === sheet) {
-        sheetTitle.textContent = dr?.title ?? "";
-        sheetClose.setAttribute("aria-label", `Close ${dr?.title}`);
-      }
     });
-    if (!sheet) sheetHead.remove();
-    else if (!sheetHead.isConnected) frame.append(sheetHead);
-    // Compact: a tab per window pane, and a drawer tab per drawer, in the first edge.
-    const e0 = c && w.length ? ctls.get(w[0].id) : undefined;
+    // Compact: a tab per window pane, in a strip laid over the first edge (a sibling, so the
+    // tabs aren't children of its role element).
+    const e0 = c && w.length ? edges.get(w[0].id) : undefined;
     if (!e0) tabs.remove();
     else {
-      const k = JSON.stringify(w.map((p) => [p.id, p.title, p.edge?.drawer?.title]));
+      const k = JSON.stringify(w.map((p) => [p.id, p.title]));
       if (k !== tabsKey) {
         tabsKey = k;
         tabs.replaceChildren(
-          ...w.flatMap((p) => {
+          ...w.map((p) => {
             const b = document.createElement("button");
             b.type = "button";
             b.setAttribute("data-sashay-tab", p.id);
             b.textContent = p.title;
-            const dr = p.edge?.drawer;
-            if (!dr) return [b];
-            const t = document.createElement("button");
-            t.type = "button";
-            t.setAttribute("data-sashay-drawer-tab", p.id);
-            t.innerHTML = CHEVRON;
-            t.append(dr.title);
-            return [b, t];
+            return b;
           }),
         );
       }
-      if (tabs.parentElement !== e0) e0.append(tabs);
+      if (tabs.previousElementSibling !== e0) e0.after(tabs);
       w.forEach((p, k) => {
         tabs
           .querySelector(`[data-sashay-tab="${CSS.escape(p.id)}"]`)
           ?.setAttribute("aria-pressed", String(isOpen(widths[k])));
-        const t = tabs.querySelector(`[data-sashay-drawer-tab="${CSS.escape(p.id)}"]`);
-        const open = p.id === sheet;
-        t?.setAttribute("aria-expanded", String(open));
-        t?.setAttribute("aria-label", `${open ? "Close" : "Open"} ${p.edge?.drawer?.title}`);
       });
     }
     // One release mark per window divider.
@@ -494,12 +477,11 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     }
     const sw = view.offset > 0 ? px(SPINE) : 0;
     const sr = spinesW() - sw;
-    const specs = edgeSpecs(w);
-    const c = compact();
+    const ew = edgeWidths(w);
     const { paneBoxes, edgeBoxes } = layout(
       W - sw - sr,
       effective(),
-      specs,
+      ew,
       w.map((p) => ({ focus: p.focus })),
     );
     // How far each staying pane slid; an entering or leaving pane moves with the nearest one.
@@ -513,19 +495,19 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       return best?.[1] ?? 0;
     };
     for (const [id, x] of leaving) {
-      const el = els.get(id);
-      if (el) touch(el).transform = `translateX(${x + delta(indexOf(id) < view.offset ? -1 : w.length)}px)`;
+      const to = `translateX(${x + delta(indexOf(id) < view.offset ? -1 : w.length)}px)`;
+      for (const el of [els.get(id), ...barOf(id)]) if (el) touch(el).transform = to;
     }
     leaving.clear();
     if (entering.size) {
       const start = w.flatMap((p, k) => {
         if (!entering.has(p.id)) return [];
         const d = delta(k);
-        const e = edgeBoxes[k].x + sw - d;
+        const x = paneBoxes[k].x + sw - d;
         return [
-          [els.get(p.id), paneBoxes[k].x + sw - d],
-          [edges.get(p.id), e],
-          [ctls.get(p.id), e],
+          [els.get(p.id), x],
+          [edges.get(p.id), edgeBoxes[k].x + sw - d],
+          ...barOf(p.id).map((el) => [el, x]),
         ] as [HTMLElement, number][];
       });
       for (const [el, x] of start) {
@@ -546,7 +528,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const x = b.x + sw + rubber;
       const s = touch(el);
       s.transform = `translateX(${x}px)`;
-      size(el, b.width + Math.max(0, hold ? x - (lastX.get(p.id) ?? x) : 0)); // moving right: cover the trail
+      const trail = Math.max(0, hold ? x - (lastX.get(p.id) ?? x) : 0); // moving right: cover it
+      size(el, b.width + trail);
       const kv = keep.get(p.id);
       if (kv) {
         kv.w ??= extent(el, kv.s); // after size(): content sized in % follows the pane
@@ -571,33 +554,26 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       es.transform = `translateX(${eb.x + sw + rubber}px)`;
       es.width = `${eb.w}px`;
       es.zIndex = String(2 * k + 1);
-      const cs = (ctls.get(p.id) as HTMLElement).style;
-      cs.transform = es.transform;
-      cs.width = es.width;
-      cs.zIndex = es.zIndex;
-      const d = drawerEls.get(p.id);
-      if (d && (c ? p.id === sheet : drawers.get(p.id))) {
-        const ds = touch(d);
-        if (c) {
-          const tw = px(TABS);
-          ds.transform = `translateX(${sw + tw}px)`;
-          ds.width = `${Math.min(px(p.edge?.drawer?.width ?? 0), W - sw - sr - tw - px(EDGE))}px`;
-          ds.zIndex = "";
-          sheetHead.style.transform = ds.transform;
-          sheetHead.style.width = ds.width;
-        } else {
-          ds.transform = es.transform;
-          ds.width = es.width;
-          ds.zIndex = es.zIndex;
-        }
+      if (k === 0) {
+        tabs.style.transform = es.transform;
+        tabs.style.zIndex = es.zIndex;
+      }
+      for (const [j, x] of barOf(p.id).entries()) {
+        const bs = touch(x);
+        bs.transform = s.transform;
+        bs.zIndex = es.zIndex; // over its pane, under the next
+        size(x, b.visible + trail);
+        x.toggleAttribute("data-closed", closed);
+        if (closed && x.contains(active)) edges.get(p.id)?.focus({ preventScroll: true });
+        x.inert = closed || (j === 1 && !bars.get(p.id)); // collapsed content
       }
     });
     if (preview) {
       // Each mark sits where a no-fling release lands; a throw bows the dragged mark's middle toward
       // where the fling lands, by up to half that distance as the throw speeds up (preview.t).
       // The other marks stay straight bars.
-      const rest = layout(W - sw - sr, preview.rest.map(snapV), specs, []).edgeBoxes;
-      const fly = layout(W - sw - sr, preview.idx.map(snapV), specs, []).edgeBoxes;
+      const rest = layout(W - sw - sr, preview.rest.map(snapV), ew, []).edgeBoxes;
+      const fly = layout(W - sw - sr, preview.idx.map(snapV), ew, []).edgeBoxes;
       const t = preview.t;
       marks.forEach((m, k) => {
         const x = rest[k + 1]?.x ?? 0;
@@ -643,7 +619,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     gesture?.end(null); // an API call or key mid-drag: settle the drag first
     const before = closing ? openIds() : null;
     view = normalize(to(), panes.length);
-    if (next) drawers = next;
+    if (next) bars = next;
     refresh();
     const c = code();
     if (c !== lastCode) {
@@ -665,18 +641,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   // An edge is its pane's open/close toggle.
   const toggle = (k: number) =>
     isOpen(toWidths(effective())[k]) ? closeAt(view.offset + k, true) : revealAt(view.offset + k);
-  const setDrawer = (id: string, open?: boolean) => {
-    const p = panes.find((q) => q.id === id);
-    if (!p?.edge?.drawer || !edges.has(id)) return;
-    const on = open ?? !drawers.get(id);
-    const next = new Map(drawers).set(id, on);
-    // Compact: close the visible sheet, and any open drawer right of this one, which would outrank it.
-    if (on && compact()) {
-      const w = win();
-      for (const q of [...w.slice(w.findIndex((q) => q.id === id) + 1), { id: sheet }])
-        if (q.id && q.id !== id) next.delete(q.id);
-    }
-    commit(() => view, next);
+  const setBar = (id: string, open = !bars.get(id)) => {
+    if (edges.has(id) && panes[indexOf(id)].bar) commit(() => view, new Map(bars).set(id, open));
   };
   const winIndex = (id: string | undefined) => (id === undefined ? -1 : win().findIndex((p) => p.id === id));
 
@@ -685,34 +651,29 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     if (t.closest("[data-sashay-frame]") !== frame) return;
     const at = (name: string) => t.closest(`[${name}]`)?.getAttribute(name);
     const tab = at("data-sashay-tab");
-    const drawerTab = at("data-sashay-drawer-tab");
+    const bar = at("data-sashay-bar-toggle");
     const spineTab = at("data-sashay-spine-tab");
     if (spineTab != null) revealAt(indexOf(spineTab));
     else if (t.closest("[data-sashay-close]")) {
       const k = toWidths(effIdx().map(snapV)).findLastIndex(isOpen);
       if (k >= 0) closeAt(view.offset + k, true);
-    } else if (t.closest("[data-sashay-toggle]")) setDrawer(at("data-sashay-controls") ?? "");
+    } else if (bar != null) setBar(bar);
     else if (tab != null) revealAt(indexOf(tab));
-    else if (drawerTab != null) setDrawer(drawerTab);
-    else if (t.closest("[data-sashay-sheet-close]")) setDrawer(sheet ?? "", false);
   };
 
   // Click → toggle its pane; drag → move divider k-1 (window edge 0 drives none).
-  // The whole edge drags, an open drawer included; only its controls don't. A pane's first
-  // 20px (`body`) drag its edge too, but never toggle: clicks and selection there stay the content's.
+  // A pane's first 20px (`body`) drag its edge too, but never toggle: clicks and selection there stay the content's.
   const onPointerDown = (e: PointerEvent) => {
     const t = e.target as Element;
     if (e.button !== 0 || gesture || t.closest("[data-sashay-frame]") !== frame) return;
+    // A strip can slide from under the pointer before release: capture keeps the click its own.
+    t.closest("[data-sashay-bar-toggle]")?.setPointerCapture(e.pointerId);
     if (t.closest("button, input, label, select, textarea, a")) return;
-    const dr = t.closest<HTMLElement>("[data-sashay-drawer]");
-    if (dr && (!dr.hasAttribute("data-open") || dr.hasAttribute("data-sheet"))) return;
-    const pid =
-      dr || t.closest("[data-sashay-edge]")
-        ? undefined
-        : t.closest<HTMLElement>("[data-sashay-pane]")?.dataset.sashayPane;
+    const edge = t.closest<HTMLElement>("[data-sashay-edge]");
+    const pid = edge ? undefined : t.closest<HTMLElement>("[data-sashay-pane]")?.dataset.sashayPane;
     const body = pid !== undefined;
-    const src = dr ?? (body ? edges.get(pid) : t.closest<HTMLElement>("[data-sashay-edge]"));
-    const id = dr ? dr.dataset.sashayDrawer : src?.dataset.sashayEdge;
+    const src = body ? edges.get(pid) : edge;
+    const id = src?.dataset.sashayEdge;
     const k = winIndex(id);
     if (!src || k < 0 || (body && k < 1)) return;
     const d = k - 1;
@@ -785,7 +746,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       if (ev && ev.pointerId !== e.pointerId) return;
       stop();
       if (!moved) {
-        if (moved === undefined && ev?.type === "pointerup" && !dr && !body) toggle(k);
+        if (moved === undefined && ev?.type === "pointerup" && !body) toggle(k);
         return;
       }
       const v = ev?.type === "pointerup" ? velocity(samples, ev.timeStamp) : 0;
@@ -851,7 +812,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       true,
     );
   };
-  // Keyboard focus landing under the next pane reveals the covered pane, so the focus ring is never hidden.
+  // Keyboard focus landing under the next pane reveals the covered pane, and under an expanded bar
+  // collapses the bar, so the focus ring is never hidden.
   // Input modality: `:focus-visible` matches a text input on mouse focus too.
   let keyed: boolean | undefined;
   const onModality = (e: Event) => {
@@ -862,9 +824,15 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     if (keyed === false) return;
     const w = win();
     const k = w.findIndex((p) => els.get(p.id)?.contains(t));
-    const next = k < 0 ? null : els.get(w[k + 1]?.id as string);
-    if (next && t.matches(":focus-visible") && t.getBoundingClientRect().right > next.getBoundingClientRect().left)
-      revealAt(view.offset + k);
+    if (k < 0 || !t.matches(":focus-visible")) return;
+    const { id } = w[k];
+    const el = els.get(id) as HTMLElement;
+    const r = t.getBoundingClientRect();
+    // The bar rises over the pane by its content's height. The pane itself always reaches under it.
+    const be = bars.get(id) && el !== t && barEls.get(id);
+    if (be && r.bottom > el.getBoundingClientRect().bottom - be.getBoundingClientRect().height) setBar(id, false);
+    const next = els.get(w[k + 1]?.id);
+    if (next && r.right > next.getBoundingClientRect().left) revealAt(view.offset + k);
   };
   // A resize tracks the frame at once, without the slide: a slide would need the grow-only
   // hold, which would keep widths from shrinking for as long as resize events keep coming.
@@ -873,9 +841,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     if (live) return;
     if (frame.clientWidth === W) return refresh(); // fonts, or the observer's first call
     const still = (v: string) => {
+      tabs.style.transition = v;
       for (const p of win())
-        for (const el of [els.get(p.id), edges.get(p.id), ctls.get(p.id), drawerEls.get(p.id)])
-          if (el) touch(el).transition = v;
+        for (const el of [els.get(p.id), edges.get(p.id), ...barOf(p.id)]) if (el) touch(el).transition = v;
     };
     still("none");
     refresh(true);
@@ -891,9 +859,10 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   document.fonts?.addEventListener("loadingdone", onResize);
 
   // Mount.
-  ({ v: view, m: drawers } = decodeState(options.layout));
+  ({ v: view, m: bars } = decodeState(options.layout));
   const w0 = new Set(win().map((p) => p.id));
-  for (const p of panes) if (!w0.has(p.id)) offscreen(els.get(p.id));
+  for (const p of panes) if (!w0.has(p.id)) offscreen(p.id);
+  setBars();
   sync();
   paint();
   // With no panes there's nothing to apply the code to: keep it for the first panes (see update).
@@ -915,8 +884,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const p = indexOf(id);
       if (p >= 0) closeAt(p);
     },
-    toggleDrawer(id, open) {
-      if (!destroyed) setDrawer(id, open);
+    toggleBar(id, open) {
+      if (!destroyed) setBar(id, open);
     },
     keepInView(id, x) {
       if (destroyed) return;
@@ -929,7 +898,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     setLayout(c) {
       if (destroyed) return;
       gesture?.end(null);
-      ({ v: view, m: drawers } = decodeState(c));
+      ({ v: view, m: bars } = decodeState(c));
       refresh();
       lastCode = panes.length ? code() : c;
     },
@@ -956,8 +925,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const ord = order();
       const old = new Set(prev.map((p) => p.id));
       panes = o.panes;
-      ({ els, drawerEls } = f);
-      for (const p of panes) if (!old.has(p.id)) offscreen(els.get(p.id));
+      ({ els, barEls } = f);
+      for (const p of panes) if (!old.has(p.id)) offscreen(p.id);
+      setBars();
       const ids = new Set(panes.map((p) => p.id));
       for (const id of keep.keys()) if (!ids.has(id)) keep.delete(id);
       for (const el of orig.keys()) if (!el.isConnected) orig.delete(el);
@@ -967,7 +937,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         const v = diff(prev, panes, view, ord, sizesOf, cap());
         if (v) return v;
         const d = decodeState(prev.length ? "" : lastCode);
-        drawers = d.m;
+        bars = d.m;
         return d.v;
       });
     },
@@ -983,21 +953,21 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       frame.removeEventListener("focusin", onFocusIn);
       for (const type of ["keydown", "pointerdown"]) document.removeEventListener(type, onModality, true);
       document.fonts?.removeEventListener("loadingdone", onResize);
-      for (const e of [...edges.values(), ...ctls.values()]) e.remove();
+      for (const e of [...edges.values(), ...strips.values()]) e.remove();
       edges.clear();
-      ctls.clear();
+      strips.clear();
       for (const s of spines) s.remove();
       spineTabs.clear();
       leaf.remove();
       tabs.remove();
-      sheetHead.remove();
       for (const m of marks) m.remove();
       measure.destroy();
-      for (const el of [...els.values(), ...drawerEls.values()]) {
-        for (const a of ["data-covered", "data-closed", "data-offscreen", "data-open", "data-sheet"])
+      for (const el of [...els.values(), ...barEls.values()]) {
+        for (const a of ["data-covered", "data-closed", "data-offscreen", "data-open", "data-bar"])
           el.removeAttribute(a);
         el.inert = false;
       }
+      for (const el of barEls.values()) if (named.has(el)) el.removeAttribute("id");
       for (const [el, s] of orig) {
         el.setAttribute("style", s ?? "");
         if (s === null) el.removeAttribute("style"); // after setAttribute: Chrome syncs CSSOM writes lazily

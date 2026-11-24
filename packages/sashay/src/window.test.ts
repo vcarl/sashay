@@ -206,9 +206,9 @@ describe("layout code", () => {
   });
   it("round-trips", () => {
     const d = (p: number) => p < 2;
-    expect(decodeLayout("8c.2", 3, d)).toEqual({ view: { offset: 0, div: [8, 12] }, drawers: [false, true] });
-    expect(decodeLayout("997-48", 1000, none)).toEqual({ view: { offset: 997, div: [4, 8] }, drawers: [] });
-    expect(decodeLayout("", 1, none)).toEqual({ view: { offset: 0, div: [] }, drawers: [] });
+    expect(decodeLayout("8c.2", 3, d)).toEqual({ view: { offset: 0, div: [8, 12] }, bars: [false, true] });
+    expect(decodeLayout("997-48", 1000, none)).toEqual({ view: { offset: 997, div: [4, 8] }, bars: [] });
+    expect(decodeLayout("", 1, none)).toEqual({ view: { offset: 0, div: [] }, bars: [] });
     expect(decodeLayout("6.11", 2, () => true)).toBeNull();
   });
   it("rejects", () => {

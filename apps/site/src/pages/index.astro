@@ -67,12 +67,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         </div>
       </div>
       <div class="cell c-2">
-        <h2>Drawers in the frame.</h2>
-        <p>Any edge can open a drawer: filters, settings, a table of contents. On a phone it becomes a sheet.</p>
-        <a class="more" href={`${base}guide/#drawers`}>Guide: Drawers →</a>
-        <div class="art mf" id="cell-drawer">
+        <h2>A bar for each pane.</h2>
+        <p>Any pane can have a bar at its bottom for filters, settings or a table of contents. It expands over the pane and works the same on a phone.</p>
+        <a class="more" href={`${base}guide/#bottom-bars`}>Guide: Bottom bars →</a>
+        <div class="art mf" id="cell-bar">
           <div data-sashay-pane="list"><div class="line" style="width:70%"></div><div class="line" style="width:50%"></div><div class="line" style="width:60%"></div></div>
-          <div data-sashay-drawer="list" class="md"><label><input type="checkbox" checked /> Open</label><label><input type="checkbox" checked /> Mine</label><label><input type="checkbox" /> Archived</label></div>
+          <div data-sashay-bar="list" class="md"><label><input type="checkbox" checked /> Open</label><label><input type="checkbox" checked /> Mine</label><label><input type="checkbox" /> Archived</label></div>
         </div>
       </div>
       <div class="cell c-2 mint">
@@ -89,7 +89,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       </div>
       <div class="cell c-2 butter">
         <h2>Deep linked pane arrangements</h2>
-        <p>Which panes are open, how wide they are, and which drawers are out all fit in a short code you can keep in the URL. Share the link and the other person sees the same arrangement.</p>
+        <p>Which panes are open, how wide they are, and which bars are open all fit in a short code you can keep in the URL. Share the link and the other person sees the same arrangement.</p>
         <a class="more" href={`${base}guide/#layout-in-the-url`}>Guide: Layout in the URL →</a>
         <div class="art">
           <div class="mf" id="cell-code">

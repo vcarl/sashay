@@ -476,6 +476,7 @@ pre .s {
   --sashay-grip-hover: var(--paper);
   --sashay-edge-border: var(--ink);
   --sashay-spine-width: 48px;
+  --sashay-bar-size: 36px;
 }
 .mf[data-sashay-ready] {
   user-select: none;
@@ -487,6 +488,9 @@ pre .s {
   position: relative;
   flex: 1;
 }
+.mf:not([data-sashay-ready]) > [data-sashay-bar] {
+  display: none;
+}
 .mf [data-sashay-pane] {
   padding: 10px 12px;
   border-left: 3px solid var(--ink);
@@ -497,10 +501,6 @@ pre .s {
 .mf [data-sashay-edge] {
   background: var(--tomato);
   color: var(--ink);
-}
-.mf [data-sashay-edge][data-open] {
-  background: var(--ink);
-  color: var(--butter);
 }
 .mf [data-sashay-edge]:hover {
   background: var(--ink);
@@ -519,12 +519,20 @@ pre .s {
 .mf [data-sashay-close] {
   display: none;
 }
-/* The drawer's title sits on its edge; light it to match the edge's state. */
-.mf [data-sashay-controls] {
-  color: var(--ink);
+.mf :is([data-sashay-bar-toggle], [data-sashay-bar]) {
+  border-left: 3px solid var(--ink);
 }
-.mf [data-sashay-controls][data-open] {
-  color: var(--butter);
+.mf [data-sashay-bar-toggle] {
+  border-top: 3px solid var(--ink);
+  background: var(--butter);
+  color: var(--ink);
+  font: 600 14px var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.mf [data-sashay-bar-toggle]:hover {
+  background: var(--ink);
+  color: var(--paper);
 }
 .md {
   min-width: 0;
@@ -533,6 +541,7 @@ pre .s {
   font: 600 13px var(--sans);
 }
 .md label {
+  margin-bottom: 4px;
   display: flex;
   gap: 8px;
   align-items: center;

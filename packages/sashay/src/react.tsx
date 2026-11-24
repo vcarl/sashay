@@ -14,15 +14,18 @@ import {
   useState,
 } from "react";
 import {
+  type BarOptions,
+  barHeight,
   COMPACT,
   createSashay,
-  edgeWidth,
+  EDGE,
   type Length,
   type PaneOptions,
   type SashayHandle,
   SPINE,
+  STRIP,
 } from "./controller.ts";
-import { snapV, toWidths } from "./engine.ts";
+import { isOpen, snapV, toWidths } from "./engine.ts";
 import { decodeLayout, defaultView, normalize, windowEnd } from "./window.ts";
 
 export type { Length, SashayHandle };
@@ -34,8 +37,8 @@ export interface SashayProps extends Omit<ComponentProps<"div">, "onChange" | "r
   onLayoutChange?: (layout: string) => void;
   ref?: Ref<SashayHandle>;
 }
-interface OwnPaneProps extends Omit<PaneOptions, "edge"> {
-  edge?: { width?: Length; drawer?: { width: Length; title: string; content: ReactNode } };
+interface OwnPaneProps extends Omit<PaneOptions, "bar"> {
+  bar?: BarOptions & { content: ReactNode };
   keepInView?: Length | null;
   onClose?: () => void;
   children?: ReactNode | ((state: { offscreen: boolean }) => ReactNode);
@@ -55,19 +58,17 @@ interface Store {
 }
 const Ctx = createContext<Store | null>(null);
 
-const toOptions = ({ id, title, focus, minWidth, maxWidth, opensTo, edge }: PaneProps): PaneOptions => {
-  const d = edge?.drawer;
-  return {
-    id,
-    title,
-    focus,
-    minWidth,
-    maxWidth,
-    opensTo,
-    edge: edge && { width: edge.width, drawer: d && { width: d.width, title: d.title } },
-  };
-};
-const METHODS = ["reveal", "close", "toggleDrawer", "keepInView", "fit", "update", "destroy"] as const;
+const toOptions = ({ id, title, focus, minWidth, maxWidth, opensTo, edge, bar }: PaneProps): PaneOptions => ({
+  id,
+  title,
+  focus,
+  minWidth,
+  maxWidth,
+  opensTo,
+  edge,
+  bar: bar && { title: bar.title, height: bar.height },
+});
+const METHODS = ["reveal", "close", "toggleBar", "keepInView", "fit", "update", "destroy"] as const;
 
 export function Sashay(props: SashayProps): ReactElement {
   const { layout, defaultLayout, compactBelow, onLayoutChange, ref, children, ...rest } = props;
@@ -185,15 +186,12 @@ const paneList = (f: HTMLElement, reg: Map<string, PaneProps>) =>
 function SsrStyle({ s, scope, layout, defaultLayout }: { s: Store; scope: string } & SashayProps) {
   const panes = [...s.reg.values()];
   const n = panes.length;
-  const d = decodeLayout(layout, n, (p) => Boolean(panes[p].edge?.drawer));
+  const d = decodeLayout(layout, n, (p) => Boolean(panes[p].bar));
   const v = normalize(d?.view ?? defaultView(n, defaultLayout), n);
   const win = panes.slice(v.offset, windowEnd(v));
   const len = (x: Length) => (typeof x === "number" ? `${x}px` : x);
   let j = 0;
-  const edges = win.map((p) => {
-    const dr = p.edge?.drawer;
-    return len(dr && d?.drawers[j++] ? dr.width : edgeWidth(p.edge));
-  });
+  const edges = win.map((p) => len(p.edge?.width ?? EDGE));
   const spine = v.offset ? SPINE : "0px";
   const end = windowEnd(v) < n ? SPINE : "0px";
   const C = `(100% - ${spine} - ${end} - (${edges.join(" + ")}))`;
@@ -202,19 +200,25 @@ function SsrStyle({ s, scope, layout, defaultLayout }: { s: Store; scope: string
   const q = (x: string) => JSON.stringify(x).replace(/</g, "\\3c ");
   const css = panes.map((p, i) => {
     const k = i - v.offset;
-    const sel = `[data-sashay-ssr=${q(scope)}]:not([data-sashay-ready]) [data-sashay-pane=${q(p.id)}]`;
+    const at = (part: string) =>
+      `[data-sashay-ssr=${q(scope)}]:not([data-sashay-ready]) [data-sashay-${part}=${q(p.id)}]`;
+    const sel = at("pane");
     if (k < 0 || k >= win.length) return `${sel}{visibility:hidden}`;
     const left = `calc(${C} * ${k ? div[k - 1] : 0} + ${spine} + ${edges.slice(0, k + 1).join(" + ")})`;
-    return `${sel}{left:${left};width:max(calc(${C} * ${w[k]}), calc(${C} * ${p.focus}))}`;
+    const box = `${sel}{left:${left};width:max(calc(${C} * ${w[k]}), calc(${C} * ${p.focus}))}`;
+    if (!p.bar) return box;
+    const open = d?.bars[j++] && isOpen(w[k]);
+    return `${box}${sel}{bottom:${STRIP}}${at("bar")}{left:${left};width:calc(${C} * ${w[k]});--sashay-bar-height:${barHeight(p.bar)}${open ? ";bottom:0;visibility:visible;content-visibility:visible" : ""}}`;
   });
-  css.push(`[data-sashay-ssr=${q(scope)}] [data-sashay-pane]{transition:none}`);
+  css.push(`[data-sashay-ssr=${q(scope)}] :is([data-sashay-pane], [data-sashay-bar]){transition:none}`);
   return <style>{css.join("")}</style>;
 }
 
 export function Pane(props: PaneProps): ReactElement {
   const s = useContext(Ctx);
   if (!s) throw new Error("sashay: <Pane> must be inside <Sashay>");
-  const { id, title, focus, minWidth, maxWidth, opensTo, edge, keepInView, onClose, children, style, ...rest } = props;
+  const { id, title, focus, minWidth, maxWidth, opensTo, edge, bar, keepInView, onClose, children, style, ...rest } =
+    props;
   // The controller writes these inline; dropping them keeps a later re-render from clobbering its geometry.
   const { transform: _t, width: _w, zIndex: _z, clipPath: _c, ...ownStyle } = style ?? {};
   s.reg.set(id, props); // during render too, so server rendering knows the panes
@@ -244,7 +248,7 @@ export function Pane(props: PaneProps): ReactElement {
       <section {...rest} style={ownStyle} ref={el} data-sashay-pane={id} aria-label={title}>
         {fn ? children({ offscreen }) : children}
       </section>
-      {edge?.drawer && <div data-sashay-drawer={id}>{edge.drawer.content}</div>}
+      {bar && <div data-sashay-bar={id}>{bar.content}</div>}
     </>
   );
 }

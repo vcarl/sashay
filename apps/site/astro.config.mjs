@@ -29,7 +29,7 @@ export default defineConfig({
     "/install": to("guide/#install"),
     "/first-frame": to("guide/#your-first-frame"),
     "/layout-codes": to("guide/#layout-in-the-url"),
-    "/drawers": to("guide/#drawers"),
+    "/drawers": to("guide/#bottom-bars"),
     "/stacks": to("guide/#navigation-stacks"),
     "/compact": to("guide/#compact-mode"),
     "/styling": to("guide/#styling"),
