@@ -1,5 +1,6 @@
 // Docs checks against a running preview: node scripts/docs.check.mjs [url]
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 
 const base = process.argv[2] ?? "http://localhost:4321/";
@@ -12,6 +13,28 @@ const open = async (path, width = 1440) => {
   await page.goto(new URL(path, base).href, { waitUntil: "networkidle" });
   return page;
 };
+
+// The Reference repeats docs/api.md: every line of the spec is in it, in order.
+const file = (path) => readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
+const lines = (text) =>
+  text.split("\n").flatMap((l) => l.replace(/\[([^\]`]+)\]\(#[^)]+\)|\\(?=<)/g, "$1").trimEnd() || []);
+const spec = file("docs/api.md");
+const reference = lines(file("apps/site/src/content/docs/reference.mdx"));
+let at = 0;
+for (const line of lines(spec.slice(spec.indexOf("## "), spec.indexOf("## Not public")))) {
+  const i = reference.indexOf(line, at);
+  assert.ok(i >= 0, `the Reference is missing, or has out of order: ${line}`);
+  at = i + 1;
+}
+
+// The landing page shows the package's version.
+const { version } = JSON.parse(file("packages/sashay/package.json"));
+{
+  const page = await open("");
+  assert.ok((await page.locator(".brand").textContent()).includes(`· ${version} ·`), "version in the header");
+  assert.equal(await page.locator(".specs b").last().textContent(), version);
+  await page.close();
+}
 
 // Every Guide step mounts, and no code block scrolls sideways.
 for (const width of [1440, 390]) {

@@ -1,4 +1,5 @@
 ---
+import { version } from "../../../../packages/sashay/package.json";
 import { Hero } from "../components/Hero";
 import { HouseDemo, PlantsDemo } from "../demos/browser";
 import Landing from "../layouts/Landing.astro";
@@ -38,7 +39,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       </div>
       <div class="cell c-2 mint">
         <h2>Deep stacks fold into a spine.</h2>
-        <p>Drill down as far as you like. Panes that no longer fit fold into one slim spine with a count. Drag cost stays flat at a thousand deep.</p>
+        <p>Drill down as far as you like. Panes that no longer fit fold into a slim spine, with a tab for each. Drag cost stays flat at a thousand deep.</p>
         <a class="more" href={`${base}guide/#navigation-stacks`}>Guide: Navigation stacks →</a>
         <div class="art">
           <div class="mf" id="cell-spine">
@@ -80,7 +81,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       <div><b>0</b><span>runtime dependencies</span></div>
       <div><b>&lt;2ms</b><span>drag frame at 1,000 panes</span></div>
       <div><b>← →</b><span>keyboard on every edge, aria-valuenow</span></div>
-      <div><b>1.0</b><span>React ≥19, or the vanilla core · MIT</span></div>
+      <div><b>{version}</b><span>React ≥19, or the vanilla core · MIT</span></div>
     </section>
   </main>
 </Landing>

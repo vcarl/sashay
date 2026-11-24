@@ -11,15 +11,10 @@ fixed workspaces and deep drill-down navigation stacks.
 **The public API is specified in [`docs/api.md`](docs/api.md).** It is approved. Implement it
 as written, and change it only with Carl's sign-off.
 
-## Current goal
-
-Deliver **1.0 and the website**, with everything kept local. Do not create a remote, push,
-or publish. Carl reviews twice: the site's look, and the finished 1.0 before release.
-
 ## Status
 
-The extraction from the original app is complete. The engine, controller, React wrapper, tests and
-docs live in this repo.
+Released on npm, with the site live at https://vcarl.com/sashay/. `packages/sashay/CHANGELOG.md` has
+what each version changed. Work goes through pull requests. Push, or open a PR, only when Carl asks.
 
 ## Goals
 
@@ -50,8 +45,10 @@ system beyond CSS custom properties, and compatibility with the app it was extra
 ```
 packages/sashay/   the library
   src/engine.ts    pure layout math, no DOM
-  src/controller.ts  vanilla DOM controller, the escape hatch: createSashay(el, opts) → { update, reveal, close, fit, setLayout, destroy }
-  src/react.tsx    the primary API, <Sashay>/<Pane>: a thin wrapper, exported as `@vcarl/sashay/react`
+  src/controller.ts  vanilla DOM controller, the escape hatch: createSashay(el, opts) → SashayHandle
+  src/window.ts    which panes show, the spine, and layout codes
+  src/react.tsx    the primary API, <Sashay>/<Pane>: a thin client-module wrapper, exported as `@vcarl/sashay/react`
+  src/ssr.ts       the server's first paint for <Sashay>: inert controls and container queries
   src/sashay.css   plain CSS in @layer sashay, --sashay-* custom properties with fallbacks
 apps/site/         Astro Starlight: custom landing page with live demo, plus docs
 scripts/bugbot     local maintainer session (below)
@@ -76,15 +73,15 @@ scripts/bugbot     local maintainer session (below)
 
 GitHub Actions:
 
-- **Every PR:** typecheck, Biome, unit tests, browser tests, build, size-limit, site build.
+- **Every PR:** typecheck, Biome, unit tests, browser tests, benchmarks, build, size-limit, site build.
 - **Release:** Changesets. Merging to `main` opens or updates a "Version packages" PR. When
   Carl merges that PR, CI publishes to npm using trusted publishing (OIDC, with provenance
   and no stored token).
 - **Site:** hosted on Netlify (no custom domain), configured by `netlify.toml`. vcarl.com proxies
   `/sashay/*` to the Netlify site's root, so the site builds with `SITE_BASE=/sashay/` and
   publishes at its root. Netlify deploys from `main`; CI has no deploy step.
-- There's no remote yet, so the workflows can't run. Verify each of their steps by running it
-  locally.
+- **Not in CI:** `pnpm test:e2e` and `apps/site/scripts/*.check.mjs`, which check a served build of the
+  site. Run them for site changes.
 
 ## Bug bot
 
@@ -111,4 +108,5 @@ owns the model process, so the script never starts its own server. The API key c
   merging the Changesets PR.
 - Use append-only commits on shared branches: no rebase, reset or amend while other agents
   may be committing.
-- Every user-visible change gets a changeset.
+- Every user-visible change to the package gets a changeset.
+- `docs/api.md` and the site's Reference say the same thing. Update both; `docs.check.mjs` compares them.
