@@ -46,7 +46,7 @@
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "bench": "vitest run --project bench",
-    "build": "tsdown && cp src/sashay.css dist/style.css && echo 'export {};' > dist/style.css.d.ts",
+    "build": "tsdown && cp src/sashay.css dist/style.css && echo 'export {};' > dist/style.css.d.ts && node scripts/check-directive.mjs",
     "size": "size-limit"
   },
   "size-limit": [
