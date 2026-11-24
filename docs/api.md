@@ -146,6 +146,9 @@ stack (drill-down: picking an item adds a pane on the right; going back removes 
   - There are no `push`/`pop` helpers: a stack is just an array the app edits.
   - Panes added to an empty frame take `layout` (or the last `setLayout` code) as at
     creation. `onChange` fires only if that code doesn't apply as given.
+- **Dragging.** The pane an edge moves away from grows. The panes it moves into give way, the
+  outermost first, down to `minWidth` and then to nothing. Dragging left, the pane next to the edge
+  first gives what it has beyond its `focus` (or `minWidth`, if larger).
 - **Open count.** Opening a pane below capacity adds it; at capacity, the outermost open pane
   collapses. Closing a pane (any way, including removal) brings back the nearest pane sashay
   collapsed itself: one in a spine, or one pushed shut to make room for another, the most

@@ -126,6 +126,7 @@ function fill(w: number[], receivers: number[], amount: number, max: number[]): 
 // the pane adjacent on the other side grows — expanding the list never
 // feeds details. That pane is the one being scaled, so its maximum doesn't
 // apply. Dragging a closed pane's edge outward opens it.
+// Leftwards only: a neighbour over its focus (or minimum) gives down to it before take().
 export function drag(dividers: number[], i: number, v: number, S: Sizes): number[] {
   const w = toWidths(dividers);
   const P = w.length;
@@ -133,8 +134,13 @@ export function drag(dividers: number[], i: number, v: number, S: Sizes): number
   if (Math.abs(delta) < 1e-12) return dividers.slice();
   const left = delta < 0;
   const donors = left ? [...Array(i + 1).keys()].reverse() : [...Array(P - i - 1).keys()].map((k) => i + 1 + k);
-  const r = take(w, S, donors, Math.abs(delta));
-  r.w[left ? i + 1 : i] += Math.abs(delta) - r.short;
+  const grown = left ? i + 1 : i;
+  const spare = left ? Math.min(-delta, Math.max(0, w[i] - Math.max(S.focus[i], S.min[i]))) : 0;
+  w[i] -= spare;
+  w[grown] += spare;
+  const need = Math.abs(delta) - spare;
+  const r = take(w, S, donors, need);
+  r.w[grown] += need - r.short;
   return toDividers(r.w);
 }
 
