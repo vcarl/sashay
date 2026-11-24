@@ -107,6 +107,8 @@ stack (drill-down: picking an item adds a pane on the right; going back removes 
   - A removed pane closes, giving its width to its neighbour the way `close` does, then
     leaves the DOM.
   - There are no `push`/`pop` helpers: a stack is just an array the app edits.
+  - Panes added to an empty frame take `layout` (or the last `setLayout` code) as at
+    creation. `onChange` fires only if that code doesn't apply as given.
 - **Open count.** Opening and closing keep the number of open panes steady. Closing a pane
   (any way, including removal) expands the nearest collapsed one (closed, in the spine or
   just past the window), the most recently folded first. Opening one below capacity adds

@@ -896,7 +896,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   for (const p of panes) if (!w0.has(p.id)) offscreen(els.get(p.id));
   sync();
   paint();
-  lastCode = code();
+  // With no panes there's nothing to apply the code to: keep it for the first panes (see update).
+  lastCode = panes.length ? code() : (options.layout ?? "");
   ro.observe(frame);
   frame.setAttribute("data-sashay-ready", "");
 
@@ -930,7 +931,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       gesture?.end(null);
       ({ v: view, m: drawers } = decodeState(c));
       refresh();
-      lastCode = code();
+      lastCode = panes.length ? code() : c;
     },
     fit(fractions) {
       if (destroyed) return;
@@ -960,7 +961,15 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       const ids = new Set(panes.map((p) => p.id));
       for (const id of keep.keys()) if (!ids.has(id)) keep.delete(id);
       for (const el of orig.keys()) if (!el.isConnected) orig.delete(el);
-      commit(() => diff(prev, panes, view, ord, sizesOf, cap()) ?? defaultView(panes.length, opts.defaultLayout, fits));
+      // No diff (no window pane kept, or no panes before) resets to the default, except that the
+      // first panes take the held code, as at creation. Either reports only if the code changed.
+      commit(() => {
+        const v = diff(prev, panes, view, ord, sizesOf, cap());
+        if (v) return v;
+        const d = decodeState(prev.length ? "" : lastCode);
+        drawers = d.m;
+        return d.v;
+      });
     },
     destroy() {
       if (destroyed) return;
