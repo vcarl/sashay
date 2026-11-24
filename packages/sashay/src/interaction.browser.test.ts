@@ -843,3 +843,19 @@ test("dragging an edge from its pane's text selects nothing", async () => {
   expect(onChange).toHaveBeenCalled(); // it dragged
   expect(getSelection()?.toString()).toBe("");
 });
+
+test("a hash link or scrollIntoView to a shut pane never scrolls the frame", async () => {
+  mount({ layout: "4c" });
+  const c = $('[data-sashay-pane="c"]');
+  c.id = "hash-target";
+  await slid();
+  const before = tx($('[data-sashay-pane="a"]'));
+  location.hash = "hash-target";
+  await frames();
+  expect([frame.scrollLeft, frame.scrollTop]).toEqual([0, 0]);
+  c.scrollIntoView({ inline: "center" });
+  frame.scrollLeft = 100;
+  expect([frame.scrollLeft, frame.scrollTop]).toEqual([0, 0]);
+  expect(tx($('[data-sashay-pane="a"]'))).toBe(before);
+  history.replaceState(null, "", location.pathname + location.search);
+});

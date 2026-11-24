@@ -4,7 +4,7 @@
   [data-sashay-frame] {
     position: relative;
     height: 100%;
-    overflow: hidden;
+    overflow: clip;
     background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
     color: var(--sashay-fg, CanvasText);
     touch-action: pan-y;
@@ -20,7 +20,7 @@
   }
   [data-sashay-pane] {
     background: var(--sashay-pane-bg, Canvas);
-    --sashay-shift: none; /* keepInView: the controller sets it; nested panes reset it */
+    --sashay-shift: none; /* keepInView; nested panes reset it */
   }
   [data-sashay-pane] > * {
     translate: var(--sashay-shift);
