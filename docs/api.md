@@ -48,7 +48,7 @@ removed when the frame mounts.
 - `nonce` on `<Sashay>` is set on the inline `<style>` the first paint uses, for a Content Security
   Policy.
 - Without JavaScript the bars show open, and a frame where any pane would be covered, folded or
-  closed stacks its panes in a column that scrolls.
+  closed is a row of panes that scrolls sideways, each bar under its pane.
 
 ### `SashayHandle`
 

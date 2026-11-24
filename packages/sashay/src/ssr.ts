@@ -39,6 +39,18 @@ export function ssrHtml(
   views.reverse();
   const compactView = d ? views[0] : defaultView(n, o.compactLayout ?? o.defaultLayout);
 
+  // Without JS, a frame with panes out of reach is a row that scrolls sideways, each bar under its
+  // pane. A phone's panes leave the next one peeking in.
+  const row = (compact: boolean) =>
+    panes.reduce(
+      (css, p, i) =>
+        `${css}${frame} [data-sashay-pane=${q(p.id)}]{position:relative;left:0;bottom:0;width:auto;min-width:${compact ? "85cqi" : `min(100cqi, max(${p.focus * 100}cqi, ${query(p.minWidth ?? 0, "0px")}))`};contain:inline-size;overflow:auto;grid-area:1 / ${i + 1}${p.bar ? "" : " / -1"};${SHOW}}` +
+        (p.bar
+          ? `${frame} [data-sashay-bar=${q(p.id)}]{position:relative;left:0;width:auto;border-top:1px solid var(--sashay-edge-border, GrayText);contain:inline-size;grid-area:2 / ${i + 1};${SHOW}}`
+          : ""),
+      `${ui}{display:none}`,
+    );
+
   let controls = "";
   let cases = 0;
   const layoutCase = (v: View, div: number[], compact: boolean) => {
@@ -94,9 +106,7 @@ export function ssrHtml(
       css += `${own} > [data-sashay-close]{${x(k + 1, k + 1)}}`;
       html += '<button type="button" data-sashay-close>×</button>';
     }
-    // Without JS, panes that would be out of reach stack in a scrolling frame instead.
-    if (!whole)
-      css += `@media (scripting: none){${frame} :is([data-sashay-pane],[data-sashay-bar]){position:relative;left:0;width:auto;${SHOW}}${ui}{display:none}}`;
+    if (!whole) css += `@media (scripting: none){${row(compact)}}`;
     controls += `<div data-case="${id}">${html}</div>`;
     return css;
   };
@@ -141,7 +151,7 @@ export function ssrHtml(
     `${ui} [data-spine="start"]{justify-content:flex-end}${ui} [data-spine="start"]::after{content:"";margin-bottom:auto}` +
     chain(views, false) +
     `@container sashay (width < ${query(o.compactBelow ?? COMPACT, COMPACT)}){${chain([compactView], true)}}` +
-    `@media (scripting: none){${frame}{overflow:auto}${frame} [data-sashay-bar]{bottom:0;height:auto;${SHOW}}${ui} :is([data-sashay-bar-toggle],[data-sashay-close]){display:none}}` +
+    `@media (scripting: none){${frame}{overflow:auto;display:grid;grid-template-rows:minmax(0,1fr) auto;column-gap:0.75rem}${frame} [data-sashay-bar]{bottom:0;height:auto;${SHOW}}${ui} :is([data-sashay-bar-toggle],[data-sashay-close]){display:none}}` +
     // Past ready: the controller's first paint mustn't animate from this one.
     `[data-sashay-ssr=${q(scope)}] :is([data-sashay-pane],[data-sashay-edge],[data-sashay-bar],[data-sashay-bar-toggle],[data-sashay-tabs]){transition:none}`;
   return `<style${nonce && ` nonce="${esc(nonce)}"`}>${css.replace(/<\//g, "<\\/")}</style>${controls}`;
