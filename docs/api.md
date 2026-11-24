@@ -1,6 +1,7 @@
-# `@vcarl/sashay` API (1.0 target)
+# `@vcarl/sashay` API
 
-Approved design. Implementation must match. Change it only with Carl's sign-off.
+The approved API, as of 1.2. Implementation must match. Change it only with Carl's sign-off. The
+site's Reference (`apps/site/src/content/docs/reference.mdx`) repeats it; update both.
 
 ## `@vcarl/sashay/react`
 
@@ -24,7 +25,8 @@ Approved design. Implementation must match. Change it only with Carl's sign-off.
 | other div props | Passed to the pane element: `className`, `style`, `data-*`, `aria-*`, event handlers. Sashay's own attributes win: `data-sashay-pane`, `aria-label` (from `title`), `inert`, `data-covered`, `data-closed`, `data-offscreen`, and the inline position and width (`transform`, `width`, `zIndex`, `clipPath` are dropped from `style`; other `style` keys merge). |
 
 `<Pane>` renders its own element and registers itself with the nearest `<Sashay>`, so it can
-be wrapped in other components or rendered conditionally.
+be wrapped in other components or rendered conditionally. A frame that remounts (StrictMode, Fast
+Refresh, a re-shown `<Activity>`) keeps its layout.
 
 ### Server rendering
 
@@ -63,7 +65,7 @@ The React `ref`, and the return value of `createSashay`.
 | `keepInView(id, x \| null)` | Whenever the pane's visible slice is too narrow for point `x` (a `Length` from the pane's left; `"40%"` is 40% of the pane's width), whether covered, squeezed or narrower than its content, shifts the pane's children left just enough to show it, never past the content's right edge. The content must be wrapped in an element to shift; bare text nodes don't. |
 | `setLayout(code)` | Applies a code. Does not fire `onChange`. |
 | `fit(fractions)` | Moves the dividers to the nearest snaps. Fires `onChange`. |
-| `update(options)` | Replaces `panes` or the callbacks without rebuilding. |
+| `update(options)` | Replaces `panes`, the callbacks or `compactBelow` without rebuilding. |
 | `destroy()` | Removes the listeners, the observer and the controls sashay added. |
 
 ## Core (escape hatch)
@@ -73,7 +75,7 @@ from another framework or library, or to build your own wrapper.
 
 ### `createSashay(frame, options) → SashayHandle`
 
-Attaches to `frame`. `frame` contains one `[data-sashay-pane="<id>"]` element per pane and,
+Attaches to `frame`. `frame` contains one `[data-sashay-pane="<id>"]` element per pane and
 one `[data-sashay-bar="<id>"]` element per pane with a bar, after its pane. sashay creates and
 owns all the controls: edges, bar strips, the leaf × button, the compact tab strip, grips and the
 spine.
@@ -83,7 +85,7 @@ spine.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `panes` | `PaneOptions[]` | required | The panes, left to right. The list may change at any time (see Dynamic panes). |
-| `layout` | `string` | none | A saved layout code. Invalid input falls back to `defaultLayout`. |
+| `layout` | `string` | none | A saved layout code. Invalid input falls back to `defaultLayout`, as does an empty code with more than one pane. |
 | `defaultLayout` | `number[]` | equal split | Divider positions as fractions (0–1). |
 | `compactLayout` | `number[]` | `defaultLayout` | Used in place of `defaultLayout` when the frame is compact at that moment. A valid `layout` still wins, and a frame that becomes compact later keeps its layout. |
 | `onChange` | `(layout: string) => void` | none | Fires on release, click, keypress or a pane-list change, never during a drag. |
@@ -160,6 +162,8 @@ stack (drill-down: picking an item adds a pane on the right; going back removes 
   spine only past six, so a workspace of six or fewer shows one tab per pane and no spine.
 - **Layout code.** It holds one hex digit (the snap index) per visible divider, plus the
   offset where the visible window starts and the open bars, so it can be any length.
+  Adding or removing a pane's `bar` changes the format, so codes saved before may fall back to
+  the default layout.
   After a list change, dividers that didn't move keep their positions. The code stores
   geometry only. Which panes exist is app state (for example the route) and is stored
   separately.
@@ -192,7 +196,8 @@ Enforced by browser-mode benchmarks in CI.
 | `data-sashay-bar="<id>"` | bar content | `data-open` while expanded. |
 | `--sashay-*` | frame | Colour, radius, font size, shadow and `--sashay-bar-size` (the strip's height), all with fallbacks. |
 
-Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
+Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`. The frame uses `overflow: clip`, so a
+hash link can't scroll it; if you set `overflow` on it yourself, keep `clip`.
 
 ## Accessibility
 
@@ -210,6 +215,6 @@ Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`.
   tab's pane is revealed, focus moves to the spine's tab nearest the window, or to the window's
   edge on that side once the spine is empty.
 
-## Not public in 1.0
+## Not public
 
 The engine functions (`drag`, `settle`, `encode`, …) and the tuned constants stay internal.

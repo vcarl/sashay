@@ -44,13 +44,13 @@ A pane that another pane slides over isn't squished. It keeps its `focus` width 
 
 `keepInView` is a `Length` measured from the pane's left edge: a number is pixels, and `"40%"` is 40% of the pane's width. The chart here is a fixed 720 pixels wide, so the app passes the picked plant's x in pixels. sashay measures the content's width on resize, so it never slides past the chart's right edge.
 
-This frame opens squeezed, with the Lemon tree picked far over on the right. Drag Nearby's edge back and forth, or pick other plants in the list, and the dot stays in view. A covered pane is inert, so while the chart is squeezed you pick from the list.
+This frame opens squeezed, with the Lemon tree picked far over on the right. Drag Nearby's edge back and forth, or pick other plants in the list, and the dot stays in view. The part of the chart that still shows takes clicks as usual.
 
 <DemoApp name="plants" region="keep" options={{ bar: false, initial: { plant: "lemon-tree", layout: "4c" } }} />
 
 ## Layout in the URL
 
-`onLayoutChange` hands you a code: one hex digit per visible divider, plus the spine offset and which bars are open. It fires on release, click, keypress or a pane-list change, never during a drag. Pass a saved code back as `layout`; invalid input falls back to `defaultLayout`.
+`onLayoutChange` hands you a code: one hex digit per visible divider, plus the spine offset and which bars are open. It fires on release, click, keypress or a pane-list change, never during a drag. Pass a saved code back as `layout`; invalid input falls back to `defaultLayout`. Adding or removing a pane's bar changes the format, so older codes may fall back too.
 
 In your app, `onUrl` would be `history.replaceState`, as below; this little browser keeps its own address bar instead, so the frames on this page leave yours alone. Drag an edge and watch `?layout=` change. Pass the saved code back as `layout` and the panes come back where you left them.
 
@@ -80,7 +80,7 @@ The width is the frame's, not the window's, so a narrow sidebar frame goes compa
 
 ## Styling
 
-The stylesheet sits in `@layer sashay`, so any unlayered rule of yours beats it. Theme the frame with `--sashay-*` custom properties for colour, radius, font size and shadow; every one has a fallback. `<Sashay>` passes `className` and other `div` props to the frame, and each `<Pane>` renders a `[data-sashay-pane]` element, so style them however you like.
+The stylesheet sits in `@layer sashay`, so any unlayered rule of yours beats it. Theme the frame with `--sashay-*` custom properties for colour, radius, font size and shadow; every one has a fallback. `<Sashay>` passes `className` and other `div` props to the frame, and each `<Pane>` renders a `[data-sashay-pane]` element, so style them however you like. Keep the frame's `overflow: clip`: with `hidden`, a hash link can scroll the whole frame.
 
 State shows up as attributes: `data-covered`, `data-closed` and `data-offscreen` on panes, `data-dragging` and `data-compact` on the frame. The [styling hooks](../reference/#styling-hooks) table lists them all.
 
@@ -92,7 +92,7 @@ This one opens at equal thirds. The chart is covered, so it holds the picked pla
 
 A stack is just an array in state. Picking an item adds a pane on the right; going back removes it. There are no push or pop helpers: render a `<Pane>` per entry and sashay diffs them by `id`. A new pane slides in and opens to its `focus`; a removed pane closes, gives its width to its neighbour, then leaves.
 
-When the open panes no longer fit, the oldest fold into one spine at the left with a count. Clicking it, or pressing ← on it, reveals the newest hidden pane. Closed panes never fold, so a fixed workspace that fits never shows a spine.
+When the open panes no longer fit, the oldest fold into a spine at the left, with a tab for each. Click a tab to bring its pane back; the panes that no longer fit to its right get a spine of their own. Closed panes never fold, so a fixed workspace that fits never shows a spine.
 
 This house opens room by room, down to the contents of a drawer.
 
