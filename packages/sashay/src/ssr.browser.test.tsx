@@ -47,6 +47,16 @@ function parts(): string[] {
     .sort();
 }
 
+// A spine scrolls by whole pixels, the first paint doesn't: its tabs may be a pixel apart.
+const SPINE_TOP = /^(data-sashay-spine-tab=.* @ -?\d+,)(-?\d+)/;
+function expectSame(got: string[], first: string[], message: string) {
+  const rest = (list: string[]) => list.map((x) => x.replace(SPINE_TOP, "$1"));
+  const tops = (list: string[]) => list.map((x) => Number(SPINE_TOP.exec(x)?.[2] ?? 0));
+  expect(rest(got), message).toEqual(rest(first));
+  const want = tops(first);
+  tops(got).forEach((y, i) => void expect(Math.abs(y - want[i]), message).toBeLessThanOrEqual(1));
+}
+
 const bar = { title: "Bar", content: "bar", height: 200 };
 const P = (ids: string, more: (k: number) => Partial<PaneProps> = () => ({})): PaneProps[] =>
   [...ids].map((id, k) => ({ id, title: `Pane ${id}`, focus: 1 / 3, ...more(k) }));
@@ -108,10 +118,10 @@ for (const [name, props] of CASES)
           { onRecoverableError: recover },
         );
       });
-      expect(parts(), `${width}px, hydrated`).toEqual(first);
+      expectSame(parts(), first, `${width}px, hydrated`);
       await settle();
       expect(host.querySelector("[data-sashay-ssr-ui]")).toBeNull();
-      expect(parts(), `${width}px, settled`).toEqual(first);
+      expectSame(parts(), first, `${width}px, settled`);
       expect(recover).not.toHaveBeenCalled();
       expect(error).not.toHaveBeenCalled();
       error.mockRestore();
