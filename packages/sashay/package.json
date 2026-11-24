@@ -52,7 +52,7 @@
   "size-limit": [
     {
       "path": "dist/index.js",
-      "limit": "9.6 kB"
+      "limit": "9.8 kB"
     },
     {
       "path": "dist/react.js",

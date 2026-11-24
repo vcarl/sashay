@@ -103,6 +103,9 @@ function scan(frame: HTMLElement, list: PaneOptions[]) {
   return { els, barEls };
 }
 
+// What a destroyed frame's `shut` (below) was, and for which layout and panes, for a remount.
+const held = new WeakMap<HTMLElement, { key: string; shut: Set<string> }>();
+
 let uid = 0;
 export function createSashay(frame: HTMLElement, options: SashayOptions): SashayHandle {
   const opts = { ...options, compactBelow: options.compactBelow ?? (COMPACT as Length) };
@@ -125,6 +128,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   let { els, barEls } = found;
   let view: View;
   let bars = new Map<string, boolean>(); // open bars
+  // Closed panes that only an explicit open may bring back: closed by the user or the app, or
+  // closed when a layout was applied. The other closed panes sashay collapsed, to make room.
+  let shut = new Set<string>();
   // keepInView points. w: the content's extent, measured on resize or a keepInView change
   // (never per frame); s: the shift applied to the pane's children.
   const keep = new Map<string, { x: Length; w?: number; s: number }>();
@@ -173,6 +179,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
 
   const win = () => panes.slice(view.offset, windowEnd(view));
+  const idsOf = (list = win()) => new Set(list.map((p) => p.id));
   const compact = () => W > 0 && W < px(opts.compactBelow);
   // The spines: panes [0, from) fold into one at the left, panes [to, n) into one at the right.
   const spineW = (from: number, to: number, n: number) => (from > 0 ? px(SPINE) : 0) + (to < n ? px(SPINE) : 0);
@@ -206,10 +213,13 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
   const effIdx = () => view.div.map((i) => nearest(snapV(i), order()));
   const effective = () => live ?? effIdx().map(snapV);
-  const openIds = () => {
-    const w = toWidths(effIdx().map(snapV));
+  const openIds = (div = effIdx()) => {
+    const w = toWidths(div.map(snapV));
     return new Set(win().flatMap((p, k) => (isOpen(w[k]) ? [p.id] : [])));
   };
+  const may = (id: string) => !shut.has(id);
+  const mayAt = (p: number) => may(panes[p].id);
+  const heldKey = () => JSON.stringify([lastCode, ...idsOf(panes)]);
   // A % keepInView point is of the pane's width. Measured at two widths and
   // interpolated, so a drag never measures.
   // ponytail: exact for calc() and %, approximate for clamp()/min()/max() of %.
@@ -245,6 +255,12 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       });
     }
     return { v, m };
+  };
+  // Panes closed in an applied layout, as stored (not as a narrow frame's grid shows it), stay shut.
+  const apply = (c: unknown) => {
+    ({ v: view, m: bars } = decodeState(c));
+    shut = idsOf();
+    for (const id of openIds(view.div)) shut.delete(id);
   };
 
   // Controls sashay owns.
@@ -377,7 +393,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     fillSpine(spines[1], panes.slice(windowEnd(view)), "first");
     for (const [id, b] of spineTabs) if (!b.isConnected) spineTabs.delete(id);
     const w = win();
-    const ids = new Set(w.map((p) => p.id));
+    const ids = idsOf();
     for (const [id, e] of edges) {
       if (ids.has(id)) continue;
       e.remove();
@@ -615,22 +631,23 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   };
 
   /**
-   * Apply a view; report it if the code changed. `closing`: report as closed the pane with
-   * this id (a close the user aimed at), or with `true` every pane it shut (a drag or arrow key).
+   * Apply a view; report it if the code changed. `closing`: the pane with this id was closed, or
+   * with `true` every pane it shut was (a drag, an arrow key or fit). `user`: report them as closed.
    * `to` computes the view only once any drag has settled, so it never starts from a stale one.
    */
-  const commit = (to: () => View, next?: Map<string, boolean>, closing?: string | true) => {
+  const commit = (to: () => View, closing?: string | true, user = true) => {
     gesture?.end(null); // an API call or key mid-drag: settle the drag first
-    const before = closing ? openIds() : null;
+    const before = closing ? openIds() : new Set<string>();
     view = normalize(to(), panes.length);
-    if (next) bars = next;
+    for (const id of closing === true ? before : closing ? [closing] : []) shut.add(id);
+    for (const id of openIds()) shut.delete(id);
     refresh();
     const c = code();
     if (c !== lastCode) {
       lastCode = c;
       opts.onChange?.(c);
     }
-    if (before) {
+    if (closing && user) {
       const after = openIds();
       for (const id of before) if (!after.has(id) && (closing === true || id === closing)) opts.onClose?.(id);
     }
@@ -639,14 +656,21 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const indexOf = (id: string) => panes.findIndex((p) => p.id === id);
   const cap = () => (compact() ? COMPACT_CAP : undefined);
   const revealAt = (p: number) =>
-    commit(() => revealIn(view, p, panes.length, sizesFor, order(), panes[p]?.opensTo, cap()));
+    commit(() => revealIn(view, p, panes.length, sizesFor, order(), panes[p]?.opensTo, cap(), mayAt));
   const closeAt = (p: number, user = false) =>
-    commit(() => closeIn(view, p, panes.length, sizesFor, order(), cap()), undefined, user ? panes[p]?.id : undefined);
+    commit(() => closeIn(view, p, panes.length, sizesFor, order(), cap(), mayAt), panes[p]?.id, user);
+  // The user moved the dividers.
+  const divide = (div: number[], o: number) =>
+    keepOpen(view, { offset: view.offset, div }, panes.length, sizesFor, o, cap(), mayAt);
   // An edge is its pane's open/close toggle.
   const toggle = (k: number) =>
     isOpen(toWidths(effective())[k]) ? closeAt(view.offset + k, true) : revealAt(view.offset + k);
   const setBar = (id: string, open = !bars.get(id)) => {
-    if (edges.has(id) && panes[indexOf(id)].bar) commit(() => view, new Map(bars).set(id, open));
+    if (edges.has(id) && panes[indexOf(id)].bar)
+      commit(() => {
+        bars.set(id, open);
+        return view;
+      });
   };
   const winIndex = (id: string | undefined) => (id === undefined ? -1 : win().findIndex((p) => p.id === id));
 
@@ -659,8 +683,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     const spineTab = at("data-sashay-spine-tab");
     if (spineTab != null) revealAt(indexOf(spineTab));
     else if (t.closest("[data-sashay-close]")) {
-      const k = toWidths(effIdx().map(snapV)).findLastIndex(isOpen);
-      if (k >= 0) closeAt(view.offset + k, true);
+      const id = [...openIds()].pop();
+      if (id !== undefined) closeAt(indexOf(id), true);
     } else if (bar != null) setBar(bar);
     else if (tab != null) revealAt(indexOf(tab));
   };
@@ -754,19 +778,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         return;
       }
       const v = ev?.type === "pointerup" ? velocity(samples, ev.timeStamp) : 0;
-      commit(
-        () =>
-          keepOpen(
-            view,
-            { offset: view.offset, div: settle(start, d, raw, v, o, S) },
-            panes.length,
-            sizesFor,
-            o,
-            cap(),
-          ),
-        undefined,
-        true,
-      );
+      commit(() => divide(settle(start, d, raw, v, o, S), o), true);
     }
     on.addEventListener("pointermove", move);
     on.addEventListener("pointerup", end);
@@ -803,18 +815,14 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     const dir = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
     if (!dir || k < 1) return;
     e.preventDefault();
-    commit(
-      () => {
-        const d = winIndex(id) - 1;
-        if (d < 0) return view;
-        const o = order();
-        const cur = effIdx();
-        const div = settle(cur.map(snapV), d, snapV(step(cur[d], dir, o)), 0, o, sizes());
-        return keepOpen(view, { offset: view.offset, div }, panes.length, sizesFor, o, cap());
-      },
-      undefined,
-      true,
-    );
+    commit(() => {
+      const d = winIndex(id) - 1;
+      if (d < 0) return view;
+      const o = order();
+      const cur = effIdx();
+      const div = settle(cur.map(snapV), d, snapV(step(cur[d], dir, o)), 0, o, sizes());
+      return divide(div, o);
+    }, true);
   };
   // Keyboard focus landing under the next pane reveals the covered pane, and under an expanded bar
   // collapses the bar, so the focus ring is never hidden.
@@ -863,14 +871,16 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   document.fonts?.addEventListener("loadingdone", onResize);
 
   // Mount.
-  ({ v: view, m: bars } = decodeState(options.layout));
-  const w0 = new Set(win().map((p) => p.id));
+  apply(options.layout);
+  const w0 = idsOf();
   for (const p of panes) if (!w0.has(p.id)) offscreen(p.id);
   setBars();
   sync();
   paint();
   // With no panes there's nothing to apply the code to: keep it for the first panes (see update).
   lastCode = panes.length ? code() : (options.layout ?? "");
+  const was = held.get(frame);
+  if (was?.key === heldKey()) shut = was.shut;
   ro.observe(frame);
   frame.setAttribute("data-sashay-ready", "");
 
@@ -902,7 +912,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     setLayout(c) {
       if (destroyed) return;
       gesture?.end(null);
-      ({ v: view, m: bars } = decodeState(c));
+      const was = shut;
+      apply(c);
+      if (c === lastCode) shut = was; // what's showing already
       refresh();
       lastCode = panes.length ? code() : c;
     },
@@ -911,7 +923,11 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       if (fractions.length !== view.div.length)
         throw new RangeError(`sashay: fit() needs ${view.div.length} fractions, got ${fractions.length}`);
       const f = fractions.map((x) => Math.min(1, Math.max(0, x)) || 0).sort((a, b) => a - b);
-      commit(() => (f.length === view.div.length ? { offset: view.offset, div: fitIdx(f, sizes(), order()) } : view));
+      commit(
+        () => (f.length === view.div.length ? { offset: view.offset, div: fitIdx(f, sizes(), order()) } : view),
+        true,
+        false,
+      );
     },
     update(o) {
       if (destroyed) return;
@@ -927,27 +943,27 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       }
       const prev = panes;
       const ord = order();
-      const old = new Set(prev.map((p) => p.id));
+      const old = idsOf(prev);
       panes = o.panes;
       ({ els, barEls } = f);
       for (const p of panes) if (!old.has(p.id)) offscreen(p.id);
       setBars();
-      const ids = new Set(panes.map((p) => p.id));
-      for (const id of keep.keys()) if (!ids.has(id)) keep.delete(id);
+      const ids = idsOf(panes);
+      for (const m of [keep, shut]) for (const id of m.keys()) if (!ids.has(id)) m.delete(id);
       for (const el of orig.keys()) if (!el.isConnected) orig.delete(el);
-      // No diff (no window pane kept, or no panes before) resets to the default, except that the
+      // No diff (no pane kept, or a reorder) resets to the default, except that the
       // first panes take the held code, as at creation. Either reports only if the code changed.
       commit(() => {
-        const v = diff(prev, panes, view, ord, sizesOf, cap());
+        const v = diff(prev, panes, view, ord, sizesOf, cap(), may);
         if (v) return v;
-        const d = decodeState(prev.length ? "" : lastCode);
-        bars = d.m;
-        return d.v;
+        apply(prev.length ? "" : lastCode);
+        return view;
       });
     },
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      held.set(frame, { key: heldKey(), shut });
       gesture?.stop();
       ro.disconnect();
       clearTimeout(holdT);

@@ -6,6 +6,7 @@ import {
   diff,
   encodeLayout,
   insert,
+  keepOpen,
   normalize,
   remove,
   reveal,
@@ -78,20 +79,41 @@ describe("open count", () => {
     const d = [0, ...v.div, 12];
     return d.slice(1).filter((x, k) => x > d[k]).length;
   };
-  // Spine holds h, p, d; md is closed in the window; hatbox and envelope are open.
+  // Spine holds h, p, d; md is closed in the window; hatbox and envelope are open. Pushes fold md
+  // into the spine, so a closed md with an edge there is one the user closed.
   const house: View = { offset: 3, div: [0, 6] };
-  it("closing the leaf with a non-empty spine unfolds the nearest collapsed pane", () => {
-    const v = close(house, 5, 6, S0(F), 2);
+  it("closing the leaf unfolds the spine past a pane that was closed", () => {
+    const v = close(house, 5, 6, S0(F), 2, undefined, (p) => p !== 3);
     expect(count(v)).toBe(2);
-    expect(v).toEqual({ offset: 3, div: [6, 12] });
+    expect(v).toEqual({ offset: 2, div: [6, 6, 12] });
   });
-  it("removing the leaf via diff with a non-empty spine keeps the count", () => {
+  it("removing the leaf does too", () => {
     const ids = (n: number) => Array.from({ length: n }, (_, i) => ({ id: String(i) }));
     const sz = (panes: { id: string }[], a: number, b: number) => S0(Array(panes.length).fill(1 / 3))(a, b);
-    const v = diff(ids(6), ids(5), house, 2, sz) as View;
+    const v = diff(ids(6), ids(5), house, 2, sz, undefined, (id) => id !== "3") as View;
     expect(count(v)).toBe(2);
-    expect(v).toEqual({ offset: 3, div: [6] });
+    expect(v).toEqual({ offset: 2, div: [6, 6] });
   });
+  it("a closed pane folded into the spine is passed over, and keeps its edge", () =>
+    expect(close({ offset: 3, div: [4, 8] }, 5, 6, S0(F), 6, undefined, (p) => p !== 2)).toEqual({
+      offset: 1,
+      div: [4, 4, 8, 12],
+    }));
+  it("nothing sashay may open: the count drops", () =>
+    expect(close({ offset: 0, div: [0, 6] }, 2, 3, S0(F), 6, undefined, () => false)).toEqual({
+      offset: 0,
+      div: [0, 12],
+    }));
+  it("a drag that shuts two brings neither back", () =>
+    expect(keepOpen({ offset: 0, div: [4, 8] }, { offset: 0, div: [0, 0] }, 3, S0(F), 6)).toEqual({
+      offset: 0,
+      div: [0, 0],
+    }));
+  it("a spine jump doesn't open a closed pane", () =>
+    expect(reveal({ offset: 5, div: [4, 8] }, 1, 8, S0(F), 6, undefined, undefined, (p) => p !== 2)).toEqual({
+      offset: 1,
+      div: [4, 4, 8, 12],
+    }));
   it("below capacity, opening adds", () => {
     const v = reveal(insert({ offset: 0, div: [6] }, 2), 2, 3, S0(F), 3);
     expect(v).toEqual({ offset: 0, div: [4, 8] });
@@ -146,10 +168,10 @@ describe("workspace", () => {
     expect(remove({ offset: 0, div: [0, 12] }, 1, 2, S0([0.2, 0.2, 0.2]), 6)).toEqual({ offset: 0, div: [12] }));
   it("remove the last pane", () =>
     expect(remove({ offset: 0, div: [] }, 0, 0, S0([]), 6)).toEqual({ offset: 0, div: [] }));
-  it("closing the first two shows no spine; the second reopens the first", () => {
+  it("closing the first two shows no spine, and the first stays closed", () => {
     const a = close({ offset: 0, div: [4, 8] }, 0, 3, S0([0.2, 0.2, 0.2]), 6);
     expect(a).toEqual({ offset: 0, div: [0, 8] });
-    expect(close(a, 1, 3, S0([0.2, 0.2, 0.2]), 6)).toEqual({ offset: 0, div: [2, 2] });
+    expect(close(a, 1, 3, S0([0.2, 0.2, 0.2]), 6, undefined, (p) => p !== 0)).toEqual({ offset: 0, div: [0, 0] });
   });
   // Same donor order as a drag: outermost first, to min, then the next.
   const M: SizesFor = (a, b) => ({
@@ -181,7 +203,11 @@ describe("diff", () => {
   it("unchanged ids → same view", () =>
     expect(diff(ids("abc"), ids("abc"), { offset: 0, div: [4, 8] }, 6, sz)).toEqual({ offset: 0, div: [4, 8] }));
   it("reorder → null", () => expect(diff(ids("abc"), ids("acb"), { offset: 0, div: [4, 8] }, 6, sz)).toBeNull());
-  it("window gone → null", () => expect(diff(ids("abcdef"), ids("ab"), { offset: 3, div: [4, 8] }, 6, sz)).toBeNull());
+  it("window gone → the panes before it unfold", () =>
+    expect(diff(ids("abcdef"), ids("ab"), { offset: 3, div: [4, 8] }, 6, sz)).toEqual({ offset: 0, div: [4] }));
+  it("compact: popping the last window pane unfolds the one before it", () =>
+    expect(diff(ids("abcd"), ids("abc"), { offset: 3, div: [] }, 1, sz, 6)).toEqual({ offset: 2, div: [] }));
+  it("nothing kept → null", () => expect(diff(ids("ab"), ids("cd"), { offset: 0, div: [6] }, 6, sz)).toBeNull());
   it("from empty → null", () => expect(diff(ids(""), ids("a"), { offset: 0, div: [] }, 6, sz)).toBeNull());
 });
 

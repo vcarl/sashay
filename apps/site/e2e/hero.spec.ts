@@ -238,6 +238,9 @@ test("hero", async ({ page: p }) => {
   await beat(BEATS.reopen);
   await click(why, 250);
   await expect(pane("why")).not.toHaveAttribute("data-closed");
+  await expect(pane("install")).toHaveAttribute("data-closed"); // the throw shut it: it stays shut
+  await click(edge("install"), 250);
+  await page.waitForTimeout(300); // the bar slides in with its pane
   await expect(code).toHaveText("69.0");
 
   // Install's bar.

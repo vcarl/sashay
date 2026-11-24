@@ -64,9 +64,33 @@ describe("snaps and persistence", () => {
 });
 
 describe("drag", () => {
-  it("grow details: chart gives first, outermost", () => near(drag([0.3, 0.6], 1, 0.4, S0), [0.1, 0.4]));
-  it("grow details leftward: chart goes past focus to min before the list moves", () =>
-    near(drag([0.3, 0.6], 1, 0.45, SM), [0.15, 0.45]));
+  it("leftward: a neighbour over its size gives down to it, then the outermost gives", () => {
+    near(drag([0.3, 0.6], 1, 0.55, S0), [0.3, 0.55]);
+    near(drag([0.3, 0.6], 1, 0.4, S0), [0.2, 0.4]);
+    near(drag([0.3, 0.6], 1, 0.45, SM), [0.25, 0.45]);
+  });
+  it("leftward: its size is its minimum, when that is larger", () =>
+    near(drag([0.3, 0.6], 1, 0.4, { ...S0, min: [0, 0.25, 0] }), [0.15, 0.4]));
+  it("leftward: a neighbour at or under its size stays, the outermost gives", () => {
+    near(drag([0.4, 0.6], 1, 0.4, S0), [0.2, 0.4]);
+    near(drag([0.45, 0.6], 1, 0.4, S0), [0.25, 0.4]);
+  });
+  it("rightward: a neighbour over its size stays, the outermost gives", () =>
+    near(drag([0.2, 0.6], 0, 0.3, S0), [0.3, 0.7]));
+  it("leftward puts back what a rightward drag enlarged", () => {
+    const S = { focus: Array(5).fill(0.2), min: Array(5).fill(0), max: Array(5).fill(1) };
+    const right = settle([0.2, 0.4, 0.6, 0.8], 2, 2 / 3, 0, 5, S);
+    expect(
+      settle(
+        right.map((k) => SNAPS[k].v),
+        2,
+        0.6,
+        0,
+        5,
+        S,
+      ),
+    ).toEqual([0.2, 0.4, 0.6, 0.8].map((x) => nearest(x, 5)));
+  });
   it("grow chart rightward: details goes to min before the list moves", () =>
     near(drag([0.3, 0.6], 0, 0.45, SM), [0.45, 0.75]));
   it("…then chart goes, outermost", () => near(drag([0.3, 0.6], 1, 0.2, S0), [0, 0.2]));
@@ -96,7 +120,7 @@ describe("drag", () => {
 
 describe("settle", () => {
   it("min: snapped too small → closes on release", () => {
-    expect(settle([1 / 3, 2 / 3], 1, 0.62, 0, 6, { ...S0, min: [0, 0, 0.45] })).toEqual([3, 12]);
+    expect(settle([1 / 3, 2 / 3], 1, 0.62, 0, 6, { ...S0, min: [0, 0, 0.45] })).toEqual([4, 12]);
   });
   it("min: pane held at min doesn't round shut", () => {
     expect(widthsOf(settle([1 / 3, 2 / 3], 0, 0.66, 0, 6, APP)).filter(isOpen)).toHaveLength(2);
@@ -108,10 +132,10 @@ describe("settle", () => {
     expect(settle([1 / 3, 2 / 3], 1, 0.8, 0, 6, APP)).toEqual([4, 9]); // details keeps 200px at 3/4
   });
   it("max: snap won't round past it", () => {
-    expect(settle([1 / 3, 2 / 3], 1, 0.62, 0, 6, { ...S0, max: [1, 1, 0.4] })).toEqual([3, 7]);
+    expect(settle([1 / 3, 2 / 3], 1, 0.62, 0, 6, { ...S0, max: [1, 1, 0.4] })).toEqual([4, 7]);
   });
   it("max: a lone grower's max doesn't stop the release", () => {
-    expect(settle([1 / 3, 2 / 3], 1, 0.5, 0, 6, { ...S0, max: [1, 1, 0.45] })).toEqual([1, 6]);
+    expect(settle([1 / 3, 2 / 3], 1, 0.5, 0, 6, { ...S0, max: [1, 1, 0.45] })).toEqual([4, 6]);
   });
 
   // Slow releases of both dividers from 1:1:1, swept across the frame.

@@ -146,16 +146,22 @@ stack (drill-down: picking an item adds a pane on the right; going back removes 
   - There are no `push`/`pop` helpers: a stack is just an array the app edits.
   - Panes added to an empty frame take `layout` (or the last `setLayout` code) as at
     creation. `onChange` fires only if that code doesn't apply as given.
-- **Open count.** Opening and closing keep the number of open panes steady. Closing a pane
-  (any way, including removal) expands the nearest collapsed one (closed, in the spine or
-  just past the window), the most recently folded first. Opening one below capacity adds
-  it; at capacity, the outermost open pane collapses.
+- **Dragging.** The pane an edge moves away from grows. The panes it moves into give way, the
+  outermost first, down to `minWidth` and then to nothing. Dragging left, the pane next to the edge
+  first gives what it has beyond its `focus` (or `minWidth`, if larger).
+- **Open count.** Opening a pane below capacity adds it; at capacity, the outermost open pane
+  collapses. Closing a pane (any way, including removal) brings back the nearest pane sashay
+  collapsed itself: one in a spine, or one pushed shut to make room for another, the most
+  recently folded first. A pane the user or the app closed, or that began closed, stays closed
+  until someone opens it; its neighbours take the space. sashay remembers which is which while
+  the frame lives. From a layout code alone, panes in a spine may come back, and other closed
+  panes stay closed.
   - **Capacity:** the frame is at capacity when the open panes plus the one opening can't
     all fit at their `focus`, each rounded up to the snap grid in play.
 - **Spine.** When the open panes no longer fit, the oldest panes fold into a spine at the
   left: a narrow column with a vertical tab per folded pane, oldest at the top, scrolling when
   it overflows, with the most recently folded tab kept in view. Clicking a tab (or Enter/Space)
-  is `reveal(id)`: the window jumps to start at that pane and keeps the open count. Panes left
+  is `reveal(id)`: the window jumps to start at that pane and opens the ones around it. Panes left
   after the window then fold into a second spine at the right, nearest first. Closed panes keep
   their own edges and never fold into the spine, so a fixed workspace that fits never shows one.
 - **Compact.** The tab strip lists the visible window, up to six panes; panes fold into the
