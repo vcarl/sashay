@@ -11,4 +11,4 @@ Sashay 1.0: a sliding-pane layout for the web.
 - `keepInView` keeps a point of a pane's content visible when the pane is covered or squeezed.
 - The layout encodes to a short code you can put in the URL.
 - Sizes take any CSS length: `rem`, `%`, `clamp()`, `var()`, or plain pixel numbers.
-- Accessible by default: separators work with arrow keys, covered panes are `inert`, and drawer toggles set `aria-expanded`.
+- Accessible by default: separators work with arrow keys, fully hidden panes are `inert`, and drawer toggles set `aria-expanded`.
