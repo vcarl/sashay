@@ -55,7 +55,7 @@ export function ssrHtml(
       `left:calc(${C} * ${[0, ...div, 1][k]} + ${[left, ...edges.slice(0, e)].join(" + ")})`;
     const spine = (side: string, list: PaneOptions[]) =>
       list.length
-        ? `<nav data-spine="${side}">${list.map((p) => `<button data-sashay-spine-tab="${esc(p.id)}">${esc(p.title)}</button>`).join("")}</nav>`
+        ? `<nav data-spine="${side}">${list.map((p) => `<button type="button" data-sashay-spine-tab="${esc(p.id)}">${esc(p.title)}</button>`).join("")}</nav>`
         : "";
 
     let html = spine("start", panes.slice(0, v.offset).slice(-SPINE_TABS));
@@ -77,21 +77,22 @@ export function ssrHtml(
       const box = `${x(k, k + 1)};width:calc(${C} * ${w[k]});z-index:${2 * k + 1}`;
       css += `${pane}{position:absolute;${x(k, k + 1)};width:calc(${C} * ${Math.max(w[k], p.focus)});z-index:${2 * k};${open ? SHOW : HIDE}}`;
       css += `${own} > [data-sashay-edge=${q(p.id)}]{${x(k, k)};width:${edges[k]};z-index:${2 * k}}`; // over its pane, under its bar
-      html += `<div data-sashay-edge="${esc(p.id)}" role="${k ? "separator" : `button" aria-expanded="${open}`}" aria-label="${esc(p.title)}"><span data-sashay-dots></span></div>`;
+      const role = k ? 'role="separator"' : `role="button" aria-expanded="${open}"`;
+      html += `<div data-sashay-edge="${esc(p.id)}" ${role} aria-label="${esc(p.title)}"><span data-sashay-dots></span></div>`;
       if (!p.bar) return;
       const up = Boolean(d?.bars[j++]);
       const h = `--sashay-bar-height:${barHeight(p.bar)}`;
       css += `${bar}{position:absolute;${box};${h};${open && up ? `${SHOW};bottom:0` : HIDE}}`;
       css += `${own} > [data-sashay-bar-toggle=${q(p.id)}]{${box};${h};${open ? SHOW : HIDE}}`;
-      html += `<button data-sashay-bar-toggle="${esc(p.id)}" aria-expanded="${up}"><span>${esc(p.bar.title)}</span>${CHEVRON}</button>`;
+      html += `<button type="button" data-sashay-bar-toggle="${esc(p.id)}" aria-expanded="${up}"><span>${esc(p.bar.title)}</span>${CHEVRON}</button>`;
     });
     if (compact) {
       css += `${own} > [data-sashay-tabs]{${x(0, 0)};z-index:1}${own} [data-sashay-dots]{--g:4px}`;
-      html += `<div data-sashay-tabs>${win.map((p, k) => `<button data-sashay-tab="${esc(p.id)}" aria-pressed="${isOpen(w[k])}">${esc(p.title)}</button>`).join("")}</div>`;
+      html += `<div data-sashay-tabs>${win.map((p, k) => `<button type="button" data-sashay-tab="${esc(p.id)}" aria-pressed="${isOpen(w[k])}">${esc(p.title)}</button>`).join("")}</div>`;
     } else if (w.filter(isOpen).length > 1) {
       const k = w.findLastIndex(isOpen);
       css += `${own} > [data-sashay-close]{${x(k + 1, k + 1)}}`;
-      html += "<button data-sashay-close>×</button>";
+      html += '<button type="button" data-sashay-close>×</button>';
     }
     // Without JS, panes that would be out of reach stack in a scrolling frame instead.
     if (!whole)

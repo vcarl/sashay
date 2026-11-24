@@ -219,3 +219,15 @@ test("a pane whose content suspends while streaming doesn't change the first pai
   await end;
   expect(html).toContain("ready");
 });
+
+test("stand-in controls are never a form's default button", () => {
+  host.innerHTML = renderToString(
+    <form>
+      <App panes={P("abcdefgh", () => ({ bar }))} layout="3-48.4" />
+      <button type="submit">Send</button>
+    </form>,
+  );
+  expect([...host.querySelectorAll("button")].filter((b) => b.type === "submit").map((b) => b.textContent)).toEqual([
+    "Send",
+  ]);
+});
