@@ -117,6 +117,18 @@ for (const width of [1440, 390]) {
   const path = await page.locator(".mb:has(.house) .mb-url").textContent();
   assert.equal(path.split("/").length, 7, `URL bar shows the path (${path})`);
   assert.equal(new URL(page.url()).search, "", "the page's own URL stays put");
+  // All the way out, by the back link and the leaf × in turn (compact has no ×).
+  const shown = "[data-sashay-pane]:not([data-closed]):not([data-offscreen])";
+  for (let n = 6; n; n--) {
+    const x = hs.locator("[data-sashay-close]");
+    if (n % 2 && (await x.isVisible())) await x.click();
+    else await hs.locator("[data-sashay-pane]:last-of-type .hs-back").click();
+    await settle(page);
+    assert.equal(await panes.count(), n, `back to ${n}`);
+    const open = Math.min(n, width < 640 ? 1 : 2);
+    assert.ok((await hs.locator(shown).count()) >= open, `back to ${n}: at least ${open} open`);
+    assert.equal(await panes.last().getAttribute("inert"), null, `back to ${n}: the last is open`);
+  }
   await page.close();
 }
 

@@ -278,6 +278,37 @@ test("a remount that keeps state (Fast Refresh, re-shown Activity) keeps the lay
   expect(spy).not.toHaveBeenCalled();
 });
 
+// Closing brings back only panes sashay collapsed itself (closed.browser.test.ts has the matrix).
+test("<Pane>s added and removed: a pushed pane comes back, a closed one doesn't", async () => {
+  const h = { current: null as SashayHandle | null };
+  const open = () => [..."abcd"].filter((id) => P(id) && !P(id).hasAttribute("data-closed")).join("");
+  const panes = P3.map((p) => ({ ...p, minWidth: "280px" }) as PaneProps);
+  const four = [...panes, { ...panes[2], id: "d", title: "D" }];
+  const at = (list: PaneProps[], mode: "visible" | "hidden" = "visible") => (
+    <StrictMode>
+      <Activity mode={mode}>
+        <App ref={h} panes={list} />
+      </Activity>
+    </StrictMode>
+  );
+  await render(at(panes));
+  await render(at(four));
+  expect(open()).toBe("bcd");
+  await render(at(four, "hidden"));
+  await render(at(four));
+  await render(at(panes));
+  expect(open()).toBe("abc");
+  await act(() => h.current?.close("c"));
+  await render(at(panes, "hidden"));
+  await render(at(panes));
+  await act(() => h.current?.close("b"));
+  expect(open()).toBe("a");
+  await render(at(four));
+  expect(open()).toBe("ad");
+  await render(at(panes));
+  expect(open()).toBe("a");
+});
+
 test("a layout prop, or panes, changed while hidden apply when the frame is shown again", async () => {
   const h = { current: null as SashayHandle | null };
   const at = (mode: "visible" | "hidden", layout: string, panes = P3) => (

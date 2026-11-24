@@ -352,8 +352,9 @@ test("the leaf × is hidden when closing it is impossible", () => {
   h = createSashay(frame, { panes: P3, layout: "48" });
   expect($("[data-sashay-close]").hidden).toBe(false);
   h.close("b");
-  h.close("c"); // reopens b: the open count stays two
   expect($("[data-sashay-close]").hidden).toBe(false);
+  h.close("c"); // a alone is open
+  expect($("[data-sashay-close]").hidden).toBe(true);
   h.setLayout("cc");
   expect($("[data-sashay-close]").hidden).toBe(true);
   h.destroy();
