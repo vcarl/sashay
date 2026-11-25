@@ -1,5 +1,5 @@
 /*
- * The hero, recorded: 24 seconds of the landing page's hero frame and its theme picker. It is
+ * The hero, recorded: 22 seconds of the landing page's hero frame and its theme picker. It is
  * a real test (every beat asserts) driven by real mouse and keyboard input, with a drawn cursor.
  *
  *   pnpm site:build && pnpm test:e2e                          the test only
@@ -21,29 +21,39 @@ const BEATS = {
   hold: 0,
   slowDrag: 800,
   sash: 2350,
-  throw: 3300,
-  shoji: 4350,
-  squeeze: 5200,
-  greenhouse: 6350,
-  close: 7200,
-  reopen: 7900,
-  blueprint: 8850,
-  barOpen: 9700,
-  barClose: 10500,
-  add: 11200,
-  curtain: 13150,
-  spineTab: 14000,
-  closeAdded: 15100,
-  sleeper: 17700,
-  keys: 18550,
-  narrow: 20150,
-  tab: 21050,
-  widen: 21950,
-  house: 22900,
-  end: 24300,
+  throw: 2950,
+  shoji: 4000,
+  squeeze: 4600,
+  greenhouse: 5750,
+  close: 6350,
+  reopen: 7050,
+  blueprint: 8000,
+  barOpen: 8600,
+  barClose: 9400,
+  add: 10100,
+  curtain: 12050,
+  spineTab: 12650,
+  closeAdded: 13750,
+  sleeper: 16350,
+  keys: 16950,
+  narrow: 18550,
+  tab: 19450,
+  widen: 20350,
+  house: 21300,
+  end: 22500,
 } as const;
 // How long moves take, in ms.
-const MOVE = { glide: 380, slowDrag: 900, throw: 270, squeeze: 650, drop: 160, click: 80, addGap: 520, closeGap: 600 };
+const MOVE = {
+  glide: 380,
+  dart: 80,
+  slowDrag: 900,
+  throw: 270,
+  squeeze: 650,
+  drop: 160,
+  click: 80,
+  addGap: 520,
+  closeGap: 600,
+};
 
 const STAGE = `
   .mast, footer, main > :not(.window), .themer .more, .readout > :not([data-act="add"]) { display: none !important }
@@ -121,11 +131,13 @@ async function click(loc: Locator | Pt, ms?: number) {
   await page.mouse.up();
 }
 
-/** Picks a theme at its beat. Its colours fade while the next beat plays. */
+/** Picks a theme at its beat: a dart to the picker and back. Its colours fade while the next beat plays. */
 async function pick(name: keyof typeof BEATS) {
   await beat(BEATS[name]);
   const theme = name === "house" ? "" : name;
-  await click(page.locator(`.th-pick input[value="${theme}"]`), 320);
+  const from = at;
+  await click(page.locator(`.th-pick input[value="${theme}"]`), MOVE.dart);
+  await glide(from, MOVE.dart);
   const hero = page.locator("#hero");
   if (theme) await expect(hero).toHaveAttribute("data-sashay-theme", theme);
   else await expect(hero).not.toHaveAttribute("data-sashay-theme");
