@@ -1,0 +1,153 @@
+---
+title: Themes.
+description: Six themes for sashay, how they work, and how to write your own.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import ThemeDemo from "../../components/ThemeDemo.astro";
+
+A theme dresses sashay's own parts: the edges and their grips, bars, spines, chevrons, the close mark, and the indicator a throw draws. It sets the type in your panes too. Six come with the package. Pick one, then drag an edge, throw one, and open the Parts bar.
+
+<ThemeDemo />
+
+## Use a theme
+
+Import the themes after the stylesheet, and name one on the frame:
+
+```tsx
+import "@vcarl/sashay/style.css";
+import "@vcarl/sashay/themes.css";
+
+<Sashay data-sashay-theme="curtain">…</Sashay>;
+```
+
+`data-sashay-theme` is a plain attribute. `<Sashay>` passes it to its `div`, so it's in the server's HTML. Without React, set it on the element you give `createSashay`. It works on any ancestor as well, so one on `<body>` themes every frame on the page. A frame with no theme keeps the defaults, which follow the system's colours.
+
+| Theme | Scheme | Edge | Drag symbol | Chevron | Throw |
+|---|---|---|---|---|---|
+| `sash` | light | 20px | Pull tab | Triangle | Thick bow |
+| `shoji` | light | 8px | Hairline | Plus and minus | Ghost screen |
+| `greenhouse` | light | 16px | Three rings | Leaf bud | Dotted bow |
+| `blueprint` | dark | 14px | Ruler | Double chevron | Dimension arrow |
+| `curtain` | dark | 28px | Brass beads | Swag | Billowing cloth |
+| `sleeper` | dark | 10px | Ridges | Sharp chevron | Speed lines |
+
+## Switch themes
+
+Change the attribute. The edges and spine re-measure, and the layout stays as it was:
+
+```tsx
+<Sashay data-sashay-theme={dark ? "sleeper" : "shoji"}>…</Sashay>
+```
+
+Each theme is light or dark, not both, and sets `color-scheme` to match, so form controls and `light-dark()` colours in your panes follow. To follow the system setting, choose the name from `matchMedia("(prefers-color-scheme: dark)")`. The server can't know that setting, so a theme chosen this way arrives on hydration.
+
+## Fonts
+
+Themes name fonts but never load them. Load the ones your theme names, from wherever you like; **This theme's fonts**, under the demo, lists the [Fontsource](https://fontsource.org) imports. Without them a theme uses the system fonts next in its list.
+
+A theme sets the type of pane and bar content, and of `h1` to `h4` inside them. These rules are in `@layer sashay`, so any unlayered rule of yours wins, including a site-wide `h2 { font-family: … }`. To let the theme through, point yours at its variables inside a frame:
+
+```css
+[data-sashay-theme] h2 {
+  font-family: var(--sashay-heading-font);
+  font-weight: var(--sashay-heading-weight);
+}
+```
+
+## Adjust a theme
+
+A theme is a list of `--sashay-*` variables. Set any of them on the same element, in unlayered CSS, and yours wins:
+
+```css
+.my-frame {
+  --sashay-accent: rebeccapurple;
+  --sashay-edge-width: 1rem;
+}
+```
+
+## Write your own
+
+Give your list a name. Variables you leave out use their defaults, or those of a theme further up the page, so a theme that may be nested in another sets them all. `themes.css` holds six complete examples, and each is under **This theme's CSS** above.
+
+```css
+@layer sashay {
+  [data-sashay-theme="porch"] {
+    color-scheme: light;
+    --sashay-bg: #2f4a3a;
+    --sashay-fg: #ffffff;
+    --sashay-muted: #cfe0d4;
+    --sashay-pane-bg: #ffffff;
+    --sashay-pane-fg: #16241c;
+    --sashay-pane-muted: #4f6257;
+    --sashay-raised-bg: #253c2f;
+    --sashay-accent: #c2603a;
+    --sashay-edge-width: 1.25rem;
+  }
+}
+```
+
+The [Reference](../reference/#themes) lists every variable. The sections below cover the ones that take more than a colour.
+
+### Colour
+
+Three surfaces each have their own text. `--sashay-bg` is the frame and its edges, and `--sashay-raised-bg` is bars and spines; controls on both use `--sashay-fg` and `--sashay-muted`. `--sashay-pane-bg` is panes, with `--sashay-pane-fg` and `--sashay-pane-muted`. So a dark frame can hold light panes.
+
+`--sashay-accent` draws focus rings and the release mark over all three, so it has to show on all three.
+
+### Thickness
+
+`--sashay-edge-width`, `--sashay-spine-width` and `--sashay-bar-size` take any length. An `edge.width` on a pane wins over the theme's, and compact mode caps edges at `0.75rem` so they don't crowd a phone.
+
+Edges take room from the panes, and the snap grid depends on that room. Near a threshold, a thicker edge can change which snaps are in play, and so where a throw lands. A thin edge stays easy to grab: a drag can start up to 20px into the pane beside it.
+
+### Drag symbol
+
+`--sashay-grip-image` is any CSS gradient, sized by `--sashay-grip-width`, `--sashay-grip-height` and `--sashay-grip-radius`. Draw it in `currentColor`, which is `--sashay-grip`, and `--sashay-grip-hover` under the pointer.
+
+```css
+--sashay-grip-image: repeating-linear-gradient(currentColor 0 2px, transparent 2px 6px);
+--sashay-grip-width: 6px;
+--sashay-grip-height: 20px;
+```
+
+### Chevron and close mark
+
+`--sashay-chevron` and `--sashay-close` are `clip-path` shapes cut from the text colour. An open bar turns its chevron by `--sashay-chevron-turn`, or shows `--sashay-chevron-open` if you set one. Shoji's plus becomes a minus, with no turn.
+
+```css
+--sashay-chevron: polygon(50% 20%, 96% 80%, 4% 80%);
+--sashay-chevron-turn: 180deg;
+```
+
+Gradients and shapes load nothing, so a strict Content Security Policy can't block them. The cost is that a symbol is a silhouette in one colour.
+
+### Throw
+
+While you drag, a mark shows where the edge will settle. `--sashay-mark-width`, `--sashay-mark-inset`, `--sashay-mark-image` and `--sashay-mark-glow` draw it. Under a throw it gives way to an indicator with two parts, and you can use either or both:
+
+- **The bow** is a stroke: `--sashay-fling-width` and `--sashay-fling-dash`. A width of `0px` hides it.
+- **The shape** is `--sashay-fling-fill`, cut by the `clip-path` in `--sashay-fling-shape`. It stretches with the throw and mirrors for one to the left.
+
+`--sashay-fling-reach` says how far they go at full speed: `1` is halfway to where the edge will land, `2` is all the way. Set `--sashay-fling-mark` to keep the mark in place during a throw.
+
+```css
+--sashay-fling-width: 0px;
+--sashay-fling-mark: currentColor;
+--sashay-fling-fill: color-mix(in srgb, currentColor 22%, transparent);
+--sashay-fling-reach: 2;
+```
+
+Both ease as your speed changes, unless the reader prefers reduced motion. Where the edge lands uses the speed itself.
+
+## Accessibility
+
+In every theme that ships, text has a contrast of at least 4.5:1 with what's behind it, and the accent and grips at least 3:1. The package's tests check that. Check your own the same way, including the colours in `--sashay-edge-image`: in compact mode the tabs lie over it.
+
+In forced-colors mode, edge images go and the grips, marks, chevrons and close mark use system colours.
+
+## Not themeable
+
+Motion, snap points and throw speeds are the same in every theme. A theme changes how a frame looks, and not what a drag does.

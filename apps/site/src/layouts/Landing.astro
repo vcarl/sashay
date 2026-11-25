@@ -6,11 +6,8 @@ import "../styles/landing.css";
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 const abs = (path: string) => new URL(`${base}${path}`, Astro.site).href;
-const {
-  title = "Sashay: sliding panes for the web",
-  path = "",
-  description = "A sliding-panes layout for the web. Snaps, flings, bottom bars, deep stacks, and a layout that fits in a URL.",
-} = Astro.props as { title?: string; path?: string; description?: string };
+const title = "Sashay: sliding panes for the web";
+const description = "A sliding-panes layout for the web. Snaps, flings, bottom bars, deep stacks, and a layout that fits in a URL.";
 ---
 <!doctype html>
 <html lang="en">
@@ -19,9 +16,9 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={abs(path)} />
+    <link rel="canonical" href={abs("")} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={abs(path)} />
+    <meta property="og:url" content={abs("")} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={abs("share.png")} />

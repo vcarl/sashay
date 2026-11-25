@@ -1,7 +1,8 @@
 import { Pane, Sashay, type SashayHandle } from "@vcarl/sashay/react";
 import { useLayoutEffect, useRef, useState } from "react";
+import { setThemeParam, ThemePicker, themeParam } from "./ThemePicker";
 
-const edge = { width: 32 }; // --edge, as a length the server can use in a container query
+const houseEdge = { width: 32 }; // --edge, as a length the server can use in a container query
 const MAX = 12; // added panes
 
 /** `?panes=`, untrusted: the number of added panes, or 0 for anything malformed. */
@@ -17,6 +18,9 @@ function start(): { count: number; layout?: string } {
 export function Hero({ base }: { base: string }) {
   const [init] = useState(start);
   const h = useRef<SashayHandle>(null);
+  const [theme, setTheme] = useState(""); // "": the house look. Read from the URL once hydrated.
+  useLayoutEffect(() => setTheme(themeParam()), []);
+  const edge = theme ? undefined : houseEdge; // a theme sets its own
   // Added panes, left to right. They are numbered by position, so removing one in the middle
   // renumbers the rest and the URL needs only the count.
   const [added, setAdded] = useState<number[]>([]);
@@ -57,6 +61,7 @@ export function Hero({ base }: { base: string }) {
       <Sashay
         className="frame"
         id="hero"
+        data-sashay-theme={theme || undefined}
         ref={h}
         layout={init.layout}
         defaultLayout={[0.5, 0.75]}
@@ -94,7 +99,7 @@ export function Hero({ base }: { base: string }) {
               >
                 <path d="M1 9h24M7 3 1 9l6 6M19 3l6 6-6 6" />
               </svg>{" "}
-              <span className="wide">This headline is a pane. Grab the red edge to its right.</span>
+              <span className="wide">This headline is a pane. Grab the edge to its right.</span>
               <span className="narrow">This headline is a pane. On a phone the edges become tabs: tap one.</span>
             </div>
           </div>
@@ -174,6 +179,19 @@ export function Hero({ base }: { base: string }) {
         ))}
       </Sashay>
 
+      <div className="themer">
+        <ThemePicker
+          house
+          value={theme}
+          onPick={(t) => {
+            setTheme(t);
+            setThemeParam(t);
+          }}
+        />
+        <a className="more" href={`${base}themes/`}>
+          About themes →
+        </a>
+      </div>
       <div className="readout" id="readout">
         <span className="url">
           <span>?layout=</span>

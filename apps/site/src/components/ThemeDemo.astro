@@ -1,0 +1,21 @@
+---
+// The live demo on the Themes page. What it shows of each theme comes from the stylesheet that
+// ships, so it can't drift.
+import source from "../../../../packages/sashay/src/themes.css?raw";
+import fontSource from "../styles/theme-fonts.css?raw";
+import "../styles/theme-fonts.css";
+import "@vcarl/sashay/style.css";
+import "@vcarl/sashay/themes.css";
+import { Themes, type ThemeSource } from "./Themes";
+
+const fontLines = fontSource.split("\n").filter((l) => l.startsWith("@import"));
+const sources: Record<string, ThemeSource> = {};
+for (const [block, id] of source.matchAll(/\[data-sashay-theme="(\w+)"\] \{.*?\n {2}\}/gs)) {
+  const named = new Set([...block.matchAll(/-font: "([^"]+)"/g)].map((m) => m[1].toLowerCase().replaceAll(" ", "-")));
+  sources[id] = {
+    css: block.replace(/^ {2}/gm, ""),
+    fonts: fontLines.filter((l) => named.has(l.split("/")[1])).join("\n"),
+  };
+}
+---
+<Themes client:load sources={sources} />

@@ -88,6 +88,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 
 <script>
   import "@vcarl/sashay/style.css";
+  import "@vcarl/sashay/themes.css";
+  import "../styles/theme-fonts.css";
   import { mountCells } from "../scripts/cells.ts";
 
   mountCells(document.querySelector(".poster") as HTMLElement);
