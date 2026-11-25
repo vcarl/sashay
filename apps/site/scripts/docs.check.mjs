@@ -148,6 +148,54 @@ await page.getByRole("button", { name: "Lunch?" }).click();
 await page.locator('.demo [role="separator"]').waitFor();
 assert.match(await page.locator(".demo").textContent(), /Message: Lunch\?/);
 
+// Themes: the link picks one, an unknown name keeps the default, and switching keeps the layout.
+// The landing hero takes the same names, and starts with none.
+const themeNames = ["sash", "shoji", "greenhouse", "blueprint", "curtain", "sleeper"];
+for (const [path, id, none, count] of [
+  ["themes/", "#themed", "sash", 6],
+  ["", "#hero", null, 7],
+]) {
+  for (const width of [1440, 390]) {
+    page = await open(`${path}?theme=curtain`, width);
+    const frame = page.locator(id);
+    await page.locator(`${id}[data-sashay-ready][data-sashay-theme="curtain"]`).waitFor();
+    const rail = () =>
+      frame
+        .locator("[data-sashay-edge]")
+        .nth(1)
+        .evaluate((e) => Math.round(e.getBoundingClientRect().width));
+    await page.waitForTimeout(400);
+    const wide = await frame.evaluate((e) => e.clientWidth >= 640);
+    assert.equal(await rail(), wide ? 28 : 12, `${path || "landing"} at ${width}: curtain's rails`);
+    const scroll = await page.evaluate(() => document.documentElement.scrollWidth);
+    assert.ok(scroll <= width, `${path} at ${width}: no horizontal page scroll (${scroll})`);
+    assert.equal(await page.locator(".th-pick label").count(), count);
+    for (const name of themeNames) {
+      await page.locator(`.th-pick input[value="${name}"]`).check();
+      assert.equal(await frame.getAttribute("data-sashay-theme"), name);
+      assert.equal(new URL(page.url()).searchParams.get("theme"), name);
+      const heading = frame.locator(":is(h1, h3)").first();
+      const [font, want] = await heading.evaluate((e) => {
+        const s = getComputedStyle(e);
+        return [s.fontFamily, s.getPropertyValue("--sashay-heading-font")];
+      });
+      const bare = (f) => f.replaceAll(/["\s]/g, "");
+      assert.equal(bare(font), bare(want), `${path || "landing"}: ${name}'s heading font`);
+    }
+    await page.close();
+  }
+  page = await open(`${path}?theme=nope`);
+  await page.locator(`${id}[data-sashay-ready]`).waitFor();
+  assert.equal(await page.locator(id).getAttribute("data-sashay-theme"), none);
+  await page.close();
+}
+page = await open("?theme=shoji");
+await page.locator('#hero[data-sashay-theme="shoji"]').waitFor();
+await page.locator('.th-pick input[value=""]').check();
+assert.equal(await page.locator("#hero").getAttribute("data-sashay-theme"), null, "back to the house look");
+assert.equal(new URL(page.url()).searchParams.has("theme"), false);
+await page.close();
+
 // The old pages land on their new anchors.
 const moved = {
   install: "guide/#install",

@@ -20,6 +20,7 @@
   }
   [data-sashay-pane] {
     background: var(--sashay-pane-bg, Canvas);
+    color: var(--sashay-pane-fg, inherit);
     --sashay-shift: none; /* keepInView; nested panes reset it */
   }
   [data-sashay-pane] > * {
@@ -55,8 +56,7 @@
   @media (prefers-reduced-motion: reduce) {
     [data-sashay-frame]
       :is([data-sashay-pane], [data-sashay-edge], [data-sashay-tabs], [data-sashay-bar-toggle], [data-sashay-bar]),
-    [data-sashay-bar-toggle] svg,
-    [data-sashay-mark] path {
+    [data-sashay-chevron] {
       transition: none !important;
     }
   }
@@ -64,23 +64,23 @@
   /* Release preview. Under a throw the bar hides and the SVG bows its middle by --sashay-fling px. */
   [data-sashay-mark] {
     position: absolute;
-    top: 18%;
-    bottom: 18%;
+    inset-block: var(--sashay-mark-inset, 18%);
     left: 0;
-    width: 3px;
-    margin-left: -1.5px;
+    width: var(--sashay-mark-width, 3px);
+    margin-left: calc(var(--sashay-mark-width, 3px) / -2);
     border-radius: 2px;
     color: var(--sashay-accent, oklch(0.62 0.19 255));
-    background: currentColor;
-    box-shadow: 0 0 10px 2px color-mix(in srgb, currentColor 55%, transparent);
+    background: var(--sashay-mark-image, currentColor);
+    box-shadow: 0 0 10px 2px var(--sashay-mark-glow, color-mix(in srgb, currentColor 55%, transparent));
     opacity: 0;
     z-index: 98;
     pointer-events: none;
   }
   [data-sashay-mark][data-fling] {
-    background: none;
+    background: var(--sashay-fling-mark, none);
     box-shadow: none;
   }
+  /* A throw: a stroked bow, and a filled shape (none unless themed), both --sashay-fling px wide. */
   [data-sashay-mark] svg {
     position: absolute;
     left: 50%;
@@ -89,18 +89,30 @@
     overflow: visible;
     fill: none;
     stroke: currentColor;
-    stroke-width: 3px;
+    stroke-width: var(--sashay-fling-width, 3px);
+    stroke-dasharray: var(--sashay-fling-dash, none);
     stroke-linecap: round;
     stroke-miterlimit: 20;
-    filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 55%, transparent));
+    filter: drop-shadow(0 0 4px var(--sashay-mark-glow, color-mix(in srgb, currentColor 55%, transparent)));
   }
-  [data-sashay-mark]:not([data-fling]) svg {
+  [data-sashay-mark]::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 100px;
+    height: 100%;
+    transform-origin: 0 50%;
+    background: var(--sashay-fling-fill, none);
+    clip-path: var(--sashay-fling-shape, none);
+    scale: calc(var(--sashay-fling, 0) * var(--sashay-fling-reach, 1) / 100) 1;
+  }
+  [data-sashay-mark]:not([data-fling]) svg,
+  [data-sashay-mark]:not([data-fling])::before {
     display: none;
   }
   [data-sashay-mark] path {
     vector-effect: non-scaling-stroke;
-    scale: var(--sashay-fling, 0) 1;
-    transition: scale 0.16s;
+    scale: calc(var(--sashay-fling, 0) * var(--sashay-fling-reach, 1)) 1;
   }
   [data-sashay-frame][data-dragging] [data-sashay-mark] {
     opacity: 0.35;
@@ -111,10 +123,12 @@
 
   /* Edges: a grip. */
   [data-sashay-edge] {
-    background: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
+    background-color: var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas));
+    background-image: var(--sashay-edge-image, none);
     border-left: 1px solid var(--sashay-edge-border, color-mix(in srgb, CanvasText 55%, Canvas));
     border-right: 1px solid var(--sashay-edge-border, color-mix(in srgb, CanvasText 55%, Canvas));
     box-shadow: -10px 0 18px -12px var(--sashay-shadow, rgb(0 0 0 / 0.5));
+    box-sizing: border-box;
     cursor: ew-resize;
     touch-action: none;
     color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
@@ -124,7 +138,7 @@
     cursor: pointer;
   }
   [data-sashay-edge]:hover {
-    background: color-mix(
+    background-color: color-mix(
       in srgb,
       var(--sashay-accent, oklch(0.62 0.19 255)) 7%,
       var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas))
@@ -132,7 +146,7 @@
     color: var(--sashay-fg, CanvasText);
   }
   [data-sashay-edge]:active {
-    background: color-mix(
+    background-color: color-mix(
       in srgb,
       var(--sashay-accent, oklch(0.62 0.19 255)) 16%,
       var(--sashay-bg, color-mix(in srgb, CanvasText 6%, Canvas))
@@ -144,24 +158,28 @@
     outline-offset: -2px;
   }
 
-  /* Grip: dots, centred on the edge. Compact gets a smaller one. */
+  /* Grip: dots unless themed, centred on the edge. Compact gets a smaller one. */
   [data-sashay-dots] {
     --g: 6px;
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: var(--g);
-    height: calc(var(--g) * 7);
-    margin: calc(var(--g) * -3.5) 0 0 calc(var(--g) / -2);
-    background:
-      radial-gradient(circle, var(--sashay-grip, color-mix(in srgb, CanvasText 65%, Canvas)) 35%, transparent 40%) 0 0 /
-      var(--g) calc(var(--g) * 1.75);
+    inset: 0;
+    margin: auto;
+    width: var(--sashay-grip-width, var(--g));
+    height: var(--sashay-grip-height, calc(var(--g) * 7));
+    border-radius: var(--sashay-grip-radius, 0);
+    color: var(--sashay-grip, color-mix(in srgb, CanvasText 65%, Canvas));
+    background: var(
+      --sashay-grip-image,
+      radial-gradient(circle, currentColor 35%, transparent 40%) 0 0 /
+      var(--g) calc(var(--g) * 1.75)
+    );
   }
   [data-sashay-frame][data-compact] [data-sashay-dots] {
     --g: 4px;
+    max-width: 6px;
   }
   [data-sashay-edge]:is(:hover, :active) [data-sashay-dots] {
-    background-image: radial-gradient(circle, var(--sashay-grip-hover, currentColor) 35%, transparent 40%);
+    color: var(--sashay-grip-hover, inherit);
   }
   [data-sashay-edge][role="button"] [data-sashay-dots] {
     display: none;
@@ -195,9 +213,10 @@
     color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
     font: inherit;
     font-size: var(--sashay-font-size, 0.6875rem);
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-family: var(--sashay-label-font, inherit);
+    font-weight: var(--sashay-label-weight, 600);
+    letter-spacing: var(--sashay-label-spacing, 0.06em);
+    text-transform: var(--sashay-label-case, uppercase);
     text-align: left;
     cursor: pointer;
   }
@@ -215,20 +234,54 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  [data-sashay-bar-toggle] svg {
+  /* Chevron and ×: shapes filled with the text colour. */
+  [data-sashay-chevron],
+  [data-sashay-close] i {
     flex: none;
     width: 14px;
     height: 14px;
+    background: currentColor;
+    clip-path: var(--sashay-chevron, polygon(50% 28%, 92% 70%, 84% 78%, 50% 44%, 16% 78%, 8% 70%));
     transition: rotate 0.2s;
   }
-  [data-sashay-bar-toggle][aria-expanded="true"] svg {
-    rotate: 180deg;
+  [data-sashay-bar-toggle][aria-expanded="true"] [data-sashay-chevron] {
+    rotate: var(--sashay-chevron-turn, 180deg);
+    clip-path: var(
+      --sashay-chevron-open,
+      var(--sashay-chevron, polygon(50% 28%, 92% 70%, 84% 78%, 50% 44%, 16% 78%, 8% 70%))
+    );
+  }
+  [data-sashay-close] i {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 12px;
+    height: 12px;
+    clip-path: var(
+      --sashay-close,
+      polygon(10% 0, 50% 40%, 90% 0, 100% 10%, 60% 50%, 100% 90%, 90% 100%, 50% 60%, 10% 100%, 0 90%, 40% 50%, 0 10%)
+    );
+  }
+  /* Forced colours would drop the gradients and fill the shapes with the canvas. */
+  @media (forced-colors: active) {
+    [data-sashay-dots],
+    [data-sashay-mark],
+    [data-sashay-chevron],
+    [data-sashay-close] i {
+      forced-color-adjust: none;
+      color: ButtonText;
+    }
+    [data-sashay-edge]:is(:hover, :active) [data-sashay-dots],
+    [data-sashay-mark] {
+      color: Highlight;
+    }
   }
   [data-sashay-bar] {
     height: var(--sashay-bar-rise);
     padding: 12px 14px;
     overflow: hidden auto;
     background: var(--sashay-pane-bg, Canvas);
+    color: var(--sashay-pane-fg, inherit);
     touch-action: pan-y;
   }
   [data-sashay-bar]:not([data-open]) {
@@ -271,9 +324,10 @@
     color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
     font: inherit;
     font-size: var(--sashay-font-size, 0.6875rem);
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-family: var(--sashay-label-font, inherit);
+    font-weight: var(--sashay-label-weight, 600);
+    letter-spacing: var(--sashay-label-spacing, 0.06em);
+    text-transform: var(--sashay-label-case, uppercase);
     cursor: pointer;
   }
   [data-sashay-spine-tab]:hover {
@@ -297,9 +351,7 @@
     border: 0;
     border-radius: var(--sashay-radius, 6px);
     background: transparent;
-    color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
-    font-size: 20px;
-    line-height: 1;
+    color: var(--sashay-pane-muted, var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent)));
     cursor: pointer;
   }
   [data-sashay-close]:hover {
@@ -327,9 +379,10 @@
     background: transparent;
     color: var(--sashay-muted, color-mix(in srgb, CanvasText 60%, transparent));
     font-size: var(--sashay-font-size, 0.6875rem);
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-family: var(--sashay-label-font, inherit);
+    font-weight: var(--sashay-label-weight, 600);
+    letter-spacing: var(--sashay-label-spacing, 0.06em);
+    text-transform: var(--sashay-label-case, uppercase);
     cursor: pointer;
   }
   [data-sashay-tab]:hover {

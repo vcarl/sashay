@@ -1,7 +1,17 @@
 // The first paint: what the server sends in place of the controller's work. Panes are placed by
 // CSS, and the controls are inert copies of the controller's. The server doesn't know the frame's
 // width, so each layout the frame could resolve to is a case behind a container query.
-import { barHeight, CHEVRON, COMPACT, EDGE, type Length, type PaneOptions, SPINE, TABS } from "./controller.ts";
+import {
+  barHeight,
+  CHEVRON,
+  COMPACT,
+  COMPACT_EDGE,
+  EDGE,
+  type Length,
+  type PaneOptions,
+  SPINE,
+  TABS,
+} from "./controller.ts";
 import { isOpen, MAX_DEN, nearest, snapV, toWidths, UNIT_PX } from "./engine.ts";
 import { decodeLayout, defaultView, normalize, type View, windowEnd } from "./window.ts";
 
@@ -16,7 +26,7 @@ const len = (x: Length) => (typeof x === "number" ? `${x}px` : x);
 // Container queries can't resolve var(), and % there isn't the frame's: assume `or`.
 const query = (x: Length, or: string) => (/%|var\(/.test(len(x)) ? or : len(x));
 const edgeLengths = (win: PaneOptions[], compact: boolean) =>
-  win.map((p, k) => (compact ? (k ? EDGE : TABS) : len(p.edge?.width ?? EDGE)));
+  win.map((p, k) => (compact ? (k ? COMPACT_EDGE : TABS) : len(p.edge?.width ?? EDGE)));
 
 export function ssrHtml(
   panes: PaneOptions[],
@@ -104,7 +114,7 @@ export function ssrHtml(
     } else if (w.filter(isOpen).length > 1) {
       const k = w.findLastIndex(isOpen);
       css += `${own} > [data-sashay-close]{${x(k + 1, k + 1)}}`;
-      html += '<button type="button" data-sashay-close>×</button>';
+      html += '<button type="button" data-sashay-close><i></i></button>';
     }
     if (!whole) css += `@media (scripting: none){${row(compact)}}`;
     controls += `<div data-case="${id}">${html}</div>`;
@@ -116,7 +126,7 @@ export function ssrHtml(
     for (const v of list) {
       const win = panes.slice(v.offset, windowEnd(v));
       const E = edgeLengths(win, compact)
-        .map((e) => query(e, e === TABS ? "2.75rem" : EDGE))
+        .map((e) => query(e, e === TABS ? "2.75rem" : "0.75rem"))
         .join(" + ");
       const atLeast = (x: string) => `(width >= calc(${E} + ${x}))`;
       const choosing = list.length > 1 && win.length > 1;
@@ -153,7 +163,7 @@ export function ssrHtml(
     `${ui} [data-spine="start"]{justify-content:flex-end}${ui} [data-spine="start"]::after{content:"";margin-bottom:auto}` +
     chain(views, false) +
     `@container sashay (width < ${query(o.compactBelow ?? COMPACT, COMPACT)}){${chain([compactView], true)}}` +
-    `@media (scripting: none){${frame}{overflow:auto;display:grid;grid-template-rows:minmax(0,1fr) auto;column-gap:0.75rem}${frame} [data-sashay-bar]{bottom:0;height:auto;${SHOW}}${ui} :is([data-sashay-bar-toggle],[data-sashay-close]){display:none}}` +
+    `@media (scripting: none){${frame}{overflow:auto;display:grid;grid-template-rows:minmax(0,1fr) auto;column-gap:${EDGE}}${frame} [data-sashay-bar]{bottom:0;height:auto;${SHOW}}${ui} :is([data-sashay-bar-toggle],[data-sashay-close]){display:none}}` +
     // Past ready: the controller's first paint mustn't animate from this one.
     `[data-sashay-ssr=${q(scope)}] :is([data-sashay-pane],[data-sashay-edge],[data-sashay-bar],[data-sashay-bar-toggle],[data-sashay-tabs]){transition:none}`;
   return `<style${nonce && ` nonce="${esc(nonce)}"`}>${css.replace(/<\//g, "<\\/")}</style>${controls}`;

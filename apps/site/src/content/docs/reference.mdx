@@ -50,7 +50,7 @@ removed when the frame mounts.
 - Lengths with `var()` or `%` can't be used in a container query. For `compactBelow`, `edge.width`
   and `minWidth` written that way, the first paint is chosen as if they were `"40rem"`, `"0.75rem"`
   and `0`, so a frame whose width is near a threshold may re-snap on hydration. So may one that
-  changes `--sashay-tabs-width` or `--sashay-spine-width`.
+  changes `--sashay-edge-width`, `--sashay-tabs-width` or `--sashay-spine-width`, as themes do.
 - Set on hydration, so not there for your CSS to match in the first paint: `data-compact`,
   `data-covered`, `data-closed`, `data-offscreen`, `data-open` and the `keepInView` shift.
 - Suspend inside a `<Pane>`, not around one: the first paint covers the panes rendered with
@@ -215,10 +215,37 @@ Enforced by browser-mode benchmarks in CI.
 | `data-bar` | pane | The pane has a bar. |
 | `data-sashay-bar-toggle="<id>"` | bar strip | The button that expands a bar; `aria-expanded` gives its state. |
 | `data-sashay-bar="<id>"` | bar content | `data-open` while expanded. |
-| `--sashay-*` | frame | Colour, radius, font size, shadow and `--sashay-bar-size` (the strip's height), all with fallbacks. |
+| `data-sashay-theme="<name>"` | frame or any ancestor | A theme from `themes.css`: `sash`, `shoji`, `greenhouse`, `blueprint`, `curtain` or `sleeper`. |
+| `--sashay-*` | frame or any ancestor | The variables below, all with fallbacks. |
 
 Styles ship as `@vcarl/sashay/style.css`, inside `@layer sashay`. The frame uses `overflow: clip`, so a
 hash link can't scroll it; if you set `overflow` on it yourself, keep `clip`.
+
+### Themes
+
+`@vcarl/sashay/themes.css` is optional and goes beside `style.css`, in the same layer. A theme sets `color-scheme` and
+every variable below but `--sashay-tabs-width`. Fonts are named, not loaded: without them a theme uses system fonts. A theme of your own is the
+same list of variables in your own CSS.
+
+| Variable | Sets |
+|---|---|
+| `--sashay-bg`, `--sashay-fg`, `--sashay-muted` | The frame and edges, and the text of controls, hovered and at rest. |
+| `--sashay-pane-bg`, `--sashay-pane-fg`, `--sashay-pane-muted` | Panes and bar content, and the close mark. |
+| `--sashay-raised-bg`, `--sashay-border` | Bars and spines, and the lines between their tabs. |
+| `--sashay-accent`, `--sashay-shadow`, `--sashay-radius` | Marks and focus rings, edge shadows, the close button's corners. |
+| `--sashay-edge-width`, `--sashay-spine-width`, `--sashay-tabs-width`, `--sashay-bar-size` | Thicknesses. An `edge.width` wins over `--sashay-edge-width`, and compact mode caps it at `0.75rem`. Changing one re-measures the frame. |
+| `--sashay-edge-border`, `--sashay-edge-image` | The edge's side lines, and a background image over its colour. |
+| `--sashay-grip`, `--sashay-grip-hover`, `--sashay-grip-image`, `--sashay-grip-width`, `--sashay-grip-height`, `--sashay-grip-radius` | The drag symbol. The image is a gradient of `currentColor`. |
+| `--sashay-chevron`, `--sashay-chevron-open`, `--sashay-chevron-turn` | A bar's chevron: a `clip-path` for each state, and how far it turns when open. |
+| `--sashay-close` | The close mark, a `clip-path`. |
+| `--sashay-label-font`, `--sashay-label-case`, `--sashay-label-weight`, `--sashay-label-spacing`, `--sashay-font-size` | Text on bars, tabs and spines. |
+| `--sashay-mark-width`, `--sashay-mark-inset`, `--sashay-mark-image`, `--sashay-mark-glow` | The mark that shows where a drag will settle. |
+| `--sashay-fling-mark` | What stays at the mark during a throw. |
+| `--sashay-fling-width`, `--sashay-fling-dash` | The stroke of the bow a throw draws. A width of `0px` hides it. |
+| `--sashay-fling-fill`, `--sashay-fling-shape`, `--sashay-fling-reach` | A filled `clip-path` a throw stretches, and how far both it and the bow go: `1` is halfway to where the throw lands, `2` all the way. |
+| `--sashay-pane-font`, `--sashay-pane-size`, `--sashay-pane-leading`, `--sashay-heading-font`, `--sashay-heading-weight` | Text in panes and bar content. `themes.css` applies these, under `data-sashay-theme`; `style.css` never restyles content. |
+
+Edges take room from the panes, so near a threshold a thicker one can change which snaps are in play.
 
 ## Accessibility
 

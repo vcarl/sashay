@@ -1,0 +1,56 @@
+.th-demo {
+  margin-top: 1rem;
+}
+.th-frame {
+  height: 24rem;
+  margin: 12px 0;
+  border: var(--rule) solid var(--ink);
+  border-radius: 10px;
+  overflow: clip;
+}
+/* Layout only: the theme sets everything else. */
+.th-pane {
+  padding: 20px 22px;
+}
+.th-frame [data-sashay-pane] {
+  overflow-y: auto;
+}
+.th-demo .th-frame h3 {
+  margin: 0 0 12px;
+  /* The site's own h3 rule is unlayered, so it would beat the theme's. */
+  font: var(--sashay-heading-weight) 1.5em / 1.15 var(--sashay-heading-font);
+  letter-spacing: normal;
+}
+.th-frame p {
+  margin: 0 0 10px;
+}
+.th-frame .th-quiet {
+  color: var(--sashay-pane-muted);
+  font-size: 0.88em;
+}
+.th-frame ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.th-frame li {
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+.th-demo summary {
+  width: fit-content;
+  font: 600 14px var(--sans);
+  cursor: pointer;
+}
+.th-demo pre {
+  max-height: 24rem;
+  margin: 8px 0 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font: 13px / 1.55 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+}

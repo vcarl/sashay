@@ -1,0 +1,436 @@
+/* Six themes for sashay, opt-in. Put data-sashay-theme="<name>" on the frame or an ancestor.
+   Each sets every theme variable, so one nested in another takes nothing from it. Fonts are
+   named, not loaded: without them a theme falls back to system fonts. */
+@layer sashay {
+  [data-sashay-theme="sash"] {
+    color-scheme: light;
+    --sashay-bg: #1b1a17;
+    --sashay-fg: #f6eedc;
+    --sashay-muted: #d9cfb8;
+    --sashay-pane-bg: #f6eedc;
+    --sashay-pane-fg: #1b1a17;
+    --sashay-pane-muted: #5b574d;
+    --sashay-raised-bg: #2c2a25;
+    --sashay-border: #5b574d;
+    --sashay-edge-border: #1b1a17;
+    --sashay-edge-image: none;
+    --sashay-grip: #e85a40;
+    --sashay-grip-hover: #ffc846;
+    --sashay-accent: #d94a30;
+    --sashay-shadow: rgb(0 0 0 / 0.35);
+    --sashay-radius: 6px;
+    --sashay-pane-font: "Instrument Sans", system-ui, sans-serif;
+    --sashay-pane-size: 1rem;
+    --sashay-pane-leading: 1.5;
+    --sashay-heading-font: "Fraunces", Georgia, serif;
+    --sashay-heading-weight: 600;
+    --sashay-label-font: "Fraunces", Georgia, serif;
+    --sashay-label-case: none;
+    --sashay-label-weight: 600;
+    --sashay-label-spacing: -0.01em;
+    --sashay-font-size: 0.95rem;
+    --sashay-edge-width: 20px;
+    --sashay-spine-width: 2rem;
+    --sashay-bar-size: 3rem;
+    --sashay-grip-image: linear-gradient(currentColor 0 0);
+    --sashay-grip-width: 8px;
+    --sashay-grip-height: 44px;
+    --sashay-grip-radius: 4px;
+    --sashay-chevron: polygon(50% 20%, 96% 80%, 4% 80%);
+    --sashay-chevron-open: polygon(50% 20%, 96% 80%, 4% 80%);
+    --sashay-chevron-turn: 180deg;
+    --sashay-close: polygon(
+      17% 0,
+      50% 33%,
+      83% 0,
+      100% 17%,
+      67% 50%,
+      100% 83%,
+      83% 100%,
+      50% 67%,
+      17% 100%,
+      0 83%,
+      33% 50%,
+      0 17%
+    );
+    --sashay-mark-inset: 8%;
+    --sashay-mark-width: 5px;
+    --sashay-mark-image: currentColor;
+    --sashay-mark-glow: transparent;
+    --sashay-fling-mark: none;
+    --sashay-fling-width: 5px;
+    --sashay-fling-dash: none;
+    --sashay-fling-fill: none;
+    --sashay-fling-shape: none;
+    --sashay-fling-reach: 1;
+  }
+  [data-sashay-theme="shoji"] {
+    color-scheme: light;
+    --sashay-bg: #3b2a1e;
+    --sashay-fg: #f7f3ec;
+    --sashay-muted: #dccfc0;
+    --sashay-pane-bg: #f2f4f1;
+    --sashay-pane-fg: #23262b;
+    --sashay-pane-muted: #5a6067;
+    --sashay-raised-bg: #2f2117;
+    --sashay-border: #5a4231;
+    --sashay-edge-border: #3b2a1e;
+    --sashay-edge-image: linear-gradient(90deg, transparent 45%, #5a4231 45% 55%, transparent 55%);
+    --sashay-grip: #dccfc0;
+    --sashay-grip-hover: #ffffff;
+    --sashay-accent: #c9634f;
+    --sashay-shadow: transparent;
+    --sashay-radius: 0;
+    --sashay-pane-font: "Zen Kaku Gothic New", "Hiragino Sans", Avenir, "Segoe UI", system-ui, sans-serif;
+    --sashay-pane-size: 0.9375rem;
+    --sashay-pane-leading: 1.75;
+    --sashay-heading-font: "Zen Kaku Gothic New", "Hiragino Sans", Avenir, "Segoe UI", system-ui, sans-serif;
+    --sashay-heading-weight: 400;
+    --sashay-label-font: inherit;
+    --sashay-label-case: none;
+    --sashay-label-weight: 400;
+    --sashay-label-spacing: 0.04em;
+    --sashay-font-size: 0.8125rem;
+    --sashay-edge-width: 8px;
+    --sashay-spine-width: 1.5rem;
+    --sashay-bar-size: 2.25rem;
+    --sashay-grip-image: linear-gradient(currentColor 0 0);
+    --sashay-grip-width: 2px;
+    --sashay-grip-height: 64px;
+    --sashay-grip-radius: 0;
+    --sashay-chevron: polygon(
+      44% 8%,
+      56% 8%,
+      56% 44%,
+      92% 44%,
+      92% 56%,
+      56% 56%,
+      56% 92%,
+      44% 92%,
+      44% 56%,
+      8% 56%,
+      8% 44%,
+      44% 44%
+    );
+    --sashay-chevron-open: polygon(8% 44%, 92% 44%, 92% 56%, 8% 56%);
+    --sashay-chevron-turn: 0deg;
+    --sashay-close: polygon(
+      5% 0,
+      50% 45%,
+      95% 0,
+      100% 5%,
+      55% 50%,
+      100% 95%,
+      95% 100%,
+      50% 55%,
+      5% 100%,
+      0 95%,
+      45% 50%,
+      0 5%
+    );
+    --sashay-mark-inset: 0;
+    --sashay-mark-width: 1px;
+    --sashay-mark-image: currentColor;
+    --sashay-mark-glow: transparent;
+    --sashay-fling-mark: currentColor;
+    --sashay-fling-width: 0px;
+    --sashay-fling-dash: none;
+    --sashay-fling-fill: color-mix(in srgb, currentColor 22%, transparent);
+    --sashay-fling-shape: none;
+    --sashay-fling-reach: 2;
+  }
+  [data-sashay-theme="greenhouse"] {
+    color-scheme: light;
+    --sashay-bg: #dfeae2;
+    --sashay-fg: #17352a;
+    --sashay-muted: #3f5c4f;
+    --sashay-pane-bg: #f4faf5;
+    --sashay-pane-fg: #17352a;
+    --sashay-pane-muted: #456054;
+    --sashay-raised-bg: #cfe0d4;
+    --sashay-border: #a9c2b2;
+    --sashay-edge-border: #3f6b57;
+    --sashay-edge-image: linear-gradient(90deg, #ffffff, transparent 40%);
+    --sashay-grip: #3f6b57;
+    --sashay-grip-hover: #17352a;
+    --sashay-accent: #9b4a86;
+    --sashay-shadow: rgb(23 53 42 / 0.25);
+    --sashay-radius: 999px;
+    --sashay-pane-font: "Nunito", ui-rounded, Avenir, "Segoe UI", system-ui, sans-serif;
+    --sashay-pane-size: 1rem;
+    --sashay-pane-leading: 1.55;
+    --sashay-heading-font: "Nunito", ui-rounded, Avenir, "Segoe UI", system-ui, sans-serif;
+    --sashay-heading-weight: 800;
+    --sashay-label-font: inherit;
+    --sashay-label-case: none;
+    --sashay-label-weight: 700;
+    --sashay-label-spacing: 0;
+    --sashay-font-size: 0.875rem;
+    --sashay-edge-width: 16px;
+    --sashay-spine-width: 1.75rem;
+    --sashay-bar-size: 2.75rem;
+    --sashay-grip-image:
+      radial-gradient(closest-side, transparent 52%, currentColor 58% 88%, transparent 94%) 0 0 / 100% 12px;
+    --sashay-grip-width: 10px;
+    --sashay-grip-height: 36px;
+    --sashay-grip-radius: 0;
+    --sashay-chevron: path("M7 0C8 4 13 6 12 10C11 14 3 14 2 10C1 6 6 4 7 0Z");
+    --sashay-chevron-open: path("M7 0C8 4 13 6 12 10C11 14 3 14 2 10C1 6 6 4 7 0Z");
+    --sashay-chevron-turn: 180deg;
+    --sashay-close: path(
+      "M2.2 .8L6 4.6L9.8 .8A1 1 0 0 1 11.2 2.2L7.4 6L11.2 9.8A1 1 0 0 1 9.8 11.2L6 7.4L2.2 11.2A1 1 0 0 1 .8 9.8L4.6 6L.8 2.2A1 1 0 0 1 2.2 .8Z"
+    );
+    --sashay-mark-inset: 12%;
+    --sashay-mark-width: 5px;
+    --sashay-mark-image: radial-gradient(circle, currentColor 60%, transparent 66%) 0 0 / 5px 11px;
+    --sashay-mark-glow: transparent;
+    --sashay-fling-mark: none;
+    --sashay-fling-width: 5px;
+    --sashay-fling-dash: 0 11;
+    --sashay-fling-fill: none;
+    --sashay-fling-shape: none;
+    --sashay-fling-reach: 1;
+  }
+  [data-sashay-theme="blueprint"] {
+    color-scheme: dark;
+    --sashay-bg: #0f2f6b;
+    --sashay-fg: #ffffff;
+    --sashay-muted: #c3d5f5;
+    --sashay-pane-bg: #143a82;
+    --sashay-pane-fg: #eef4ff;
+    --sashay-pane-muted: #bcd0f3;
+    --sashay-raised-bg: #0b2453;
+    --sashay-border: #6f92d6;
+    --sashay-edge-border: #bcd0f3;
+    --sashay-edge-image: repeating-linear-gradient(135deg, transparent 0 5px, #2a4f96 5px 6px);
+    --sashay-grip: #c3d5f5;
+    --sashay-grip-hover: #ffffff;
+    --sashay-accent: #ffb454;
+    --sashay-shadow: transparent;
+    --sashay-radius: 0;
+    --sashay-pane-font: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --sashay-pane-size: 0.875rem;
+    --sashay-pane-leading: 1.6;
+    --sashay-heading-font: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --sashay-heading-weight: 600;
+    --sashay-label-font: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --sashay-label-case: uppercase;
+    --sashay-label-weight: 500;
+    --sashay-label-spacing: 0.12em;
+    --sashay-font-size: 0.6875rem;
+    --sashay-edge-width: 14px;
+    --sashay-spine-width: 1.5rem;
+    --sashay-bar-size: 2rem;
+    --sashay-grip-image:
+      repeating-linear-gradient(currentColor 0 1px, transparent 1px 5px) 0 0 / 60% 100% no-repeat,
+      repeating-linear-gradient(currentColor 0 1px, transparent 1px 25px) 0 0 / 100% 100%;
+    --sashay-grip-width: 10px;
+    --sashay-grip-height: 76px;
+    --sashay-grip-radius: 0;
+    --sashay-chevron: polygon(
+      50% 8%,
+      92% 46%,
+      80% 56%,
+      50% 29%,
+      20% 56%,
+      8% 46%,
+      8% 46%,
+      50% 46%,
+      92% 84%,
+      80% 94%,
+      50% 67%,
+      20% 94%,
+      8% 84%,
+      50% 46%,
+      8% 46%
+    );
+    --sashay-chevron-open: polygon(
+      50% 8%,
+      92% 46%,
+      80% 56%,
+      50% 29%,
+      20% 56%,
+      8% 46%,
+      8% 46%,
+      50% 46%,
+      92% 84%,
+      80% 94%,
+      50% 67%,
+      20% 94%,
+      8% 84%,
+      50% 46%,
+      8% 46%
+    );
+    --sashay-chevron-turn: 180deg;
+    --sashay-close: polygon(
+      evenodd,
+      0 0,
+      100% 0,
+      100% 100%,
+      0 100%,
+      0 0,
+      10% 10%,
+      90% 10%,
+      90% 90%,
+      10% 90%,
+      10% 10%,
+      28% 34%,
+      34% 28%,
+      50% 44%,
+      66% 28%,
+      72% 34%,
+      56% 50%,
+      72% 66%,
+      66% 72%,
+      50% 56%,
+      34% 72%,
+      28% 66%,
+      44% 50%,
+      28% 34%,
+      10% 10%,
+      0 0
+    );
+    --sashay-mark-inset: 0;
+    --sashay-mark-width: 1px;
+    --sashay-mark-image: repeating-linear-gradient(currentColor 0 8px, transparent 8px 12px);
+    --sashay-mark-glow: transparent;
+    --sashay-fling-mark: repeating-linear-gradient(currentColor 0 8px, transparent 8px 12px);
+    --sashay-fling-width: 0px;
+    --sashay-fling-dash: none;
+    --sashay-fling-fill: currentColor;
+    --sashay-fling-shape: polygon(0 49.6%, 78% 49.6%, 78% 46%, 100% 50%, 78% 54%, 78% 50.4%, 0 50.4%);
+    --sashay-fling-reach: 2;
+  }
+  [data-sashay-theme="curtain"] {
+    color-scheme: dark;
+    --sashay-bg: #4a0f1f;
+    --sashay-fg: #fbe9c8;
+    --sashay-muted: #e0bd93;
+    --sashay-pane-bg: #2a0a14;
+    --sashay-pane-fg: #f7e6d4;
+    --sashay-pane-muted: #c9a596;
+    --sashay-raised-bg: #5c1628;
+    --sashay-border: #8a3247;
+    --sashay-edge-border: #1c060d;
+    --sashay-edge-image: linear-gradient(90deg, #7a1d35, #4a0f1f 35%, #7a1d35 60%, #3a0b18);
+    --sashay-grip: #e8b04a;
+    --sashay-grip-hover: #ffe0a0;
+    --sashay-accent: #e8b04a;
+    --sashay-shadow: rgb(0 0 0 / 0.7);
+    --sashay-radius: 4px;
+    --sashay-pane-font: "EB Garamond", "Iowan Old Style", Palatino, Georgia, serif;
+    --sashay-pane-size: 1.125rem;
+    --sashay-pane-leading: 1.4;
+    --sashay-heading-font: "Playfair Display", Didot, "Bodoni MT", Georgia, serif;
+    --sashay-heading-weight: 700;
+    --sashay-label-font: "Playfair Display", Didot, "Bodoni MT", Georgia, serif;
+    --sashay-label-case: none;
+    --sashay-label-weight: 600;
+    --sashay-label-spacing: 0.02em;
+    --sashay-font-size: 1rem;
+    --sashay-edge-width: 28px;
+    --sashay-spine-width: 2.25rem;
+    --sashay-bar-size: 3.25rem;
+    --sashay-grip-image: radial-gradient(5px 9px, currentColor 92%, transparent) 0 0 / 100% 18px;
+    --sashay-grip-width: 10px;
+    --sashay-grip-height: 54px;
+    --sashay-grip-radius: 0;
+    --sashay-chevron: path("M1 11Q7 -5 13 11Q7 5 1 11Z");
+    --sashay-chevron-open: path("M1 11Q7 -5 13 11Q7 5 1 11Z");
+    --sashay-chevron-turn: 180deg;
+    --sashay-close: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+    --sashay-mark-inset: 0;
+    --sashay-mark-width: 4px;
+    --sashay-mark-image: currentColor;
+    --sashay-mark-glow: transparent;
+    --sashay-fling-mark: currentColor;
+    --sashay-fling-width: 0px;
+    --sashay-fling-dash: none;
+    --sashay-fling-fill: linear-gradient(
+      90deg,
+      color-mix(in srgb, currentColor 75%, transparent),
+      color-mix(in srgb, currentColor 20%, transparent) 35%,
+      color-mix(in srgb, currentColor 60%, transparent) 60%,
+      color-mix(in srgb, currentColor 25%, transparent)
+    );
+    --sashay-fling-shape: ellipse(100% 50% at 0 50%);
+    --sashay-fling-reach: 1.4;
+  }
+  [data-sashay-theme="sleeper"] {
+    color-scheme: dark;
+    --sashay-bg: #16242e;
+    --sashay-fg: #f1efe6;
+    --sashay-muted: #a9bac4;
+    --sashay-pane-bg: #1e303c;
+    --sashay-pane-fg: #e8ecec;
+    --sashay-pane-muted: #a3b6c1;
+    --sashay-raised-bg: #22343f;
+    --sashay-border: #3a4f5c;
+    --sashay-edge-border: #0d171e;
+    --sashay-edge-image: linear-gradient(90deg, #0d171e, #2b3f4c 45%, #16242e);
+    --sashay-grip: #7f97a5;
+    --sashay-grip-hover: #f2b65a;
+    --sashay-accent: #f2b65a;
+    --sashay-shadow: rgb(0 0 0 / 0.5);
+    --sashay-radius: 3px;
+    --sashay-pane-font: "Barlow", "DIN Alternate", Bahnschrift, Avenir, "Segoe UI", system-ui, sans-serif;
+    --sashay-pane-size: 0.9375rem;
+    --sashay-pane-leading: 1.5;
+    --sashay-heading-font: "Barlow Condensed", "DIN Condensed", Bahnschrift, sans-serif;
+    --sashay-heading-weight: 600;
+    --sashay-label-font: "Barlow Condensed", "DIN Condensed", Bahnschrift, sans-serif;
+    --sashay-label-case: uppercase;
+    --sashay-label-weight: 600;
+    --sashay-label-spacing: 0.08em;
+    --sashay-font-size: 0.8125rem;
+    --sashay-edge-width: 10px;
+    --sashay-spine-width: 1.5rem;
+    --sashay-bar-size: 2.25rem;
+    --sashay-grip-image: repeating-linear-gradient(currentColor 0 2px, transparent 2px 6px);
+    --sashay-grip-width: 6px;
+    --sashay-grip-height: 20px;
+    --sashay-grip-radius: 0;
+    --sashay-chevron: polygon(50% 18%, 100% 74%, 82% 74%, 50% 40%, 18% 74%, 0 74%);
+    --sashay-chevron-open: polygon(50% 18%, 100% 74%, 82% 74%, 50% 40%, 18% 74%, 0 74%);
+    --sashay-chevron-turn: 180deg;
+    --sashay-close: polygon(
+      9% 0,
+      50% 41%,
+      91% 0,
+      100% 9%,
+      59% 50%,
+      100% 91%,
+      91% 100%,
+      50% 59%,
+      9% 100%,
+      0 91%,
+      41% 50%,
+      0 9%
+    );
+    --sashay-mark-inset: 14%;
+    --sashay-mark-width: 2px;
+    --sashay-mark-image: currentColor;
+    --sashay-mark-glow: color-mix(in srgb, currentColor 55%, transparent);
+    --sashay-fling-mark: currentColor;
+    --sashay-fling-width: 0px;
+    --sashay-fling-dash: none;
+    --sashay-fling-fill: repeating-linear-gradient(currentColor 0 2px, transparent 2px 14px);
+    --sashay-fling-shape: polygon(0 0, 100% 50%, 0 100%);
+    --sashay-fling-reach: 2;
+  }
+  [data-sashay-theme] [data-sashay-pane],
+  [data-sashay-theme] [data-sashay-bar] {
+    font-family: var(--sashay-pane-font);
+    font-size: var(--sashay-pane-size);
+    line-height: var(--sashay-pane-leading);
+  }
+  [data-sashay-theme] :is([data-sashay-pane], [data-sashay-bar]) :is(h1, h2, h3, h4) {
+    font-family: var(--sashay-heading-font);
+    font-weight: var(--sashay-heading-weight);
+  }
+  @media (forced-colors: active) {
+    [data-sashay-theme] [data-sashay-edge] {
+      background-image: none;
+    }
+  }
+}

@@ -75,16 +75,18 @@ export interface SashayHandle {
   destroy(): void;
 }
 
-export const EDGE = "0.75rem"; // internal, as COMPACT
+export const EDGE = "var(--sashay-edge-width, 0.75rem)"; // internal, as COMPACT
+export const COMPACT_EDGE = `min(${EDGE}, 0.75rem)`; // internal, as COMPACT
 export const COMPACT = "40rem"; // internal: shared with react.tsx, not re-exported
 export const TABS = "var(--sashay-tabs-width, 2.75rem)"; // internal, as COMPACT
 export const SPINE = "var(--sashay-spine-width, 1.5rem)"; // internal, as COMPACT
 export const barHeight = ({ height = "50%" }: BarOptions) => (typeof height === "number" ? `${height}px` : height); // internal, as COMPACT
 // Compact: the most panes the window (and so the tab strip) holds; the rest are in the spine.
 const COMPACT_CAP = 6;
+// The release marks ease toward where a release would land, with this time constant.
+const SMOOTH_MS = 60;
 // internal, as COMPACT
-export const CHEVRON =
-  '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 10l5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+export const CHEVRON = "<i data-sashay-chevron></i>";
 
 const own = (frame: HTMLElement, sel: string) =>
   [...frame.querySelectorAll<HTMLElement>(sel)].filter((el) => el.closest("[data-sashay-frame]") === frame);
@@ -186,7 +188,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const spinesW = () => spineW(view.offset, windowEnd(view), panes.length);
   const edgeWidths = (list: PaneOptions[]) => {
     const c = compact();
-    return list.map((p, k) => px(c ? (k === 0 ? TABS : EDGE) : (p.edge?.width ?? EDGE)));
+    return list.map((p, k) => px(c ? (k === 0 ? TABS : COMPACT_EDGE) : (p.edge?.width ?? EDGE)));
   };
   const sizesOf = (list: PaneOptions[], from: number, to: number): Sizes => {
     const w = list.slice(from, to);
@@ -274,7 +276,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   const leaf = document.createElement("button");
   leaf.type = "button";
   leaf.setAttribute("data-sashay-close", "");
-  leaf.textContent = "×";
+  leaf.append(document.createElement("i"));
   frame.prepend(leaf); // a spine joins the frame only while it holds tabs
   let lone = false; // closing the leaf is impossible: set in sync, read per frame in paint
   const marks: HTMLElement[] = [];
@@ -488,6 +490,36 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     if (lone && document.activeElement === leaf) edges.get(open.pop() ?? w[0]?.id)?.focus({ preventScroll: true });
   };
 
+  // Each mark sits where a no-fling release lands; a throw bows the dragged mark toward where the
+  // fling lands, by up to half that distance (preview.t). What's drawn eases toward that, for as
+  // long as the drag lasts: `dt` ms since the last frame, 0 to only place what's new.
+  let shown: { x: number[]; b: number } | null = null;
+  let frameId = 0;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const paintMarks = (dt = 0) => {
+    if (!preview) return;
+    const sw = view.offset > 0 ? px(SPINE) : 0;
+    const p = preview;
+    const inner = W - spineW(view.offset, windowEnd(view), panes.length);
+    const ew = edgeWidths(win());
+    const at = (idx: number[]) => layout(inner, idx.map(snapV), ew, []).edgeBoxes;
+    const rest = at(p.rest);
+    const fly = at(p.idx);
+    const a = reduced.matches ? 1 : 1 - Math.exp(-dt / SMOOTH_MS);
+    shown ??= { x: marks.map((_, k) => rest[k + 1]?.x ?? 0), b: 0 };
+    const now = shown;
+    marks.forEach((m, k) => {
+      const x = rest[k + 1]?.x ?? 0;
+      now.x[k] += (x - now.x[k]) * a;
+      if (k === p.d) now.b += ((p.t * ((fly[k + 1]?.x ?? 0) - x)) / 2 - now.b) * a;
+      const b = k === p.d && Math.abs(now.b) > 0.5 ? now.b : 0;
+      m.style.transform = `translateX(${now.x[k] + sw}px)`;
+      m.style.setProperty("--sashay-fling", String(b));
+      m.toggleAttribute("data-fling", b !== 0);
+      m.toggleAttribute("data-primary", k === p.d);
+    });
+  };
+
   // Geometry for window panes only: safe to call every frame.
   const paint = () => {
     const w = win();
@@ -588,22 +620,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         x.inert = closed || (j === 1 && !bars.get(p.id)); // collapsed content
       }
     });
-    if (preview) {
-      // Each mark sits where a no-fling release lands; a throw bows the dragged mark's middle toward
-      // where the fling lands, by up to half that distance as the throw speeds up (preview.t).
-      // The other marks stay straight bars.
-      const rest = layout(W - sw - sr, preview.rest.map(snapV), ew, []).edgeBoxes;
-      const fly = layout(W - sw - sr, preview.idx.map(snapV), ew, []).edgeBoxes;
-      const t = preview.t;
-      marks.forEach((m, k) => {
-        const x = rest[k + 1]?.x ?? 0;
-        const b = k === preview?.d ? (t * ((fly[k + 1]?.x ?? 0) - x)) / 2 : 0; // only the dragged mark bows
-        m.style.transform = `translateX(${x + sw}px)`;
-        m.style.setProperty("--sashay-fling", String(b));
-        m.toggleAttribute("data-fling", b !== 0);
-        m.toggleAttribute("data-primary", k === preview?.d);
-      });
-    }
+    paintMarks();
     leaf.hidden = right < 0 || lone;
     leaf.style.transform = `translateX(${right}px)`;
     if (leaf.getAttribute("aria-label") !== `Close ${last}`) leaf.setAttribute("aria-label", `Close ${last}`);
@@ -731,6 +748,11 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     // neither drags nor toggles; undefined is still a click.
     let moved: boolean | undefined;
     let raw = start[d];
+    const aim = (t: number) => {
+      const v = velocity(samples, t);
+      const rest = settle(start, d, raw, 0, o, S);
+      preview = { d, rest, idx: Math.abs(v) < FLING[0] ? rest : settle(start, d, raw, v, o, S), t: flingReach(v) };
+    };
     const move = (ev: PointerEvent) => {
       if (ev.pointerId !== e.pointerId) return;
       const x = ev.clientX / scale;
@@ -748,10 +770,18 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       raw = start[d] + dx / C;
       live = drag(start, d, raw, S);
       rubber = ((raw < 0 ? raw : raw > 1 ? raw - 1 : 0) * C) / 4;
-      const v = velocity(samples, ev.timeStamp);
-      const rest = settle(start, d, raw, 0, o, S);
-      preview = { d, rest, idx: Math.abs(v) < FLING[0] ? rest : settle(start, d, raw, v, o, S), t: flingReach(v) };
+      aim(ev.timeStamp);
       paint();
+      if (!frameId) {
+        let last = performance.now();
+        const tick = (t: number) => {
+          aim(t); // a pause reads as no throw, as a release then would
+          paintMarks(Math.max(0, t - last));
+          last = t;
+          frameId = requestAnimationFrame(tick);
+        };
+        frameId = requestAnimationFrame(tick);
+      }
     };
     const stop = () => {
       on.removeEventListener("pointermove", move);
@@ -763,6 +793,9 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       live = null;
       rubber = 0;
       preview = null;
+      shown = null;
+      cancelAnimationFrame(frameId);
+      frameId = 0;
       for (const m of marks) {
         m.style.setProperty("--sashay-fling", "0");
         m.removeAttribute("data-fling");
@@ -881,7 +914,13 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   lastCode = panes.length ? code() : (options.layout ?? "");
   const was = held.get(frame);
   if (was?.key === heldKey()) shut = was.shut;
+  // Its size follows the theme's rails, so switching theme re-measures.
+  const rails = document.createElement("div");
+  rails.setAttribute("data-sashay-probe", "");
+  rails.style.cssText = `position:absolute;visibility:hidden;pointer-events:none;width:${EDGE};height:calc(${SPINE} + ${TABS})`;
+  frame.append(rails);
   ro.observe(frame);
+  ro.observe(rails);
   frame.setAttribute("data-sashay-ready", "");
 
   return {
@@ -981,6 +1020,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       leaf.remove();
       tabs.remove();
       for (const m of marks) m.remove();
+      rails.remove();
       measure.destroy();
       for (const el of [...els.values(), ...barEls.values()]) {
         for (const a of ["data-covered", "data-closed", "data-offscreen", "data-open", "data-bar"])

@@ -86,8 +86,10 @@ button:focus-visible {
   overflow: clip;
   border: 6px solid var(--ink);
   border-radius: 18px;
-  background: var(--ink);
   touch-action: pan-y;
+}
+.frame:not([data-sashay-theme]) {
+  background: var(--ink);
   --sashay-bg: var(--ink);
   --sashay-fg: var(--ink);
   --sashay-pane-bg: var(--paper);
@@ -99,7 +101,7 @@ button:focus-visible {
 .frame[data-sashay-ready] {
   user-select: none;
 }
-.pane {
+.frame:not([data-sashay-theme]) .pane {
   background: var(--paper);
 }
 .pane[data-covered] {
@@ -114,7 +116,7 @@ button:focus-visible {
 }
 
 /* Stile: sashay's edge, with its pane's title. */
-.frame [data-sashay-edge]::before {
+.frame:not([data-sashay-theme]) [data-sashay-edge]::before {
   content: attr(aria-label);
   position: absolute;
   inset: 0;
@@ -129,41 +131,41 @@ button:focus-visible {
   text-transform: uppercase;
   white-space: nowrap;
 }
-.frame [data-sashay-edge] {
+.frame:not([data-sashay-theme]) [data-sashay-edge] {
   container-type: inline-size;
   box-shadow: -14px 0 24px -14px rgba(27, 26, 23, 0.65);
   background: var(--tomato);
   color: var(--ink);
 }
-.frame [data-sashay-edge]:hover,
-.frame [data-sashay-edge]:hover::before {
+.frame:not([data-sashay-theme]) [data-sashay-edge]:hover,
+.frame:not([data-sashay-theme]) [data-sashay-edge]:hover::before {
   background: var(--ink);
   color: var(--paper);
 }
 /* On the painted label too: it covers the edge's own outline. */
-.frame [data-sashay-edge]:focus-visible,
-.frame [data-sashay-edge]:focus-visible::before {
+.frame:not([data-sashay-theme]) [data-sashay-edge]:focus-visible,
+.frame:not([data-sashay-theme]) [data-sashay-edge]:focus-visible::before {
   outline: 3px solid var(--butter);
   outline-offset: -3px;
 }
-.frame [data-spine] {
+.frame:not([data-sashay-theme]) [data-spine] {
   background: var(--ink);
 }
-.frame [data-sashay-spine-tab] {
+.frame:not([data-sashay-theme]) [data-sashay-spine-tab] {
   color: var(--paper);
   border-color: var(--mute);
   font: 700 11px var(--sans);
 }
-.frame [data-sashay-spine-tab]:hover {
+.frame:not([data-sashay-theme]) [data-sashay-spine-tab]:hover {
   color: var(--butter);
 }
 /* Compact: the first edge holds the tab strip; the others are bare grips. */
 @container (width < 20px) {
-  .frame [data-sashay-edge]::before {
+  .frame:not([data-sashay-theme]) [data-sashay-edge]::before {
     display: none;
   }
 }
-.frame [data-sashay-tab] {
+.frame:not([data-sashay-theme]) [data-sashay-tab] {
   flex: 1;
   background: var(--tomato);
   color: var(--ink);
@@ -172,18 +174,18 @@ button:focus-visible {
   font: 700 12px var(--sans);
   letter-spacing: 0.18em;
 }
-.frame [data-sashay-tab][aria-pressed="true"] {
+.frame:not([data-sashay-theme]) [data-sashay-tab][aria-pressed="true"] {
   background: var(--ink);
   color: var(--paper);
   box-shadow: none;
 }
-.frame [data-sashay-tab]:focus-visible {
+.frame:not([data-sashay-theme]) [data-sashay-tab]:focus-visible {
   outline: 3px solid var(--butter);
   outline-offset: -3px;
 }
 
 /* pane contents */
-.p-hello {
+.frame:not([data-sashay-theme]) .p-hello {
   background: var(--cobalt);
   color: var(--paper);
 }
@@ -211,7 +213,7 @@ button:focus-visible {
 .btn {
   display: inline-block;
   padding: 12px 18px;
-  border: 3px solid var(--paper);
+  border: 3px solid currentColor;
   border-radius: 999px;
   font-weight: 700;
   text-decoration: none;
@@ -219,6 +221,7 @@ button:focus-visible {
 }
 .btn.fill {
   background: var(--paper);
+  border-color: var(--paper);
   color: var(--cobalt);
 }
 .btn.fill:hover {
@@ -261,7 +264,7 @@ button:focus-visible {
   line-height: 1.45;
 }
 
-.p-install {
+.frame:not([data-sashay-theme]) .p-install {
   background: var(--butter);
 }
 .p-install h2 {
@@ -289,7 +292,7 @@ pre .s {
   margin-top: 18px;
 }
 /* Install's bottom bar. */
-.frame [data-sashay-bar-toggle] {
+.frame:not([data-sashay-theme]) [data-sashay-bar-toggle] {
   border-top: var(--rule) solid var(--ink);
   background: var(--paper);
   color: var(--ink);
@@ -297,11 +300,11 @@ pre .s {
   letter-spacing: 0.18em;
   padding: 0 clamp(22px, 2.2vw, 30px);
 }
-.frame [data-sashay-bar-toggle]:hover {
+.frame:not([data-sashay-theme]) [data-sashay-bar-toggle]:hover {
   background: var(--ink);
   color: var(--paper);
 }
-.frame [data-sashay-bar] {
+.frame:not([data-sashay-theme]) [data-sashay-bar] {
   padding: 14px clamp(22px, 2.2vw, 30px);
   background: var(--paper);
 }
@@ -314,13 +317,13 @@ pre .s {
 }
 
 /* Panes added by the Add pane button. */
-.p-added {
+.frame:not([data-sashay-theme]) .p-added {
   background: var(--mint);
 }
-.p-added.tint-1 {
+.frame:not([data-sashay-theme]) .p-added.tint-1 {
   background: var(--butter);
 }
-.p-added.tint-2 {
+.frame:not([data-sashay-theme]) .p-added.tint-2 {
   background: var(--paper);
 }
 .p-added .in {
@@ -334,6 +337,66 @@ pre .s {
   margin: 18px 0 0;
   font-size: 16px;
   line-height: 1.45;
+}
+
+/* A theme in place of the house look. */
+.frame[data-sashay-theme] :is(h1, h2) {
+  font-family: var(--sashay-heading-font);
+  font-weight: var(--sashay-heading-weight);
+}
+.frame[data-sashay-theme] .btn.fill {
+  background: var(--sashay-pane-fg);
+  border-color: var(--sashay-pane-fg);
+  color: var(--sashay-pane-bg);
+}
+.frame[data-sashay-theme] .meta {
+  font-family: inherit;
+}
+
+/* Picking a theme fades the hero's colours. Type and shapes change at once, and the edges slide
+   as sashay moves them: its own transitions are repeated here, since this rule replaces them.
+   Only elements that set a colour fade it, so nothing inherits a fade and fades again. */
+@media (prefers-reduced-motion: no-preference) {
+  .frame {
+    --fade: background-color 0.75s, color 0.75s, border-color 0.75s;
+    transition: var(--fade);
+  }
+  .frame
+    :is([data-spine], [data-sashay-spine-tab], [data-sashay-tab], [data-sashay-dots], [data-sashay-close], .btn.fill) {
+    transition: var(--fade);
+  }
+  .frame[data-sashay-ready]:not([data-dragging])
+    :is(
+      [data-sashay-pane]:not([data-offscreen]),
+      [data-sashay-edge],
+      [data-sashay-tabs],
+      [data-sashay-bar-toggle]:not([data-closed], [data-offscreen]),
+      [data-sashay-bar][data-open]:not([data-closed], [data-offscreen])
+    ) {
+    transition:
+      transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+      bottom 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+      var(--fade);
+  }
+  /* Hover answers at once. */
+  .frame :is([data-sashay-edge], [data-sashay-bar-toggle], [data-sashay-close], [data-sashay-spine-tab]):hover,
+  .frame [data-sashay-edge]:hover [data-sashay-dots] {
+    --fade: background-color 0s, color 0s, border-color 0s;
+  }
+}
+
+/* theme picker */
+.themer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 22px;
+  padding-top: 14px;
+}
+.themer .more {
+  font-size: 15px;
+  font-weight: 600;
 }
 
 /* readout */
