@@ -758,9 +758,9 @@ pre .s {
 }
 
 /* ── footer ──────────────────────────────────────────────── */
-footer {
+footer.wrap {
   border-top: var(--rule) solid var(--ink);
-  padding: 26px 0 56px;
+  padding-block: 26px 56px;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
