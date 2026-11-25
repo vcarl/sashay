@@ -148,6 +148,37 @@ await page.getByRole("button", { name: "Lunch?" }).click();
 await page.locator('.demo [role="separator"]').waitFor();
 assert.match(await page.locator(".demo").textContent(), /Message: Lunch\?/);
 
+// Themes: the link picks one, an unknown name keeps the default, and switching keeps the layout.
+for (const width of [1440, 390]) {
+  page = await open("themes/?theme=curtain", width);
+  const themed = page.locator("#themed");
+  await page.locator("#themed[data-sashay-ready]").waitFor();
+  assert.equal(await themed.getAttribute("data-sashay-theme"), "curtain");
+  assert.match(await page.locator(".th-code").textContent(), /@fontsource\/playfair-display/, "its fonts");
+  const scroll = await page.evaluate(() => document.documentElement.scrollWidth);
+  assert.ok(scroll <= width, `themes/ at ${width}: no horizontal page scroll (${scroll})`);
+  const rails = () =>
+    themed
+      .locator("[data-sashay-edge]")
+      .nth(1)
+      .evaluate((e) => Math.round(e.getBoundingClientRect().width));
+  assert.equal(await rails(), width > 640 ? 28 : 12);
+  await page.locator(".th-pick label", { hasText: "shoji" }).click();
+  await page.waitForTimeout(400);
+  assert.equal(await rails(), 8);
+  assert.equal(new URL(page.url()).searchParams.get("theme"), "shoji");
+  const font = await themed
+    .locator("h3")
+    .first()
+    .evaluate((e) => getComputedStyle(e).fontFamily);
+  assert.match(font, /Zen Kaku/, "the theme's heading font");
+  await page.close();
+}
+page = await open("themes/?theme=nope");
+assert.equal(await page.locator("#themed").getAttribute("data-sashay-theme"), "sash");
+assert.equal(await page.locator(".th-pick label").count(), 6);
+await page.close();
+
 // The old pages land on their new anchors.
 const moved = {
   install: "guide/#install",

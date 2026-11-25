@@ -80,7 +80,7 @@ The width is the frame's, not the window's, so a narrow sidebar frame goes compa
 
 ## Styling
 
-The stylesheet sits in `@layer sashay`, so any unlayered rule of yours beats it. Theme the frame with `--sashay-*` custom properties for colour, radius, font size and shadow; every one has a fallback. `<Sashay>` passes `className` and other `div` props to the frame, and each `<Pane>` renders a `[data-sashay-pane]` element, so style them however you like. Keep the frame's `overflow: clip`: with `hidden`, a hash link can scroll the whole frame.
+The stylesheet sits in `@layer sashay`, so any unlayered rule of yours beats it. Theme the frame with `--sashay-*` custom properties for colour, radius, font size and shadow; every one has a fallback. `<Sashay>` passes `className` and other `div` props to the frame, and each `<Pane>` renders a `[data-sashay-pane]` element, so style them however you like. For a ready-made look, import `@vcarl/sashay/themes.css` and set `data-sashay-theme`: see [Themes](../themes/). Keep the frame's `overflow: clip`: with `hidden`, a hash link can scroll the whole frame.
 
 State shows up as attributes: `data-covered`, `data-closed` and `data-offscreen` on panes, `data-dragging` and `data-compact` on the frame. The [styling hooks](../reference/#styling-hooks) table lists them all.
 

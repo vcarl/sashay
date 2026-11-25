@@ -71,6 +71,7 @@ export default defineConfig({
         { slug: "guide", label: "Guide" },
         { slug: "demos", label: "Demos" },
         { slug: "reference", label: "Reference" },
+        { label: "Themes", link: "/themes/" },
       ],
     }),
   ],

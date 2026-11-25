@@ -1,0 +1,35 @@
+---
+import source from "../../../../packages/sashay/src/themes.css?raw";
+import { type Theme, Themes } from "../components/Themes";
+import Landing from "../layouts/Landing.astro";
+import fontSource from "../styles/theme-fonts.css?raw";
+import "../styles/theme-fonts.css";
+import "../styles/themes.css";
+import "@vcarl/sashay/style.css";
+import "@vcarl/sashay/themes.css";
+
+// Everything shown comes from the stylesheet that ships, so it can't drift.
+const fontLines = fontSource.split("\n").filter((l) => l.startsWith("@import"));
+const themes: Theme[] = [...source.matchAll(/\[data-sashay-theme="(\w+)"\] \{.*?\n {2}\}/gs)].map(([block, id]) => {
+  const slug = (name: string) => name.toLowerCase().replaceAll(" ", "-");
+  const named = new Set([...block.matchAll(/-font: "([^"]+)"/g)].map((m) => slug(m[1])));
+  const color = (name: string) => block.match(new RegExp(`--sashay-${name}: ([^;]+);`))?.[1] ?? "";
+  return {
+    id,
+    css: block.replace(/^ {2}/gm, ""),
+    fonts: fontLines.filter((l) => named.has(l.split("/")[1])).join("\n"),
+    colors: ["bg", "pane-bg", "accent"].map(color),
+  };
+});
+---
+<Landing
+  title="Themes for sashay"
+  path="themes/"
+  description="Six themes for sashay's sliding panes, each with its own colours, type, edges and marks."
+>
+  <main class="wrap themes">
+    <h1>Dress the window.</h1>
+    <p class="th-lead">Six themes, each with its own type, rails, grips and throw. One stylesheet, one attribute.</p>
+    <Themes client:load themes={themes} />
+  </main>
+</Landing>

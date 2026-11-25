@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, onTestFinished, test, vi } from "vitest";
 import { cdp, userEvent } from "vitest/browser";
 import { frames, mountFrame, pane, pointer, slid, tx } from "../test/dom.ts";
 import { createSashay, type PaneOptions, type SashayHandle, type SashayOptions } from "./index.ts";
@@ -87,7 +87,14 @@ test("fast fling carries two snaps", async () => {
 // The preview mark sits where a no-fling release lands; a throw bows its middle toward the
 // landing by --sashay-fling px: 0 when slow, up to half the fling length at FLING[1] (1.4 px/ms).
 const bulge = (m: HTMLElement) => Number(m.style.getPropertyValue("--sashay-fling"));
+const motion = (value: string) =>
+  (cdp() as unknown as { send(m: string, p: object): Promise<unknown> }).send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value }],
+  });
+// Under reduced motion the marks aren't eased, so what's drawn is exact.
 const flick = async (gap: number, code: string) => {
+  await motion("reduce");
+  onTestFinished(async () => void (await motion("no-preference")));
   mount();
   const B = E("b");
   const x = await drag7(B, centre(B), gap);
@@ -112,6 +119,23 @@ test("moderate flick: partial bulge", async () => {
 test("fast flick: bulge is half the fling", async () => {
   const { b, half } = await flick(10, "9c"); // ~2 px/ms
   expect(b).toBeCloseTo(half, 6);
+});
+
+test("the bow eases in, and a pause relaxes it", async () => {
+  mount();
+  const B = E("b");
+  const x = await drag7(B, centre(B), 10);
+  const m = $("[data-sashay-mark][data-primary]");
+  await frames(1);
+  const early = bulge(m);
+  expect(early).toBeGreaterThan(0);
+  expect(early).toBeLessThan(159); // half the fling, which "fast flick" reads exactly
+  await wait(600); // no moves: a release now wouldn't throw
+  expect(m.hasAttribute("data-fling")).toBe(false);
+  expect(tx(m)).toBeGreaterThan(0);
+  pointer(B, "pointerup", x);
+  await frames(2);
+  expect(bulge(m)).toBe(0);
 });
 
 // A throw that also moves the other divider ("48" → "9c"): only the dragged mark bows.
@@ -366,7 +390,7 @@ test("collapsed, a bar is a 2.75rem strip the pane's content ends above", () => 
   mount({ panes: withBars(), layout: "48.0" });
   expect(box(T("b"))).toEqual({ left: 332, top: 556, bottom: 0, width: 308, height: 44 });
   expect(T("b").textContent).toBe("Filters");
-  expect(T("b").querySelector("svg")).not.toBeNull();
+  expect(T("b").querySelector("[data-sashay-chevron]")).not.toBeNull();
   expect(T("b").getAttribute("aria-expanded")).toBe("false");
   expect(B("b").id).not.toBe("");
   expect(T("b").getAttribute("aria-controls")).toBe(B("b").id);

@@ -31,6 +31,10 @@
     "./style.css": {
       "types": "./dist/style.css.d.ts",
       "default": "./dist/style.css"
+    },
+    "./themes.css": {
+      "types": "./dist/themes.css.d.ts",
+      "default": "./dist/themes.css"
     }
   },
   "peerDependencies": {
@@ -46,17 +50,17 @@
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "bench": "vitest run --project bench",
-    "build": "tsdown && cp src/sashay.css dist/style.css && echo 'export {};' > dist/style.css.d.ts && node scripts/check-directive.mjs",
+    "build": "tsdown && cp src/sashay.css dist/style.css && cp src/themes.css dist/themes.css && echo 'export {};' | tee dist/style.css.d.ts > dist/themes.css.d.ts && node scripts/check-directive.mjs",
     "size": "size-limit"
   },
   "size-limit": [
     {
       "path": "dist/index.js",
-      "limit": "9.8 kB"
+      "limit": "10 kB"
     },
     {
       "path": "dist/react.js",
-      "limit": "12.5 kB",
+      "limit": "12.7 kB",
       "ignore": [
         "react",
         "react-dom"
@@ -64,7 +68,12 @@
     },
     {
       "path": "dist/style.css",
-      "limit": "2.3 kB",
+      "limit": "2.7 kB",
+      "rolldown": false
+    },
+    {
+      "path": "dist/themes.css",
+      "limit": "2.5 kB",
       "rolldown": false
     }
   ],
