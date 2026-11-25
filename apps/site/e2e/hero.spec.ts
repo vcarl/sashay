@@ -1,5 +1,5 @@
 /*
- * The hero, recorded: 25 seconds of the landing page's hero frame on its own, edge to edge. It is
+ * The hero, recorded: 24 seconds of the landing page's hero frame and its theme picker. It is
  * a real test (every beat asserts) driven by real mouse and keyboard input, with a drawn cursor.
  *
  *   pnpm site:build && pnpm test:e2e                          the test only
@@ -9,8 +9,7 @@
  * Each beat starts at a fixed time, in BEATS. Retune the pacing there.
  *
  * The page's chrome is hidden by STAGE, below, so nothing in the site's code knows about the
- * recording. Each theme is picked in turn while nothing moves, and crossfades in (a view
- * transition). Add pane lives in the readout under the frame, so STAGE floats that button over the
+ * recording. Add pane lives in the readout under the frame, so STAGE floats that button over the
  * frame's foot for its beat. The frame narrows by its own width: the video's size doesn't change.
  */
 import { execFileSync } from "node:child_process";
@@ -21,47 +20,41 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 const BEATS = {
   hold: 0,
   slowDrag: 800,
-  throw: 3700,
-  squeeze: 5900,
-  close: 7250,
-  reopen: 8000,
-  barOpen: 10250,
-  barClose: 11050,
-  add: 11800,
-  spineTab: 14800,
-  closeAdded: 16150,
-  keys: 19700,
-  narrow: 21250,
-  tab: 22050,
-  widen: 23050,
-  end: 25200,
+  sash: 2350,
+  throw: 3300,
+  shoji: 4350,
+  squeeze: 5200,
+  greenhouse: 6350,
+  close: 7200,
+  reopen: 7900,
+  blueprint: 8850,
+  barOpen: 9700,
+  barClose: 10500,
+  add: 11200,
+  curtain: 13150,
+  spineTab: 14000,
+  closeAdded: 15100,
+  sleeper: 17700,
+  keys: 18550,
+  narrow: 20150,
+  tab: 21050,
+  widen: 21950,
+  house: 22900,
+  end: 24300,
 } as const;
-// When each theme is picked, in ms. It opens in Sash, and comes back to it so the video loops.
-const THEMES = [
-  ["shoji", 2450],
-  ["greenhouse", 4650],
-  ["blueprint", 9000],
-  ["curtain", 13550],
-  ["sleeper", 18450],
-  ["sash", 23900],
-] as const;
-const FADE = 750;
 // How long moves take, in ms.
 const MOVE = { glide: 380, slowDrag: 900, throw: 270, squeeze: 650, drop: 160, click: 80, addGap: 520, closeGap: 600 };
 
 const STAGE = `
-  .mast, footer, main > :not(.window), .themer, .readout > :not([data-act="add"]) { display: none !important }
+  .mast, footer, main > :not(.window), .themer .more, .readout > :not([data-act="add"]) { display: none !important }
   html, body { background: #f6eedc; overflow: hidden }
   .wrap { max-width: none; padding: 0 }
   .window { margin: 0 }
-  ::view-transition { pointer-events: none }
-  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: ${FADE}ms; animation-timing-function: ease-in-out }
-  ::view-transition-group(cursor), ::view-transition-new(cursor) { animation: none; z-index: 1 }
-  ::view-transition-old(cursor) { display: none }
-  #hero { width: 100vw; height: 100vh; margin: auto; border: 0; border-radius: 0; container-type: inline-size; transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1) }
+  #hero { width: 100vw; height: calc(100vh - 68px); margin: auto; border: 0; border-radius: 0; container-type: inline-size; transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1) }
   .narrow #hero { width: 390px; box-shadow: 0 0 0 6px #1b1a17 }
   @container (max-width: 640px) { .p-hello h1 { font-size: 54px } .hint .wide { display: none } .hint .narrow { display: inline } .pane .in { padding: 22px 20px } }
-  .readout { position: fixed; z-index: 999; left: 50%; bottom: 40px; translate: -50% 0; padding: 0; border: 0; opacity: 0; transition: opacity 0.2s }
+  .themer { height: 68px; padding: 0; justify-content: center }
+  .readout { position: fixed; z-index: 999; left: 50%; bottom: 108px; translate: -50% 0; padding: 0; border: 0; opacity: 0; transition: opacity 0.2s }
   .adding .readout { opacity: 1 }
   .readout button[data-act="add"] { margin: 0; padding: 14px 26px; border-width: 3px; background: #f6eedc; font-size: 18px; box-shadow: 0 6px 24px rgb(0 0 0 / 0.4) }
 `;
@@ -73,7 +66,7 @@ function cursorOverlay() {
     dot.style.cssText =
       "position:fixed;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;" +
       "background:rgb(27 26 23/.6);border:2.5px solid #fff;box-shadow:0 1px 6px rgb(0 0 0/.5);" +
-      "z-index:2147483647;pointer-events:none;transition:scale .1s;translate:-40px -40px;view-transition-name:cursor";
+      "z-index:2147483647;pointer-events:none;transition:scale .1s;translate:-40px -40px";
     document.documentElement.append(dot);
     const put = (e: PointerEvent) => (dot.style.translate = `${e.clientX}px ${e.clientY}px`);
     addEventListener("pointermove", put, true);
@@ -82,7 +75,7 @@ function cursorOverlay() {
       (e) => {
         dot.style.scale = "0.75";
         const ring = document.createElement("div");
-        ring.style.cssText = `${dot.style.cssText};view-transition-name:none;background:none;border:3px solid #fff;box-shadow:0 0 0 2px #1b1a17;translate:${e.clientX}px ${e.clientY}px`;
+        ring.style.cssText = `${dot.style.cssText};background:none;border:3px solid #fff;box-shadow:0 0 0 2px #1b1a17;translate:${e.clientX}px ${e.clientY}px`;
         document.documentElement.append(ring);
         ring.animate({ scale: [0.5, 2.6], opacity: [1, 0] }, { duration: 450, easing: "ease-out" }).onfinish = () =>
           ring.remove();
@@ -102,27 +95,8 @@ const HOME: Pt = { x: 560, y: 600 };
 let page: Page;
 let at = HOME;
 let t0 = 0;
-let themed = 0;
-const until = (ms: number) => page.waitForTimeout(Math.max(0, t0 + ms - Date.now()));
-/** Waits for a beat's start, picking any theme due before it. */
-async function beat(ms: number) {
-  for (; themed < THEMES.length && THEMES[themed][1] < ms; themed++) {
-    const [name, when] = THEMES[themed];
-    await until(when);
-    expect(Date.now() - t0 - when, `${name} is picked on time`).toBeLessThan(100);
-    await page.evaluate(async (theme) => {
-      const input = document.querySelector(`.th-pick input[value="${theme}"]`) as HTMLInputElement;
-      await document.startViewTransition(() => {
-        input.click();
-        // The edges re-measure after the next layout, and slide for 240 ms: capture the new look settled.
-        return new Promise((r) => setTimeout(r, 300));
-      }).finished;
-    }, name);
-    await expect(page.locator("#hero")).toHaveAttribute("data-sashay-theme", name);
-    expect(Date.now() - t0, `${name} is on before the next beat`).toBeLessThan(ms + 100);
-  }
-  await until(ms);
-}
+/** Waits for a beat's start. */
+const beat = (ms: number) => page.waitForTimeout(Math.max(0, t0 + ms - Date.now()));
 
 // Moves the mouse to `to` over `ms`. As many steps as round trips allow.
 async function glide(to: Pt, ms = MOVE.glide, ease = easeInOut) {
@@ -145,6 +119,16 @@ async function click(loc: Locator | Pt, ms?: number) {
   await page.mouse.down();
   await page.waitForTimeout(MOVE.click);
   await page.mouse.up();
+}
+
+/** Picks a theme at its beat. Its colours fade while the next beat plays. */
+async function pick(name: keyof typeof BEATS) {
+  await beat(BEATS[name]);
+  const theme = name === "house" ? "" : name;
+  await click(page.locator(`.th-pick input[value="${theme}"]`), 320);
+  const hero = page.locator("#hero");
+  if (theme) await expect(hero).toHaveAttribute("data-sashay-theme", theme);
+  else await expect(hero).not.toHaveAttribute("data-sashay-theme");
 }
 
 /** Records the page through CDP, at its device pixels. Frames come only when something changes. */
@@ -208,7 +192,7 @@ test("hero", async ({ page: p }) => {
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await page.addInitScript(cursorOverlay);
-  await page.goto("./?theme=sash");
+  await page.goto("./");
   await page.addStyleTag({ content: STAGE });
   const hero = page.locator("#hero[data-sashay-ready]");
   const pane = (id: string) => hero.locator(`[data-sashay-pane="${id}"]`);
@@ -219,9 +203,7 @@ test("hero", async ({ page: p }) => {
   const root = page.locator("html");
   await expect(hero.locator("h1")).toHaveText("Sashay");
   await expect(code).toHaveText("69.0");
-  await expect(page.locator("#hero")).toHaveAttribute("data-sashay-theme", "sash");
-  // Every theme's fonts, so a fade never catches one loading.
-  await page.evaluate(() => Promise.all([...document.fonts].map((f) => f.load())));
+  await page.evaluate(() => document.fonts.ready);
   await page.mouse.move(HOME.x, HOME.y);
   await page.waitForTimeout(600);
   const save = process.env.HERO_VIDEO ? await record() : undefined;
@@ -243,6 +225,8 @@ test("hero", async ({ page: p }) => {
   expectSnapped(await valueNow(why));
   await expect(pane("hello")).toHaveAttribute("data-covered");
 
+  await pick("sash");
+
   // A long hard throw: the mark bows, and the edge lands past where it was let go.
   await beat(BEATS.throw);
   const t = await center(why);
@@ -259,6 +243,8 @@ test("hero", async ({ page: p }) => {
   expectSnapped(await valueNow(why));
   await expect(pane("install")).toHaveAttribute("data-closed");
 
+  await pick("shoji");
+
   // Dragged far: Hello can't shrink any further, so Why slides over it.
   await beat(BEATS.squeeze);
   const s = await center(why);
@@ -268,6 +254,8 @@ test("hero", async ({ page: p }) => {
   await page.waitForTimeout(MOVE.drop);
   await page.mouse.up();
   await expect(pane("hello")).toHaveAttribute("data-covered");
+
+  await pick("greenhouse");
 
   // Clicks on the edge close Why and open it again.
   await beat(BEATS.close);
@@ -280,6 +268,8 @@ test("hero", async ({ page: p }) => {
   await click(edge("install"), 250);
   await page.waitForTimeout(300); // the bar slides in with its pane
   await expect(code).toHaveText("69.0");
+
+  await pick("blueprint");
 
   // Install's bar.
   await beat(BEATS.barOpen);
@@ -305,6 +295,8 @@ test("hero", async ({ page: p }) => {
   await expect(tabs).toHaveText(["Hello", "Why", "Install"]);
   expect(new URL(page.url()).searchParams.get("panes")).toBe("4");
 
+  await pick("curtain");
+
   // A spine tab brings its pane back.
   await beat(BEATS.spineTab);
   await root.evaluate((el) => el.classList.remove("adding"));
@@ -320,6 +312,8 @@ test("hero", async ({ page: p }) => {
   }
   await expect(tabs).toHaveCount(0);
   await expect(code).toHaveText("69.0");
+
+  await pick("sleeper");
 
   // The keyboard: Tab to Why's edge, then step it.
   await beat(BEATS.keys);
@@ -360,6 +354,8 @@ test("hero", async ({ page: p }) => {
   await page.locator('#readout [data-act="reset"]').evaluate((b: HTMLElement) => b.click());
   await glide(HOME, 400);
   await expect(code).toHaveText("69.0");
+  await pick("house");
+  await glide(HOME, 400);
   await beat(BEATS.end);
 
   await save?.(t0, process.env.HERO_VIDEO as string);

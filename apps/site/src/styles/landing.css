@@ -353,6 +353,38 @@ pre .s {
   font-family: inherit;
 }
 
+/* Picking a theme fades the hero's colours. Type and shapes change at once, and the edges slide
+   as sashay moves them: its own transitions are repeated here, since this rule replaces them.
+   Only elements that set a colour fade it, so nothing inherits a fade and fades again. */
+@media (prefers-reduced-motion: no-preference) {
+  .frame {
+    --fade: background-color 0.75s, color 0.75s, border-color 0.75s;
+    transition: var(--fade);
+  }
+  .frame
+    :is([data-spine], [data-sashay-spine-tab], [data-sashay-tab], [data-sashay-dots], [data-sashay-close], .btn.fill) {
+    transition: var(--fade);
+  }
+  .frame[data-sashay-ready]:not([data-dragging])
+    :is(
+      [data-sashay-pane]:not([data-offscreen]),
+      [data-sashay-edge],
+      [data-sashay-tabs],
+      [data-sashay-bar-toggle]:not([data-closed], [data-offscreen]),
+      [data-sashay-bar][data-open]:not([data-closed], [data-offscreen])
+    ) {
+    transition:
+      transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+      bottom 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+      var(--fade);
+  }
+  /* Hover answers at once. */
+  .frame :is([data-sashay-edge], [data-sashay-bar-toggle], [data-sashay-close], [data-sashay-spine-tab]):hover,
+  .frame [data-sashay-edge]:hover [data-sashay-dots] {
+    --fade: background-color 0s, color 0s, border-color 0s;
+  }
+}
+
 /* theme picker */
 .themer {
   display: flex;
