@@ -77,10 +77,10 @@ export function Hero({ base }: { base: string }) {
                 a pane with no room left slides under its neighbour. The layout can be saved in the URL.
               </p>
               <div className="cta">
-                <a className="btn fill" href={`${base}guide/`}>
+                <a className="btn fill" data-cta="hero_docs" href={`${base}guide/`}>
                   Read the docs
                 </a>
-                <a className="btn" href="https://www.npmjs.com/package/@vcarl/sashay">
+                <a className="btn" data-cta="hero_install" href="https://www.npmjs.com/package/@vcarl/sashay">
                   npm i @vcarl/sashay
                 </a>
               </div>
@@ -188,7 +188,7 @@ export function Hero({ base }: { base: string }) {
             setThemeParam(t);
           }}
         />
-        <a className="more" href={`${base}themes/`}>
+        <a className="more" data-cta="hero_themes" href={`${base}themes/`}>
           About themes →
         </a>
       </div>

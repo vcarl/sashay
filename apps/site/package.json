@@ -8,6 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "typecheck": "astro check",
+    "test": "node --test scripts/metrics.test.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
