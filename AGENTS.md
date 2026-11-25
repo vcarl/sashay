@@ -83,6 +83,28 @@ GitHub Actions:
 - **Not in CI:** `pnpm test:e2e` and `apps/site/scripts/*.check.mjs`, which check a served build of the
   site. Run them for site changes.
 
+## Site metrics
+
+The website counts visits and interactions with PostHog, through a small client of its own
+(`apps/site/src/scripts/metrics.ts`, loaded by `Metrics.astro` in both footers). **The library
+has no telemetry and never will**: nothing in `packages/sashay` may collect or send anything.
+
+- **Events:** `$pageview`; `sashay_demo_used` (a demo's fixed label, once per demo and page load: whether it was
+  used, not how); `sashay_link_clicked` (outbound host, or the link's `data-cta` label);
+  `sashay_code_copied` (block number). No text, pane content, layout codes, queries or hashes, except
+  `utm_source`, `utm_medium` and `utm_campaign`. Referrers are reduced to their host.
+- **Scope:** the PostHog project is shared with other sites. Every event has `site: "sashay"`, and
+  every custom event starts with `sashay_`. Filter on `site = sashay`.
+- **Privacy:** no cookies, storage or person profiles. PostHog's server counts people with a
+  daily hash (cookieless mode), so one person on two days is two. DNT, GPC and bots send nothing.
+- **Env, read at build:** `PUBLIC_POSTHOG_KEY` (the public project key) and `PUBLIC_POSTHOG_HOST`
+  (default `https://us.i.posthog.com`, no trailing slash). Without a key, nothing ships. In
+  Netlify, scope the key to the **Production** context only, so previews don't report.
+- **PostHog:** turn on Settings > Project > Web analytics > Enable cookieless tracking, or every
+  event is discarded.
+- **Checks:** `pnpm -F site test`, and `node apps/site/scripts/metrics.check.mjs` (builds and
+  serves the site itself, and never reaches PostHog).
+
 ## Bug bot
 
 `scripts/bugbot` starts a local OpenCode session for Carl to drive. The model is served

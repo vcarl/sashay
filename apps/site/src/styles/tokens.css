@@ -21,3 +21,11 @@
     --dur: 0s;
   }
 }
+
+/* The footer's note on site metrics, on the landing page and in the docs. */
+.metrics-note {
+  width: 100%;
+  margin: 12px 0 0;
+  color: var(--mute);
+  font-size: 13px;
+}

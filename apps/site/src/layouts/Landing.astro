@@ -1,5 +1,6 @@
 ---
 import { version } from "../../../../packages/sashay/package.json";
+import Metrics from "../components/Metrics.astro";
 import "../styles/fonts.css";
 import "../styles/tokens.css";
 import "../styles/landing.css";
@@ -36,8 +37,8 @@ const description = "A sliding-panes layout for the web. Snaps, flings, bottom b
     <header class="wrap mast">
       <a class="brand" href={base}>sashay<small>@vcarl/sashay · {version} · MIT</small></a>
       <nav>
-        <a href={`${base}guide/`}>Docs</a>
-        <a href={`${base}themes/`}>Themes</a>
+        <a href={`${base}guide/`} data-cta="nav_docs">Docs</a>
+        <a href={`${base}themes/`} data-cta="nav_themes">Themes</a>
         <a href="https://github.com/vcarl/sashay">GitHub</a>
         <a href="https://www.npmjs.com/package/@vcarl/sashay">npm</a>
       </nav>
@@ -51,6 +52,7 @@ const description = "A sliding-panes layout for the web. Snaps, flings, bottom b
         <a href="https://www.npmjs.com/package/@vcarl/sashay">npm</a> ·
         <a href="https://github.com/vcarl/sashay/blob/main/packages/sashay/CHANGELOG.md">Changelog</a>
       </div>
+      <Metrics />
     </footer>
   </body>
 </html>
