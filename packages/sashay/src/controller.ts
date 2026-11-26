@@ -715,13 +715,16 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
   // A pane's first 20px (`body`) drag its edge too, but never toggle: clicks and selection there stay the content's.
   const onPointerDown = (e: PointerEvent) => {
     const t = e.target as Element;
-    if (e.button !== 0 || gesture || t.closest("[data-sashay-frame]") !== frame) return;
+    if (e.button !== 0 || e.defaultPrevented || gesture || t.closest("[data-sashay-frame]") !== frame) return;
     // A strip can slide from under the pointer before release: capture keeps the click its own.
     t.closest("[data-sashay-bar-toggle]")?.setPointerCapture(e.pointerId);
     if (t.closest("button, input, label, select, textarea, a")) return;
     const edge = t.closest<HTMLElement>("[data-sashay-edge]");
-    const pid = edge ? undefined : t.closest<HTMLElement>("[data-sashay-pane]")?.dataset.sashayPane;
+    const pane = edge ? null : t.closest<HTMLElement>("[data-sashay-pane]");
+    const pid = pane?.dataset.sashayPane;
     const body = pid !== undefined;
+    // Not from editable content, or from an open popover or dialog (shown anywhere, even outside the pane).
+    if (body && ((t as HTMLElement).isContentEditable || pane?.contains(t.closest("[popover], dialog")))) return;
     const src = body ? edges.get(pid) : edge;
     const id = src?.dataset.sashayEdge;
     const k = winIndex(id);
@@ -731,7 +734,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     // Measured once per gesture, never per move.
     const fr = frame.getBoundingClientRect();
     const scale = fr.width / frame.offsetWidth || 1;
-    if (body && e.clientX - fr.left - (frame.clientLeft + (lastX.get(pid) ?? 0)) * scale >= 20) return;
+    const into = e.clientX - fr.left - (frame.clientLeft + (lastX.get(pid as string) ?? 0)) * scale;
+    if (body && (into < 0 || into >= 20)) return;
     // Captured at once on an edge; from a pane only once it drags, so its clicks stay its own.
     const on = (body ? document : src) as HTMLElement; // same pointer events either way
     if (!body) src.setPointerCapture(e.pointerId);
@@ -827,7 +831,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
 
   const onKeyDown = (e: KeyboardEvent) => {
     const t = e.target as HTMLElement;
-    if (t.closest("[data-sashay-frame]") !== frame) return;
+    if (e.defaultPrevented || t.closest("[data-sashay-frame]") !== frame) return;
     if (t.hasAttribute("data-sashay-spine-tab")) {
       const s = t.parentElement as HTMLElement;
       const to = {
