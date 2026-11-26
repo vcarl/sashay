@@ -238,7 +238,8 @@ Edges take room from the panes, so near a threshold a thicker one can change whi
   `aria-valuetext`. The first edge, which has no divider, is a `role="button"` with `aria-expanded`.
   Each edge has `aria-controls` naming the pane after it, and a pane without an `id` is given one.
   Compact tabs sit beside the edge, not inside it, so they are announced.
-- On a focused edge, ← and → move between snaps, and Enter or Space opens or closes the pane.
+- On a focused edge, ← and → move between snaps, Home and End move the divider as far as it goes,
+  and Enter or Space opens or closes the pane.
 - A bar's strip is a button with `aria-expanded` and `aria-controls`. Collapsed content is `inert`,
   and so is the bar of a closed or off-screen pane. Keyboard focus landing under an
   expanded bar collapses it, so focus is never hidden.

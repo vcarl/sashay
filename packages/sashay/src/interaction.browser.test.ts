@@ -250,6 +250,46 @@ test("a click 10px into a pane neither toggles nor steals a button's click", () 
   });
 });
 
+// Presses the content claims, or that only look like they're near the edge, stay the content's.
+const grabs = (el: Element, x: number, init: PointerEventInit = {}) => {
+  pointer(el, "pointerdown", x, { cancelable: true, ...init });
+  pointer(el, "pointermove", x + 10);
+  const dragging = frame.hasAttribute("data-dragging");
+  pointer(el, "pointercancel", x + 10);
+  return dragging;
+};
+test("a pane's own popover, dialog or editable text never drags its edge", () => {
+  mount();
+  const p = $('[data-sashay-pane="b"]');
+  const left = E("b").getBoundingClientRect().left;
+  const shown = <T extends HTMLElement>(el: T) => {
+    el.style.cssText = `position:fixed;inset:auto;margin:0;left:${left - 120}px;top:100px;width:100px;height:40px`;
+    p.append(el);
+    return el;
+  };
+  const pop = shown(document.createElement("div"));
+  pop.popover = "manual";
+  pop.showPopover();
+  expect(grabs(pop, left - 70)).toBe(false);
+  pop.hidePopover();
+  const dlg = shown(document.createElement("dialog"));
+  dlg.showModal();
+  expect(grabs(dlg, left - 70)).toBe(false);
+  dlg.close();
+  const x = E("b").getBoundingClientRect().right + 10;
+  const ed = document.createElement("div");
+  ed.contentEditable = "true";
+  ed.style.cssText = "position:absolute;left:0;top:100px;width:100px;height:40px";
+  p.append(ed);
+  expect(grabs(ed, x)).toBe(false);
+  const claimed = document.createElement("div");
+  claimed.addEventListener("pointerdown", (e) => e.preventDefault());
+  p.append(claimed);
+  expect(grabs(claimed, x)).toBe(false);
+  expect(grabs(p, x)).toBe(true); // plain content still grabs
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 const coveredA = () => {
   mount({ panes: [{ ...P3[0], focus: 0.4 }, P3[1], P3[2]] });
   const a = $('[data-sashay-pane="a"]');
@@ -347,6 +387,38 @@ test("aria", () => {
   expect(B.getAttribute("aria-valuenow")).toBe("50");
   expect(B.getAttribute("aria-valuetext")).toBe("2:1:1");
   expect(E("a").getAttribute("role")).toBe("button");
+});
+
+test("keys the page already handled are left alone", () => {
+  mount();
+  E("b").addEventListener("keydown", (e) => e.preventDefault());
+  key(E("b"), "ArrowRight");
+  key(E("b"), "Enter");
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test("Home and End move a divider as far as the arrows would", () => {
+  const far = (k: string) => {
+    mount();
+    for (let i = 0; i < 20; i++) key(E("b"), k);
+    const code = h?.layout;
+    h?.destroy();
+    frame.remove();
+    frame = mountFrame(["a", "b", "c"]);
+    return code;
+  };
+  const [left, right] = [far("ArrowLeft"), far("ArrowRight")];
+  onChange.mockClear();
+  mount();
+  key(E("b"), "Home");
+  expect(onChange.mock.lastCall?.[0]).toBe(left);
+  key(E("b"), "End");
+  expect(onChange.mock.lastCall?.[0]).toBe(right);
+  expect(new Set(["48", left, right]).size).toBe(3);
+  onChange.mockClear();
+  key(E("a"), "Home"); // the first edge has no divider
+  key(E("a"), "End");
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test("each edge controls its pane, which gets an id only if it has none", () => {
