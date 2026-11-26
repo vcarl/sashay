@@ -397,6 +397,30 @@ test("keys the page already handled are left alone", () => {
   expect(onChange).not.toHaveBeenCalled();
 });
 
+test("Home and End move a divider as far as the arrows would", () => {
+  const far = (k: string) => {
+    mount();
+    for (let i = 0; i < 20; i++) key(E("b"), k);
+    const code = h?.layout;
+    h?.destroy();
+    frame.remove();
+    frame = mountFrame(["a", "b", "c"]);
+    return code;
+  };
+  const [left, right] = [far("ArrowLeft"), far("ArrowRight")];
+  onChange.mockClear();
+  mount();
+  key(E("b"), "Home");
+  expect(onChange.mock.lastCall?.[0]).toBe(left);
+  key(E("b"), "End");
+  expect(onChange.mock.lastCall?.[0]).toBe(right);
+  expect(new Set(["48", left, right]).size).toBe(3);
+  onChange.mockClear();
+  key(E("a"), "Home"); // the first edge has no divider
+  key(E("a"), "End");
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 test("each edge controls its pane, which gets an id only if it has none", () => {
   const b = $('[data-sashay-pane="b"]');
   b.id = "mine";
