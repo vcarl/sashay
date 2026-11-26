@@ -1,5 +1,13 @@
 # @vcarl/sashay
 
+## 1.3.1
+
+### Patch Changes
+
+- cc5f6e9: Each edge has `aria-controls` naming its pane, and a pane without an `id` is given one, removed again by `destroy()`.
+- e150671: A press in a pane's first 20px no longer drags its edge when it lands in an open popover or dialog in that pane (wherever it is shown), in editable content, or when the page already called `preventDefault()` on it. Edges also ignore keys the page already handled.
+- e150671: On a focused edge with a divider, Home and End move the divider as far left or right as the arrow keys would.
+
 ## 1.3.0
 
 ### Minor Changes
