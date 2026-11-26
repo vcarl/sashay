@@ -349,6 +349,21 @@ test("aria", () => {
   expect(E("a").getAttribute("role")).toBe("button");
 });
 
+test("each edge controls its pane, which gets an id only if it has none", () => {
+  const b = $('[data-sashay-pane="b"]');
+  b.id = "mine";
+  mount();
+  expect(E("b").getAttribute("aria-controls")).toBe("mine");
+  const ids = ["a", "c"].map((id) => $(`[data-sashay-pane="${id}"]`).id);
+  expect(ids.every(Boolean)).toBe(true);
+  expect(new Set(ids).size).toBe(2);
+  expect(ids.map((id) => frame.querySelector(`[aria-controls="${id}"]`))).toEqual([E("a"), E("c")]);
+  h?.destroy();
+  h = undefined;
+  expect(b.id).toBe("mine");
+  expect(frame.querySelectorAll("[data-sashay-pane][id]").length).toBe(1);
+});
+
 test("leaf ×", () => {
   mount();
   const x = $("[data-sashay-close]");
