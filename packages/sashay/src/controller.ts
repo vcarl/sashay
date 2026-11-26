@@ -845,16 +845,22 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
       toggle(k);
       return;
     }
-    const dir = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+    // Home and End: as if the arrow were pressed until the divider stops.
+    const dir = ({ ArrowLeft: -1, ArrowRight: 1, Home: -1, End: 1 } as Record<string, number>)[e.key];
     if (!dir || k < 1) return;
     e.preventDefault();
     commit(() => {
       const d = winIndex(id) - 1;
       if (d < 0) return view;
       const o = order();
-      const cur = effIdx();
-      const div = settle(cur.map(snapV), d, snapV(step(cur[d], dir, o)), 0, o, sizes());
-      return divide(div, o);
+      const S = sizes();
+      let cur = effIdx();
+      for (let n = e.key[0] === "A" ? 1 : 99; n--; ) {
+        const next = settle(cur.map(snapV), d, snapV(step(cur[d], dir, o)), 0, o, S);
+        if (`${next}` === `${cur}`) break;
+        cur = next;
+      }
+      return divide(cur, o);
     }, true);
   };
   // Keyboard focus landing under the next pane reveals the covered pane, and under an expanded bar
