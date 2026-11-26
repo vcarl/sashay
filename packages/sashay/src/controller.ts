@@ -144,7 +144,7 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
     const t = strips.get(id);
     return t ? [t, barEls.get(id) as HTMLElement] : [];
   };
-  const named = new WeakSet<HTMLElement>(); // bar content given an id, for aria-controls
+  const named = new WeakSet<HTMLElement>(); // panes and bar content given an id, for aria-controls
   const measure = createMeasure(frame);
   const px = measure.px;
   let W = frame.clientWidth;
@@ -425,6 +425,11 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         lastW.delete(el);
       }
       syncBar(p);
+      if (!el.id) {
+        el.id = `sashay-pane-${++uid}`;
+        named.add(el);
+      }
+      e.setAttribute("aria-controls", el.id);
       e.setAttribute("aria-label", p.title);
       if (k === 0) {
         e.setAttribute("role", "button");
@@ -1032,8 +1037,8 @@ export function createSashay(frame: HTMLElement, options: SashayOptions): Sashay
         for (const a of ["data-covered", "data-closed", "data-offscreen", "data-open", "data-bar"])
           el.removeAttribute(a);
         el.inert = false;
+        if (named.has(el)) el.removeAttribute("id");
       }
-      for (const el of barEls.values()) if (named.has(el)) el.removeAttribute("id");
       for (const [el, s] of orig) {
         el.setAttribute("style", s ?? "");
         if (s === null) el.removeAttribute("style"); // after setAttribute: Chrome syncs CSSOM writes lazily
