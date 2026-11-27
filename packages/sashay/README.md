@@ -7,7 +7,7 @@ whole layout encodes to a short string that fits in a URL. React components (Rea
 server-rendered and usable from React Server Components, with a zero-dependency core
 underneath.
 
-[![Demo video: resizing sashay panes by dragging their edges](https://vcarl.com/sashay/share.png)](https://vcarl.com/sashay/share.mp4)
+https://github.com/user-attachments/assets/418d6f31-bd94-41cc-9102-3161a9ee7552
 
 ```sh
 pnpm add @vcarl/sashay react react-dom
