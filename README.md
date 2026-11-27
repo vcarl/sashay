@@ -7,6 +7,8 @@ whole layout encodes to a short string that fits in a URL. React components (Rea
 server-rendered and usable from React Server Components, with a zero-dependency core
 underneath.
 
+![sashay — drag an edge, switch themes, add and close panes](https://raw.githubusercontent.com/yasirwhite/opendemo-media/main/vcarl-sashay/sashay-demo.gif)
+
 ```sh
 pnpm add @vcarl/sashay react react-dom
 ```
